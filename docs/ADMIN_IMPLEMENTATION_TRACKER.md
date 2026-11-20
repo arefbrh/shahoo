@@ -232,3 +232,45 @@ Before handing this work to another agent:
 - Remaining Phase 2 work: admin-only content preview/publish workflow, final responsive review, and an end-to-end audit of canonical settings/cache invalidation.
 - Remaining Phase 3 work: image processing/thumbnail generation, shared-media-library coverage across all asset types, and an owner-approved Preview bucket configuration followed by upload/read/delete smoke testing.
 - Next implementation step: add a safe admin-only preview path for unpublished pages/articles without exposing drafts publicly; then add explicit publish/unpublish actions with permission checks, transactional audit history and regression tests.
+
+## 15. New roadmap phase — order fulfillment, invoices, shipping labels and printing (2026-11-20)
+
+Owner requirement: expand order management beyond a basic status field into an end-to-end pick, pack, document, dispatch and tracking workflow. This is a planned product phase; no implementation or order-data changes are implied by this roadmap entry.
+
+### Phase 7 — Order fulfillment and print center
+
+- [ ] Map the complete order lifecycle: received, payment verification, picking, packing, ready to dispatch, handed to carrier, in transit, delivered, failed delivery, returned/cancelled. Keep payment state separate from fulfillment/shipping state.
+- [ ] Add an order fulfillment workspace with item-level picking checklist, quantities, variant/SKU, stock validation, packing notes, package count/weight/dimensions, operator and timestamps.
+- [ ] Preserve immutable order-time product names, SKUs, quantities, discounts, shipping/tax and price snapshots on the invoice; never recalculate historical invoices from current catalog prices.
+- [ ] Create a distinctive SHAHOO invoice design using the approved minimal brand logo. First deliver a visual draft for owner review; do not add the template or implementation to the app until explicit design approval.
+- [ ] After approval, generate invoice exports as print-quality PDF, PNG preview/image, and Excel-compatible XLSX. Define Persian RTL typography, numerals, currency formatting, page breaks, long-item handling, order number/date, buyer details, line items, totals, payment/shipping details and return/contact policy.
+- [ ] Support customer-facing invoice and internal picking/packing slip as separate document modes, with configurable visibility of prices and internal notes.
+- [ ] Add a sender profile in admin (name/business name, phone, return address, postal code and optional contact details). Sender details must be editable centrally and snapshotted onto each shipment label when created.
+- [ ] Generate a shipping address label from the order recipient details plus the configured sender profile. Validate recipient name, phone, full address and 10-digit postal code; allow authorized correction before label generation and retain an audit trail.
+- [ ] Research and document carrier-specific requirements before claiming compliance. Initial research found general address/legibility guidance and references to sender/recipient address, postal code and phone, but did not establish one authoritative current National Post label size/layout specification. Treat A5/A4 and 100×150 mm (4×6 inch) thermal layouts as configurable candidate formats, not officially approved dimensions. Confirm current requirements with the National Post / carrier or its merchant integration documentation before finalizing.
+- [ ] Build a print center with selectable paper/label size, orientation, margins, scaling, copies, printer destination via the browser/system print dialog, print preview, and safe retry. Support ordinary laser/inkjet printers and common thermal label printers without hard-coding one printer model.
+- [ ] Provide dedicated layouts for A4/A5 sheet printing and configurable 100×150 mm / 4×6 thermal labels; add calibration/test page and preserve barcode quiet zones and minimum readable sizes where carrier barcodes are used.
+- [ ] Keep carrier tracking number/barcode distinct from SHAHOO order number. Only print a carrier barcode/official tracking identifier when issued by the carrier or its approved integration; never fabricate one.
+- [ ] Add shipment records, carrier/service, tracking number, dispatch date, shipping cost, label generation history, reprint action, delivery/exception events and customer notification hooks.
+- [ ] Investigate official carrier APIs/merchant portals (starting with Iran National Post) for address validation, shipment registration, postage, tracking and label generation. Keep carrier integration behind an adapter so other carriers can be added.
+- [ ] Add permissions, audit events, idempotency and tests for duplicate label generation, reprints, address edits, partial shipments, refunds/returns and concurrent fulfillment.
+- [ ] Test print output on PDF and real hardware: at least one standard printer and one thermal label printer, across desktop browsers. Browser printing is the portable baseline; direct silent printing/device management may require an optional local print bridge or supported network-print service and must be evaluated separately.
+- [ ] Do not mark carrier compliance or hardware compatibility complete based only on generated PDFs or mocked tests; require owner verification on actual devices and confirmation from the selected carrier.
+
+### Research notes (initial, non-final)
+
+- Public guidance located during initial research emphasizes a legible complete recipient address, city/province, postal code and placement on the parcel; supplementary operational guidance recommends recipient/sender names, phone numbers and complete address. See the carrier-neutral guidance at https://peyksanati.ir/ and public postal-address guidance reported at https://www.hamedanpayam.com/file/0xb5407d15ede41191.pdf.
+- A Tapin merchant agreement document refers to an address label, parcel contents information, accompanying sales invoice, and use of a digital scale and laser printer in that specific contractual workflow: https://www.tapin.ir/wp-content/uploads/2020/01/اعتبار-حقوقی.pdf. This is not a universal National Post specification.
+- A public label generator advertises A5 output and multi-carrier use, but this is third-party evidence, not proof of official approval: https://postprinter.ir/.
+- Before final design, obtain the current requirements for the actual service used by SHAHOO (National Post, including any merchant/contract workflow, or another carrier). Determine whether the carrier provides its own barcode/label, mandatory fields, label stock size, placement, and whether merchant-generated labels are accepted.
+
+### Delivery sequence
+
+1. Complete the currently active CMS/media work and its review; do not interrupt the active branch with order-print implementation.
+2. Audit the existing order/payment/shipping schema and admin routes; write an order lifecycle and data-gap proposal before schema changes.
+3. Produce the SHAHOO invoice visual concept and sample data preview in PNG/PDF/XLSX for owner approval. Keep it outside the application until approved.
+4. Research and confirm the chosen carrier's label requirements; produce a separate shipping-label concept for owner review.
+5. Implement immutable invoice snapshots, fulfillment workflow, sender settings, label generation and print center in isolated PR(s), with migrations/tests.
+6. Validate browser print and real standard/thermal printers, then owner-smoke-test Preview.
+7. Only after explicit owner approval, merge and promote through the normal release process.
+
