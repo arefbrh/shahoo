@@ -992,10 +992,10 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
   AdminOrdersRouteChildren,
 )
 
-  AdminContentPreviewEntityTypeEntityIdRoute: typeof AdminContentPreviewEntityTypeEntityIdRoute
 interface AdminRouteChildren {
   AdminCatalogRoute: typeof AdminCatalogRoute
   AdminContentRoute: typeof AdminContentRoute
+  AdminContentPreviewEntityTypeEntityIdRoute: typeof AdminContentPreviewEntityTypeEntityIdRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminOffersRoute: typeof AdminOffersRoute
@@ -1007,10 +1007,10 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
-  AdminContentPreviewEntityTypeEntityIdRoute: AdminContentPreviewEntityTypeEntityIdRoute,
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCatalogRoute: AdminCatalogRoute,
   AdminContentRoute: AdminContentRoute,
+  AdminContentPreviewEntityTypeEntityIdRoute: AdminContentPreviewEntityTypeEntityIdRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminOffersRoute: AdminOffersRoute,
