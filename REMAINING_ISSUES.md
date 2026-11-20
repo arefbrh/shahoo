@@ -91,3 +91,28 @@ All fixtures and databases were synthetic/disposable. No Neon, Vercel environmen
 CI run [44729304066](https://github.com/arefbrh/shahoo/actions/runs/44729304066) passed for PR head `4ab448b95a86e8f73f15dc2ed6edc2eaf0663349`. The disposable PostgreSQL 16 harness now invokes three actual application functions: `commitCheckout` under a two-cart stock race; two concurrent `releaseExpiredHolds` workers against one expired unpaid order; and two concurrent `captureVerifiedPayment` calls against that expired order using a local in-memory fake provider. Assertions confirmed exactly one checkout, one expiry release/event/audit, and one late-payment recovery/capture/payment/stock decrement/paid event/audit. The same run passed typecheck, lint, build, project tests, security, payment/SMS mocks, migrations and PostgreSQL dump/restore; private platform harness was skipped as not enabled.
 
 The fake provider does not make network calls and is not evidence of a live PayPing transaction. Remaining PostgreSQL work includes insufficient-stock/unsellable recovery rollback, competing checkout during recovery, coupon restoration, callback-route duplicate/settlement races, quote/order transition/RBAC, multi-process seed, full upgrade parity and production-like disaster recovery. PR #6 remains open and unmerged; no Neon, Vercel environment or Production DB was changed.
+
+
+---
+
+## PR #6 latest CI and commerce race evidence — 2026-11-20
+
+This addendum supersedes the earlier PR #6 entries above where they say the recovery rollback matrix, duplicate callback race, coupon restoration, or latest Project tests were still open/pending.
+
+Latest PR #6 head: `17c8e9dd38c7c6a792a39b2b430eb08cf715ab3d`. GitHub Actions run [44733552547](https://github.com/arefbrh/shahoo/actions/runs/44733552547) completed successfully:
+- Project tests — success.
+- PostgreSQL integration and migrations — success.
+- Payment and SMS mock tests — success.
+- Typecheck, lint and build — success.
+- Security checks — success.
+- Migration inventory — success.
+- Optional private platform harness — skipped (not enabled); do not count this as passed.
+
+Newly verified application test coverage:
+- Seven-case late-payment recovery rollback matrix: unpublished/deleted product, inactive/deleted variant, inactive/deleted category and insufficient stock all deny capture without changing order/inventory or writing payment, inventory-log or audit side effects.
+- Concurrent duplicate PayPing callback lifecycle: accepted responses, settled attempt, paid/verified order, exactly one payment row and one verified-payment log.
+- Concurrent expiry/coupon restoration: exactly one expiry release/event/inventory log and coupon usage restored once.
+
+These are synthetic CI tests with a local/mock provider, not live payment or SMS transactions. PostgreSQL tests run against disposable CI PostgreSQL 16, not Neon or Production. PR #6 remains open and unmerged.
+
+Still open: callback HTTP route end-to-end integration; checkout competing with late-payment recovery; quote/order transition/RBAC; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, media, secrets, host/network configuration, encryption and retention. Live provider setup, separate Production Neon database and Production release gates remain outstanding.
