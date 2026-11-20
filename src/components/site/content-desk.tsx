@@ -131,7 +131,7 @@ function HomeTab({
           onDone={onDone}
         />
       ))}
-      <p className="text-sm leading-7 text-muted">خطوط اسلایدر در گروه‌های سه‌تایی نمایش داده می‌شوند؛ همه بنرهای فعال به ترتیب و با دکمه‌های قبلی و بعدی قابل دیدن‌اند.</p>
+      <p className="text-sm leading-7 text-muted">اسلایدها بنرهای تصویری صفحه اول هستند. ترتیب نمایش با دکمه‌های بالا و پایین تعیین می‌شود؛ تاریخ شروع و پایان برای زمان‌بندی اختیاری‌اند.</p>\n      {desk.banners.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز اسلایدی ثبت نشده است. از فرم «اسلاید تازه» پایین این قسمت برای ساخت اولین بنر استفاده کنید؛ تا وقتی رسانه‌ای انتخاب نکنید بنر بدون تصویر خواهد بود.</p> : null}
       {desk.banners.map((banner, index) => (
         <BannerForm
           key={banner.id}
