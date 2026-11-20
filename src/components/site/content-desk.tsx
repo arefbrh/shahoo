@@ -10,6 +10,7 @@ import {
   saveArticleFn,
   saveBannerFn,
   saveBannerOrderFn,
+  saveBrandSettingsFn,
   saveNavFn,
   saveNavOrderFn,
   savePageFn,
@@ -73,7 +74,7 @@ export function ContentDesk() {
   return (
     <div className="mt-6">
       <p className="text-sm leading-7 text-muted">
-        ترتیب با دکمه‌ها عوض می‌شود. لوگوی رسمی هدر و هیرو ثابت است. در این نسخه تصویر فقط با ثبت نشانی عمومی HTTPS و متن جایگزین به کتابخانه افزوده می‌شود؛ بارگذاری فایل و فضای ابری در دسترس نیست.
+        تنظیمات برند، لوگوها و محتوای صفحه از همین بخش مدیریت می‌شوند. برای رسانه‌های جدید فعلاً نشانی عمومی HTTPS لازم است؛ بارگذاری مستقیم فایل در این نسخه فعال نیست.
       </p>
       {notice ? (
         <p className="mt-3 text-sm font-bold text-forest" role="status">
@@ -112,6 +113,7 @@ function HomeTab({
 }) {
   return (
     <>
+      <BrandSettingsForm desk={desk} onDone={onDone} />
       <CopyForm desk={desk} onDone={onDone} />
       <ProfileForm desk={desk} onDone={onDone} />
       <p className="text-sm leading-7 text-muted">پس از به‌روزرسانی، عنوان و زیرعنوان سه بخش محصولات را بررسی کنید. متن‌هایی که قبلاً در مدیریت ویرایش شده‌اند خودکار جایگزین نمی‌شوند.</p>
@@ -170,6 +172,39 @@ function CopyForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
       <button type="submit" className={buttonPrimary}>
         ذخیره معرفی
       </button>
+    </form>
+  );
+}
+
+function BrandSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult) => Promise<void> }) {
+  const [brandName, setBrandName] = useState(desk.brandName);
+  const [tagline, setTagline] = useState(desk.tagline);
+  const [copyright, setCopyright] = useState(desk.copyright);
+  const [headerLogo, setHeaderLogo] = useState(desk.logos.header);
+  const [footerLogo, setFooterLogo] = useState(desk.logos.footer);
+  const [message, setMessage] = useState("");
+  return (
+    <form
+      className={`${panelClass} space-y-3 p-4`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void saveBrandSettingsFn({ data: { brandName, tagline, copyright, headerLogo, footerLogo } })
+          .then(async (result) => {
+            if (!result.ok) setMessage(result.message);
+            else { setMessage("تنظیمات برند ذخیره شد."); await onDone(result); }
+          })
+          .catch(() => setMessage("ذخیره تنظیمات برند انجام نشد."));
+      }}
+    >
+      <h2 className="font-bold text-forest">هویت برند و لوگوها</h2>
+      <p className="text-xs leading-6 text-muted">این مقادیر منبع مرکزی هدر و فوتر هستند. برای لوگو از مسیر /assets/brand/ یا نشانی عمومی HTTPS با پسوند PNG، JPG یا WebP استفاده کنید.</p>
+      <label className="block space-y-1 text-sm"><span>نام برند</span><input className={fieldClass} value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} /></label>
+      <label className="block space-y-1 text-sm"><span>شعار فروشگاه</span><input className={fieldClass} value={tagline} onChange={(event) => setTagline(event.target.value)} maxLength={180} /></label>
+      <label className="block space-y-1 text-sm"><span>متن کپی‌رایت</span><input className={fieldClass} value={copyright} onChange={(event) => setCopyright(event.target.value)} maxLength={180} /></label>
+      <label className="block space-y-1 text-sm"><span>لوگوی هدر</span><input className={fieldClass} dir="ltr" value={headerLogo} onChange={(event) => setHeaderLogo(event.target.value)} maxLength={500} /></label>
+      <label className="block space-y-1 text-sm"><span>لوگوی فوتر</span><input className={fieldClass} dir="ltr" value={footerLogo} onChange={(event) => setFooterLogo(event.target.value)} maxLength={500} /></label>
+      {message ? <p className="text-sm font-bold text-forest" role="status">{message}</p> : null}
+      <button type="submit" className={buttonPrimary}>ذخیره هویت برند</button>
     </form>
   );
 }
