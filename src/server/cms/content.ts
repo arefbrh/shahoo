@@ -679,13 +679,14 @@ export async function restoreContentRevision(db: Database, actorId: string, revi
     const [revision] = await tx.select().from(contentRevisions).where(eq(contentRevisions.id, revisionId));
     if (!revision) deny("نسخه موردنظر پیدا نشد.");
     const snapshot = revision.snapshot;
+    const snapshotText = (key: string): string => typeof snapshot[key] === "string" ? snapshot[key] as string : "";
     if (revision.entityType === "page") {
       const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, revision.entityId)).for("update");
       if (!row) deny("صفحه‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
-      const title = cleanInline(snapshot.title, 2, 120);
-      const body = cleanBody(snapshot.body, 2, 12000);
-      const seoTitle = cleanInline(snapshot.seoTitle, 0, 120);
-      const seoDescription = cleanInline(snapshot.seoDescription, 0, 240);
+      const title = cleanInline(snapshotText("title"), 2, 120);
+      const body = cleanBody(snapshotText("body"), 2, 12000);
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120);
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240);
       if (!title || !body || seoTitle === null || seoDescription === null || typeof snapshot.isPublished !== "boolean") {
         deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
       }
@@ -698,18 +699,18 @@ export async function restoreContentRevision(db: Database, actorId: string, revi
     if (revision.entityType === "article") {
       const [row] = await tx.select().from(articles).where(and(eq(articles.id, revision.entityId), isNull(articles.deletedAt))).for("update");
       if (!row) deny("مقاله‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
-      const categoryId = typeof snapshot.categoryId === "string" ? snapshot.categoryId : "";
+      const categoryId = snapshotText("categoryId");
       const [category] = await tx.select({ id: articleCategories.id }).from(articleCategories).where(eq(articleCategories.id, categoryId));
       if (!category) deny("دسته این نسخه دیگر وجود ندارد.");
-      const title = cleanInline(snapshot.title, 2, 140);
-      const excerpt = cleanBody(snapshot.excerpt, 0, 400);
-      const content = cleanBody(snapshot.content, 0, 20000);
-      const authorName = cleanInline(snapshot.authorName, 2, 80);
-      const seoTitle = cleanInline(snapshot.seoTitle, 0, 120);
-      const seoDescription = cleanInline(snapshot.seoDescription, 0, 240);
+      const title = cleanInline(snapshotText("title"), 2, 140);
+      const excerpt = cleanBody(snapshotText("excerpt"), 0, 400);
+      const content = cleanBody(snapshotText("content"), 0, 20000);
+      const authorName = cleanInline(snapshotText("authorName"), 2, 80);
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120);
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240);
       const readMinutes = snapshot.readMinutes;
       const status = snapshot.status;
-      const slug = typeof snapshot.slug === "string" ? parseSlug(snapshot.slug) : null;
+      const slug = parseSlug(snapshotText("slug"));
       const coverMediaId = typeof snapshot.coverMediaId === "string" ? snapshot.coverMediaId : null;
       const relatedProductIds = Array.isArray(snapshot.relatedProductIds) && snapshot.relatedProductIds.every((id) => typeof id === "string") ? snapshot.relatedProductIds as string[] : [];
       if (!slug || !title || excerpt === null || content === null || !authorName || seoTitle === null || seoDescription === null ||

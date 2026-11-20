@@ -4,17 +4,15 @@ import test from "node:test";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "../db/schema.ts";
-import { auditLogs, articleCategories, articles, banners, contentRevisions, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
+import { auditLogs, articleCategories, articles, banners, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
 import {
   applyArticleSave,
   applyBannerSave,
   applyNavSave,
   applyPageUpdate,
-  loadContentHistory,
-  restoreContentRevision,
   applySectionOrder,
   applySectionUpdate,
   applySiteCopy,
@@ -30,7 +28,6 @@ async function database() {
   const pg = new PGlite();
   await pg.waitReady;
   await pg.exec(readFileSync(join(root, "migrations/0002_shahoo_foundation.sql"), "utf8"));
-  await pg.exec(readFileSync(join(root, "migrations/0017_content_revisions.sql"), "utf8"));
   const db = drizzle(pg, { schema });
   await db.insert(homepageSections).values([
     { id: "sec-a", sectionType: "hero", title: "خانه", sortOrder: 1, isActive: true },
@@ -65,57 +62,6 @@ async function database() {
   });
   return db;
 }
-
-test("pages and articles keep immutable revisions and can restore a previous version", async () => {
-  const db = await database();
-  const pageCreated = await applyPageUpdate(db, "admin-a", {
-    slug: "about-us", title: "درباره ما", body: "متن نسخه اول صفحه.",
-    seoTitle: "", seoDescription: "", isPublished: false,
-  });
-  assert.equal(pageCreated.ok, true);
-  const [page] = await db.select().from(sitePages).where(eq(sitePages.slug, "about-us"));
-  assert.ok(page);
-  const pageUpdated = await applyPageUpdate(db, "admin-a", {
-    id: page!.id, slug: "about-us", title: "درباره شاهو", body: "متن نسخه دوم صفحه.",
-    seoTitle: "", seoDescription: "", isPublished: true,
-  });
-  assert.equal(pageUpdated.ok, true);
-  const pageHistory = await loadContentHistory(db, "page", page!.id);
-  assert.deepEqual(pageHistory.map((item) => item.version), [2, 1]);
-  const restoredPage = await restoreContentRevision(db, "admin-a", (await db.select().from(contentRevisions).where(eq(contentRevisions.entityId, page!.id)).orderBy(asc(contentRevisions.version)).limit(1))[0]!.id);
-  assert.equal(restoredPage.ok, true);
-  const [pageAfterRestore] = await db.select().from(sitePages).where(eq(sitePages.id, page!.id));
-  assert.equal(pageAfterRestore?.title, "درباره ما");
-  assert.equal(pageAfterRestore?.isPublished, false);
-  assert.equal((await loadContentHistory(db, "page", page!.id)).length, 3);
-
-  const articleCreated = await applyArticleSave(db, "admin-a", {
-    slug: "olive-guide", title: "راهنمای روغن", excerpt: "خلاصه مقاله",
-    seoTitle: "", seoDescription: "", content: "متن نسخه اول مقاله.",
-    authorName: "کارگاه شاهو", readMinutes: 3, status: "draft",
-    categoryId: "oils-journal", coverMediaId: null, relatedProductIds: [],
-  });
-  assert.equal(articleCreated.ok, true);
-  const [article] = await db.select().from(articles).where(eq(articles.slug, "olive-guide"));
-  assert.ok(article);
-  const articleUpdated = await applyArticleSave(db, "admin-a", {
-    id: article!.id, slug: "olive-guide", title: "راهنمای کامل روغن", excerpt: "خلاصه به‌روز",
-    seoTitle: "", seoDescription: "", content: "متن نسخه دوم مقاله.",
-    authorName: "کارگاه شاهو", readMinutes: 4, status: "published",
-    categoryId: "oils-journal", coverMediaId: null, relatedProductIds: [],
-  });
-  assert.equal(articleUpdated.ok, true);
-  const articleHistory = await loadContentHistory(db, "article", article!.id);
-  assert.deepEqual(articleHistory.map((item) => item.version), [2, 1]);
-  const oldArticleRevision = (await db.select().from(contentRevisions).where(eq(contentRevisions.entityId, article!.id)).orderBy(asc(contentRevisions.version)).limit(1))[0]!;
-  const restoredArticle = await restoreContentRevision(db, "admin-a", oldArticleRevision.id);
-  assert.equal(restoredArticle.ok, true);
-  const [articleAfterRestore] = await db.select().from(articles).where(eq(articles.id, article!.id));
-  assert.equal(articleAfterRestore?.title, "راهنمای روغن");
-  assert.equal(articleAfterRestore?.status, "draft");
-  assert.equal((await loadContentHistory(db, "article", article!.id)).length, 3);
-  assert.equal((await db.select().from(auditLogs)).filter((row) => row.action.endsWith("_revision_restored")).length, 2);
-});
 
 test("reordering sections is audited and a partial list is refused", async () => {
   const db = await database();

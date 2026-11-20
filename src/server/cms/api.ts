@@ -18,8 +18,6 @@ import {
   applySiteCopy,
   applyStoreProfile,
   loadCmsDesk,
-  loadContentHistory,
-  restoreContentRevision,
   registerExternalMedia,
   retireMedia,
 } from "./content";
@@ -163,17 +161,6 @@ export const saveNavFn = createServerFn({ method: "POST" })
 export const saveNavOrderFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ menuKey: z.string().min(2).max(40), ids: z.array(z.string().min(2).max(80)).min(1).max(12) }).parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyNavOrder(db, actorId, data.menuKey, data.ids)));
-
-export const getContentHistoryFn = createServerFn({ method: "GET" })
-  .validator((input: unknown) => z.object({
-    entityType: z.enum(["page", "article"]),
-    entityId: z.string().min(2).max(100),
-  }).parse(input))
-  .handler(async ({ data }) => withContentWrite((db) => loadContentHistory(db, data.entityType, data.entityId)));
-
-export const restoreContentRevisionFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => z.object({ revisionId: z.string().min(2).max(100) }).parse(input))
-  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => restoreContentRevision(db, actorId, data.revisionId)));
 
 export const savePageFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => pageSchema.parse(input))
