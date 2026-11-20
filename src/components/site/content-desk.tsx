@@ -510,7 +510,7 @@ function NavTab({
 }) {
   return (
     <>
-      {desk.menus.map((menu) => (
+      {desk.menus.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">منویی برای ویرایش در پایگاه داده تعریف نشده است. این میز در حال حاضر منوهای موجود را ویرایش می‌کند و امکان ساخت گروه منوی تازه هنوز فراهم نیست.</p> : null}\n      {desk.menus.map((menu) => (
         <section key={menu.key} className="space-y-3">
           <h2 className="font-bold text-forest">{menu.name}</h2><p className="text-xs leading-6 text-muted">این گروه از پیوندها در بخش «{menu.name}» سایت نمایش داده می‌شود. عنوان کوتاه و مقصد معتبر وارد کنید؛ برای تغییر ترتیب از دکمه‌های بالا/پایین استفاده کنید.</p>
           {menu.items.map((item, index) => (
@@ -599,7 +599,7 @@ function PagesTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
   return (
     <div className="space-y-3">
       <p className="text-sm leading-7 text-muted">نامک صفحه‌های متصل به مسیرهای فعلی تغییر نمی‌کند. صفحه تازه با مسیر /pages/{"{slug}"} ساخته می‌شود؛ صفحه منتشرنشده در سایت دیده نمی‌شود.</p>
-      <button type="button" className={pageId === "new" ? buttonPrimary : buttonGhost} onClick={() => setPageId("new")}>صفحه تازه</button>
+      {desk.pages.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز صفحه ثابتی ساخته نشده است. این وضعیت طبیعی است؛ برای شروع روی «صفحه تازه» بزنید و مثلاً صفحه درباره ما یا قوانین را بسازید.</p> : null}\n      <button type="button" className={pageId === "new" ? buttonPrimary : buttonGhost} onClick={() => setPageId("new")}>صفحه تازه</button>
       <select className={fieldClass} value={pageId} onChange={(event) => setPageId(event.target.value)} aria-label="انتخاب صفحه">
         {desk.pages.length === 0 ? <option value="">صفحه‌ای ثبت نشده است</option> : null}
         {desk.pages.map((item) => (
@@ -639,11 +639,11 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
           <span className="mt-1 block text-xs text-muted" dir="ltr">/pages/{slug || "slug"}</span>
         </label>
       )}
-      <input className={fieldClass} value={title} onChange={(event) => setTitle(event.target.value)} aria-label="عنوان صفحه" />
+      <input className={fieldClass} value={title} onChange={(event) => setTitle(event.target.value)} aria-label="عنوان صفحه" placeholder="عنوان قابل نمایش؛ مثلاً درباره ما" />
       <p className="text-xs leading-6 text-muted">متن ساده و فارسی پذیرفته می‌شود؛ برای شروع بند تازه یک خط خالی بگذارید. HTML اجرا نمی‌شود.</p>
       <textarea className={`${fieldClass} min-h-40`} value={body} onChange={(event) => setBody(event.target.value)} aria-label="متن صفحه" />
-      <input className={fieldClass} value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} aria-label="عنوان سئو" />
-      <input className={fieldClass} value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} aria-label="شرح سئو" />
+      <input className={fieldClass} value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} aria-label="عنوان سئو" placeholder="عنوان سئو؛ خالی = عنوان صفحه" />
+      <input className={fieldClass} value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} aria-label="شرح سئو" placeholder="خلاصه صفحه برای نتایج جست‌وجو" />
       <label className="inline-flex min-h-11 items-center gap-2 text-sm">
         <input type="checkbox" checked={isPublished} onChange={(event) => setIsPublished(event.target.checked)} />
         منتشر شده
@@ -662,7 +662,7 @@ function MagazineTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResu
   const article = desk.articles.find((item) => item.id === articleId) ?? null;
   return (
     <div className="space-y-3">
-      <input className={fieldClass} value={query} onChange={(event) => setQuery(event.target.value)} aria-label="جست‌وجوی مقاله" placeholder="جست‌وجو در عنوان یا نامک مقاله" />
+      {desk.articles.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز مقاله‌ای ثبت نشده است. برای ساخت اولین مطلب روی «مقاله تازه» بزنید؛ تا زمانی که وضعیت «منتشر شده» انتخاب نشود، مقاله عمومی نخواهد بود.</p> : null}\n      <input className={fieldClass} value={query} onChange={(event) => setQuery(event.target.value)} aria-label="جست‌وجوی مقاله" placeholder="جست‌وجو در عنوان یا نامک مقاله" />
       {desk.articles.length === 100 ? <p className="text-xs text-muted">فقط ۱۰۰ مقاله تازه‌تر بارگذاری شده‌اند.</p> : null}
       <div className="flex flex-wrap gap-2">
         <button type="button" className={articleId === "new" ? buttonPrimary : buttonGhost} onClick={() => setArticleId("new")}>
@@ -725,10 +725,10 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
       }}
     >
       <div className="grid gap-2 sm:grid-cols-2">
-        <input className={fieldClass} value={title} onChange={(event) => setTitle(event.target.value)} aria-label="عنوان مقاله" />
+        <input className={fieldClass} value={title} onChange={(event) => setTitle(event.target.value)} aria-label="عنوان مقاله" placeholder="عنوان مقاله؛ مثلاً راهنمای انتخاب روغن زیتون" />
         <input className={fieldClass} value={slug} onChange={(event) => setSlug(event.target.value)} aria-label="نامک مقاله" dir="ltr" />
       </div>
-      <textarea className={`${fieldClass} min-h-20`} value={excerpt} onChange={(event) => setExcerpt(event.target.value)} aria-label="خلاصه" />
+      <textarea className={`${fieldClass} min-h-20`} value={excerpt} onChange={(event) => setExcerpt(event.target.value)} aria-label="خلاصه" placeholder="خلاصه ۲ تا ۳ جمله‌ای برای فهرست مجله" />
       <div className="grid gap-2 sm:grid-cols-2">
         <input className={fieldClass} value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} aria-label="عنوان سئو مقاله" placeholder="عنوان سئو؛ خالی = عنوان مقاله" maxLength={120} />
         <input className={fieldClass} value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} aria-label="شرح سئو مقاله" placeholder="شرح سئو؛ خالی = خلاصه" maxLength={240} />
@@ -736,8 +736,8 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
       <p className="text-xs leading-6 text-muted">متن مقاله ساده و فارسی است؛ برای شروع بند تازه یک خط خالی بگذارید. HTML اجرا نمی‌شود.</p>
       <textarea className={`${fieldClass} min-h-40`} value={content} onChange={(event) => setContent(event.target.value)} aria-label="متن مقاله" />
       <div className="grid gap-2 sm:grid-cols-3">
-        <input className={fieldClass} value={authorName} onChange={(event) => setAuthorName(event.target.value)} aria-label="نویسنده" />
-        <input className={fieldClass} value={readMinutes} onChange={(event) => setReadMinutes(event.target.value)} aria-label="دقیقه مطالعه" inputMode="numeric" />
+        <input className={fieldClass} value={authorName} onChange={(event) => setAuthorName(event.target.value)} aria-label="نویسنده" placeholder="نام نویسنده یا تیم؛ مثلاً کارگاه شاهو" />
+        <input className={fieldClass} value={readMinutes} onChange={(event) => setReadMinutes(event.target.value)} aria-label="دقیقه مطالعه" inputMode="numeric" placeholder="زمان مطالعه؛ مثلاً ۴ دقیقه" />
         <select className={fieldClass} value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="دسته مقاله">
           {desk.articleCategories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -862,7 +862,7 @@ function MediaTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
       >
         <h2 className="font-bold text-forest">ثبت نشانی تصویر HTTPS</h2>
         <input className={fieldClass} value={url} onChange={(event) => setUrl(event.target.value)} aria-label="نشانی تصویر" dir="ltr" placeholder="https://" />
-        <input className={fieldClass} value={alt} onChange={(event) => setAlt(event.target.value)} aria-label="متن جایگزین" />
+        <input className={fieldClass} value={alt} onChange={(event) => setAlt(event.target.value)} aria-label="متن جایگزین" placeholder="توصیف کوتاه تصویر برای دسترس‌پذیری" />
         <button type="submit" className={buttonPrimary} disabled={registering}>
           {registering ? "در حال ثبت..." : "ثبت نشانی"}
         </button>
