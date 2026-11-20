@@ -12,6 +12,7 @@ import {
   saveBannerOrderFn,
   saveBrandSettingsFn,
   saveCarouselSettingsFn,
+  saveStoreLayoutFn,
   saveNavFn,
   saveNavOrderFn,
   savePageFn,
@@ -118,6 +119,7 @@ function HomeTab({
     <>
       <BrandSettingsForm desk={desk} onDone={onDone} />
       <CarouselSettingsForm desk={desk} onDone={onDone} />
+      <StoreLayoutForm desk={desk} onDone={onDone} />
       <CopyForm desk={desk} onDone={onDone} />
       <ProfileForm desk={desk} onDone={onDone} />
       <p className="text-sm leading-7 text-muted">پس از به‌روزرسانی، عنوان و زیرعنوان سه بخش محصولات را بررسی کنید. متن‌هایی که قبلاً در مدیریت ویرایش شده‌اند خودکار جایگزین نمی‌شوند.</p>
@@ -186,6 +188,37 @@ function CarouselSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result
       </label>
       {message ? <p className="text-sm font-bold text-forest" role="status">{message}</p> : null}
       <button type="submit" className={buttonPrimary}>ذخیره تنظیمات اسلایدر</button>
+    </form>
+  );
+}
+
+function StoreLayoutForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult) => Promise<void> }) {
+  const [stickyHeader, setStickyHeader] = useState(desk.layout.stickyHeader);
+  const [headerLogoHeight, setHeaderLogoHeight] = useState(String(desk.layout.headerLogoHeight));
+  const [footerLogoHeight, setFooterLogoHeight] = useState(String(desk.layout.footerLogoHeight));
+  const [footerAlignment, setFooterAlignment] = useState(desk.layout.footerAlignment);
+  const [message, setMessage] = useState("");
+  return (
+    <form className={`${panelClass} space-y-3 p-4`} onSubmit={(event) => {
+      event.preventDefault();
+      const headerHeight = Number(headerLogoHeight);
+      const footerHeight = Number(footerLogoHeight);
+      if (!Number.isInteger(headerHeight) || headerHeight < 40 || headerHeight > 80 || !Number.isInteger(footerHeight) || footerHeight < 64 || footerHeight > 144) {
+        setMessage("اندازه لوگوی هدر باید ۴۰ تا ۸۰ و لوگوی فوتر ۶۴ تا ۱۴۴ پیکسل باشد.");
+        return;
+      }
+      void saveStoreLayoutFn({ data: { stickyHeader, headerLogoHeight: headerHeight, footerLogoHeight: footerHeight, footerAlignment } })
+        .then(async (result) => { if (!result.ok) setMessage(result.message); else { setMessage("چیدمان هدر و فوتر ذخیره شد."); await onDone(result); } })
+        .catch(() => setMessage("ذخیره چیدمان انجام نشد."));
+    }}>
+      <h2 className="font-bold text-forest">چیدمان هدر و فوتر</h2>
+      <p className="text-xs leading-6 text-muted">این تنظیمات فقط ظاهر سربرگ و پابرگ عمومی سایت را کنترل می‌کنند و روی محتوا، منوها یا اطلاعات سفارش‌ها اثری ندارند. نمونه: اگر هدر ثابت را خاموش کنید، با پایین‌رفتن صفحه سربرگ همراه کاربر نمی‌ماند.</p>
+      <label className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-forest"><input type="checkbox" checked={stickyHeader} onChange={(event) => setStickyHeader(event.target.checked)} /> هدر هنگام پیمایش ثابت بماند</label>
+      <label className="block space-y-1 text-sm"><span>ارتفاع لوگوی هدر (پیکسل، ۴۰ تا ۸۰)</span><input className={fieldClass} type="number" min={40} max={80} step={1} value={headerLogoHeight} onChange={(event) => setHeaderLogoHeight(event.target.value)} dir="ltr" /></label>
+      <label className="block space-y-1 text-sm"><span>ارتفاع لوگوی فوتر (پیکسل، ۶۴ تا ۱۴۴)</span><input className={fieldClass} type="number" min={64} max={144} step={1} value={footerLogoHeight} onChange={(event) => setFooterLogoHeight(event.target.value)} dir="ltr" /></label>
+      <label className="block space-y-1 text-sm"><span>تراز محتوای فوتر</span><select className={fieldClass} value={footerAlignment} onChange={(event) => setFooterAlignment(event.target.value as "start" | "center")}><option value="start">ابتدای ستون‌ها</option><option value="center">وسط‌چین</option></select></label>
+      {message ? <p className="text-sm font-bold text-forest" role="status">{message}</p> : null}
+      <button type="submit" className={buttonPrimary}>ذخیره چیدمان سایت</button>
     </form>
   );
 }
