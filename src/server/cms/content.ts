@@ -40,6 +40,7 @@ import {
   articleCategories,
   articleProducts,
   articles,
+  contentRevisions,
   banners,
   homepageSections,
   mediaAssets,
@@ -626,6 +627,116 @@ export async function applyNavOrder(db: Database, actorId: string, menuKey: stri
   });
 }
 
+type ContentEntityType = "page" | "article";
+
+async function appendContentRevision(
+  tx: Database,
+  actorId: string,
+  entityType: ContentEntityType,
+  entityId: string,
+  snapshot: Record<string, unknown>,
+): Promise<void> {
+  const [latest] = await tx
+    .select({ version: contentRevisions.version })
+    .from(contentRevisions)
+    .where(and(eq(contentRevisions.entityType, entityType), eq(contentRevisions.entityId, entityId)))
+    .orderBy(desc(contentRevisions.version))
+    .limit(1);
+  await tx.insert(contentRevisions).values({
+    id: `rev-${crypto.randomUUID()}`,
+    entityType,
+    entityId,
+    version: (latest?.version ?? 0) + 1,
+    snapshot,
+    actorId,
+  });
+}
+
+export async function loadContentHistory(
+  db: Database,
+  entityType: ContentEntityType,
+  entityId: string,
+): Promise<Array<{ id: string; version: number; createdAt: string; title: string; status: string }>> {
+  const rows = await db
+    .select()
+    .from(contentRevisions)
+    .where(and(eq(contentRevisions.entityType, entityType), eq(contentRevisions.entityId, entityId)))
+    .orderBy(desc(contentRevisions.version))
+    .limit(30);
+  return rows.map((row) => ({
+    id: row.id,
+    version: row.version,
+    createdAt: row.createdAt.toISOString(),
+    title: typeof row.snapshot.title === "string" ? row.snapshot.title : "نسخه محتوا",
+    status: entityType === "page"
+      ? (row.snapshot.isPublished === true ? "published" : "draft")
+      : (row.snapshot.status === "published" ? "published" : "draft"),
+  }));
+}
+
+export async function restoreContentRevision(db: Database, actorId: string, revisionId: string): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [revision] = await tx.select().from(contentRevisions).where(eq(contentRevisions.id, revisionId));
+    if (!revision) deny("نسخه موردنظر پیدا نشد.");
+    const snapshot = revision.snapshot;
+    if (revision.entityType === "page") {
+      const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, revision.entityId)).for("update");
+      if (!row) deny("صفحه‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
+      const title = cleanInline(snapshot.title, 2, 120);
+      const body = cleanBody(snapshot.body, 2, 12000);
+      const seoTitle = cleanInline(snapshot.seoTitle, 0, 120);
+      const seoDescription = cleanInline(snapshot.seoDescription, 0, 240);
+      if (!title || !body || seoTitle === null || seoDescription === null || typeof snapshot.isPublished !== "boolean") {
+        deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      }
+      const next = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: snapshot.isPublished };
+      await tx.update(sitePages).set({ ...next, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+      await appendContentRevision(tx, actorId, "page", row.id, next);
+      await writeAudit(tx, { actorType: "admin", actorId, action: "content.page_revision_restored", entityType: "site_page", entityId: row.id, metadata: { revisionId, slug: row.slug } });
+      return;
+    }
+    if (revision.entityType === "article") {
+      const [row] = await tx.select().from(articles).where(and(eq(articles.id, revision.entityId), isNull(articles.deletedAt))).for("update");
+      if (!row) deny("مقاله‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
+      const categoryId = typeof snapshot.categoryId === "string" ? snapshot.categoryId : "";
+      const [category] = await tx.select({ id: articleCategories.id }).from(articleCategories).where(eq(articleCategories.id, categoryId));
+      if (!category) deny("دسته این نسخه دیگر وجود ندارد.");
+      const title = cleanInline(snapshot.title, 2, 140);
+      const excerpt = cleanBody(snapshot.excerpt, 0, 400);
+      const content = cleanBody(snapshot.content, 0, 20000);
+      const authorName = cleanInline(snapshot.authorName, 2, 80);
+      const seoTitle = cleanInline(snapshot.seoTitle, 0, 120);
+      const seoDescription = cleanInline(snapshot.seoDescription, 0, 240);
+      const readMinutes = snapshot.readMinutes;
+      const status = snapshot.status;
+      const slug = typeof snapshot.slug === "string" ? parseSlug(snapshot.slug) : null;
+      const coverMediaId = typeof snapshot.coverMediaId === "string" ? snapshot.coverMediaId : null;
+      const relatedProductIds = Array.isArray(snapshot.relatedProductIds) && snapshot.relatedProductIds.every((id) => typeof id === "string") ? snapshot.relatedProductIds as string[] : [];
+      if (!slug || !title || excerpt === null || content === null || !authorName || seoTitle === null || seoDescription === null ||
+        typeof readMinutes !== "number" || !Number.isInteger(readMinutes) || readMinutes < 1 || readMinutes > 60 ||
+        (status !== "draft" && status !== "published") || (status === "published" && (excerpt.length < 2 || content.length < 2))) {
+        deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      }
+      await assertCover(tx, coverMediaId, deny);
+      const next = {
+        categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes,
+        coverMediaId, status, seoTitle: seoTitle || title, seoDescription: seoDescription || excerpt,
+        publishedAt: status === "published" ? row.publishedAt ?? new Date() : row.publishedAt,
+        updatedAt: new Date(),
+      };
+      await tx.update(articles).set(next).where(eq(articles.id, row.id));
+      await replaceRelated(tx, row.id, relatedProductIds, deny);
+      await appendContentRevision(tx, actorId, "article", row.id, {
+        ...next,
+        relatedProductIds: [...new Set(relatedProductIds)],
+      });
+      await writeAudit(tx, { actorType: "admin", actorId, action: "content.article_revision_restored", entityType: "article", entityId: row.id, metadata: { revisionId, slug } });
+      return;
+    }
+    deny("نوع محتوای این نسخه پشتیبانی نمی‌شود.");
+  });
+}
+
 export async function applyPageUpdate(db: Database, actorId: string, input: PageDraft): Promise<CmsResult> {
   const slug = parseSlug(input.slug);
   const title = cleanInline(input.title, 2, 120);
@@ -636,26 +747,18 @@ export async function applyPageUpdate(db: Database, actorId: string, input: Page
   return transactionResult(db, async (tx, deny) => {
     if (!input.id) {
       const id = `page-${crypto.randomUUID()}`;
-      await tx.insert(sitePages).values({
-        id,
-        slug,
-        title,
-        body,
-        seoTitle: seoTitle || title,
-        seoDescription,
-        isPublished: input.isPublished,
-        updatedAt: new Date(),
-      });
+      const snapshot = { slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished };
+      await tx.insert(sitePages).values({ id, ...snapshot, updatedAt: new Date() });
+      await appendContentRevision(tx, actorId, "page", id, snapshot);
       await writeAudit(tx, { actorType: "admin", actorId, action: "content.page_created", entityType: "site_page", entityId: id, metadata: { slug, published: input.isPublished } });
       return;
     }
     const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, input.id)).for("update");
     if (!row) deny("صفحه پیدا نشد.");
     if (row.slug !== slug) deny("شناسه صفحه‌های موجود با مسیرهای سایت پیوند دارد و قابل تغییر نیست.");
-    await tx
-      .update(sitePages)
-      .set({ title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished, updatedAt: new Date() })
-      .where(eq(sitePages.id, row.id));
+    const snapshot = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished };
+    await tx.update(sitePages).set({ title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+    await appendContentRevision(tx, actorId, "page", row.id, snapshot);
     await writeAudit(tx, {
       actorType: "admin",
       actorId,
@@ -729,6 +832,12 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
         publishedAt: input.status === "published" ? new Date() : null,
       });
       await replaceRelated(tx, id, input.relatedProductIds, deny);
+      await appendContentRevision(tx, actorId, "article", id, {
+        categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes: input.readMinutes,
+        coverMediaId: input.coverMediaId, status: input.status, seoTitle, seoDescription,
+        publishedAt: input.status === "published" ? new Date().toISOString() : null,
+        relatedProductIds: [...new Set(input.relatedProductIds)],
+      });
       await writeAudit(tx, {
         actorType: "admin",
         actorId,
@@ -760,6 +869,12 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
       })
       .where(eq(articles.id, row.id));
     await replaceRelated(tx, row.id, input.relatedProductIds, deny);
+    await appendContentRevision(tx, actorId, "article", row.id, {
+      categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes: input.readMinutes,
+      coverMediaId: input.coverMediaId, status: input.status, seoTitle, seoDescription,
+      publishedAt: input.status === "published" ? (row.publishedAt ?? new Date()).toISOString() : row.publishedAt?.toISOString() ?? null,
+      relatedProductIds: [...new Set(input.relatedProductIds)],
+    });
     await writeAudit(tx, {
       actorType: "admin",
       actorId,
