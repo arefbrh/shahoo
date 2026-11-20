@@ -736,7 +736,7 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
         <article className="mx-auto max-w-3xl py-4">
           <p className="text-xs font-bold tracking-wide text-muted">SHAHOO · پیش‌نمایش مدیریت</p>
           <h2 className="mt-3 text-2xl font-bold text-forest">{title || "عنوان صفحه"}</h2>
-          <div className="mt-5 space-y-4 text-sm leading-8">{body.split("\\n\\n").filter(Boolean).map((block) => <p key={block.slice(0, 24)}>{block}</p>)}</div>
+          <div className="mt-5 space-y-4 text-sm leading-8">{body.split("\n\n").filter(Boolean).map((block, index) => <p key={index}>{block}</p>)}</div>
         </article>
       </details>
       {page ? <ContentHistory entityType="page" entityId={page.id} onDone={onDone} /> : null}
@@ -941,7 +941,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           <p className="mt-3 text-sm leading-7 text-muted">{excerpt}</p>
           <p className="mt-2 text-xs text-muted">{authorName} · {minutes ?? "—"} دقیقه مطالعه</p>
           {(() => { const cover = desk.media.find((item) => item.id === coverMediaId); return cover ? <img src={cover.publicUrl} alt={cover.alt || title} className="mt-6 max-h-80 w-full rounded-3xl border border-line bg-paper object-contain" /> : null; })()}
-          <div className="mt-6 space-y-4 text-sm leading-8">{content.split("\\n\\n").filter(Boolean).map((block) => <p key={block.slice(0, 24)}>{block}</p>)}</div>
+          <div className="mt-6 space-y-4 text-sm leading-8">{content.split("\n\n").filter(Boolean).map((block, index) => <p key={index}>{block}</p>)}</div>
         </article>
       </details>
       {article ? <ContentHistory entityType="article" entityId={article.id} onDone={onDone} /> : null}
