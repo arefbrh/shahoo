@@ -103,7 +103,7 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
           <Link to="/" className="shrink-0">
             <img
               src={shell.logos.header}
-              alt="شاهو | SHAHOO"
+              alt={shell.profile.brandName || "شاهو | SHAHOO"}
               className="h-12 w-auto max-w-28 object-contain sm:h-14 sm:max-w-36"
             />
           </Link>
@@ -178,7 +178,7 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
       <footer className="mt-16 border-t-4 border-gold bg-deep text-ivory">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
-            <img src={shell.logos.footer} alt="شاهو | SHAHOO" className="h-28 w-auto max-w-48 object-contain" />
+            <img src={shell.logos.footer} alt={shell.profile.brandName || "شاهو | SHAHOO"} className="h-28 w-auto max-w-48 object-contain" />
             {shell.profile.tagline.trim() ? (
               <p className="mt-4 max-w-sm text-sm leading-7 text-gold-soft">{shell.profile.tagline}</p>
             ) : null}
