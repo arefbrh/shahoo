@@ -728,6 +728,7 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
         <div className="space-y-2 rounded-2xl border border-line p-3">
           <p className="text-sm text-muted">وضعیت فعلی: <strong className="text-forest">{page.isPublished ? "منتشرشده" : "پیش‌نویس"}</strong></p>
           <p className="text-xs leading-6 text-muted">انتشار و لغو انتشار فقط روی آخرین نسخه ذخیره‌شده انجام می‌شود. ابتدا تغییرات فرم را ذخیره کنید؛ عملیات انتشار تغییرات ذخیره‌نشده را نگه نمی‌دارد.</p>
+          <a href={"/admin/content-preview/page/" + page.id} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center text-sm font-bold text-forest underline">بازکردن پیش‌نمایش خصوصی نسخه ذخیره‌شده</a>
           <button type="button" className={page.isPublished ? buttonGhost : buttonPrimary} onClick={() => {
             const next = !page.isPublished;
             if (!window.confirm(next ? "آخرین نسخه ذخیره‌شده این صفحه منتشر شود؟" : "این صفحه از سایت عمومی برداشته شود؟")) return;
@@ -901,6 +902,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
         <div className="space-y-2 rounded-2xl border border-line p-3">
           <p className="text-sm text-muted">وضعیت فعلی: <strong className="text-forest">{article.status === "published" ? "منتشرشده" : "پیش‌نویس"}</strong></p>
           <p className="text-xs leading-6 text-muted">انتشار و لغو انتشار فقط روی آخرین نسخه ذخیره‌شده انجام می‌شود. ابتدا تغییرات فرم را ذخیره کنید؛ عملیات انتشار تغییرات ذخیره‌نشده را نگه نمی‌دارد.</p>
+          <a href={"/admin/content-preview/article/" + article.id} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center text-sm font-bold text-forest underline">بازکردن پیش‌نمایش خصوصی نسخه ذخیره‌شده</a>
           <button type="button" className={article.status === "published" ? buttonGhost : buttonPrimary} onClick={() => {
             const next = article.status !== "published";
             if (!window.confirm(next ? "آخرین نسخه ذخیره‌شده این مقاله منتشر شود؟" : "این مقاله از مجله عمومی برداشته شود؟")) return;
