@@ -26,6 +26,6 @@ test("GIF sanitizer rejects frames extending outside the logical canvas", () => 
 test("GIF sanitizer rejects LZW output that does not match the frame pixel count", () => {
   const malformed = onePixelGif.slice();
   malformed[39] = 0x4c;
-  malformed[40] = 0x03;
+  malformed[40] = 0x0a;
   assert.equal(sanitizeImage(malformed), null);
 });
