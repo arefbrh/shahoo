@@ -151,6 +151,7 @@ export type SitePage = {
 
 export type HomeData = {
   banners: BannerSlide[];
+  carousel: { autoPlay: boolean; intervalMs: number };
   sections: HomeSection[];
   categories: CategoryCard[];
   products: ProductCard[];
