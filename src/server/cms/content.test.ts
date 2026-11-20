@@ -16,6 +16,7 @@ import {
   applySectionOrder,
   applySectionUpdate,
   applySiteCopy,
+  applyStoreLayout,
   registerExternalMedia,
   retireMedia,
 } from "./content.ts";
@@ -122,6 +123,28 @@ test("https media can be registered and retired, but a brand file and a linked f
   await db.update(banners).set({ desktopMediaId: null }).where(eq(banners.id, "slide-1"));
   const retired = await retireMedia(db, "admin-a", media?.id ?? "");
   assert.equal(retired.ok, true);
+});
+
+test("store layout settings are validated, persisted and audited", async () => {
+  const db = await database();
+  const value = {
+    stickyHeader: false,
+    headerLogoHeight: 64,
+    footerLogoHeight: 128,
+    footerAlignment: "center" as const,
+  };
+  const saved = await applyStoreLayout(db, "admin-layout", value);
+  assert.equal(saved.ok, true);
+  const [row] = await db.select().from(settings).where(eq(settings.key, "store.layout"));
+  assert.deepEqual(row?.value, value);
+  const [audit] = await db.select().from(auditLogs);
+  assert.equal(audit?.action, "store.layout_updated");
+
+  const invalid = await applyStoreLayout(db, "admin-layout", { ...value, headerLogoHeight: 20 });
+  assert.equal(invalid.ok, false);
+  const [unchanged] = await db.select().from(settings).where(eq(settings.key, "store.layout"));
+  assert.deepEqual(unchanged?.value, value);
+  assert.equal((await db.select().from(auditLogs)).length, 1);
 });
 
 test("story copy does not rewrite the official logo settings", async () => {
