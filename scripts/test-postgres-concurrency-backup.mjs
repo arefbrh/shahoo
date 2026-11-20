@@ -18,6 +18,7 @@ import * as schema from "../src/server/db/schema.ts";
 import { commitCheckout } from "../src/server/commerce/checkout.ts";
 import { releaseExpiredHolds } from "../src/server/commerce/holds.ts";
 import { captureVerifiedPayment } from "../src/server/payments/service.ts";
+import { moveOrderStatus } from "../src/server/commerce/fulfillment.ts";
 
 const execFileAsync = promisify(execFile);
 const rawUrl = process.env.DATABASE_URL?.trim();
@@ -81,6 +82,8 @@ async function main() {
       INSERT INTO customers (id, mobile, full_name, status)
         VALUES ('ci-customer-a', '09120000001', 'CI Customer A', 'active'),
                ('ci-customer-b', '09120000002', 'CI Customer B', 'active');
+      INSERT INTO admin_users (id, email, full_name, status)
+        VALUES ('ci-admin', 'ci-admin@example.invalid', 'CI Admin', 'active');
       INSERT INTO carts (id, customer_id) VALUES ('ci-cart-a', 'ci-customer-a'), ('ci-cart-b', 'ci-customer-b');
       INSERT INTO cart_items (id, cart_id, variant_id, quantity)
         VALUES ('ci-line-a', 'ci-cart-a', 'ci-var', 2),
@@ -178,6 +181,49 @@ async function main() {
         captured.paid_events !== 1 || captured.payment_audits !== 1) {
       throw new Error('Concurrent payment capture left inconsistent state: ' + JSON.stringify(captured));
     }
+    // Exercise the real order-transition transaction under two concurrent cancellation requests.
+    await appPool.query("UPDATE inventory SET on_hand = 3, reserved = 1 WHERE variant_id = 'ci-var'");
+    await appPool.query(`
+      INSERT INTO orders (
+        id, public_code, status, full_name, mobile, province, city, address_line,
+        subtotal_irr, total_irr, payment_status, stock_state, stock_hold_until
+      ) VALUES (
+        'ci-cancel-order', 'SH-20261120-CANCEL', 'awaiting_payment', 'CI Buyer',
+        '09120000001', 'تهران', 'تهران', 'CI cancellation address',
+        100000, 100000, 'unpaid', 'held', NOW() + INTERVAL '1 hour'
+      );
+      INSERT INTO order_items (
+        id, order_id, variant_id, product_name, variant_label, sku, quantity, unit_price_irr, line_total_irr
+      ) VALUES (
+        'ci-cancel-item', 'ci-cancel-order', 'ci-var', 'CI Oil', 'Bottle', 'CI-VAR',
+        1, 100000, 100000
+      );
+    `);
+    const cancellationResults = await Promise.all([
+      moveOrderStatus(appDb, 'ci-admin', 'SH-20261120-CANCEL', 'cancelled', 'CI concurrent cancellation'),
+      moveOrderStatus(appDb, 'ci-admin', 'SH-20261120-CANCEL', 'cancelled', 'CI concurrent cancellation'),
+    ]);
+    if (cancellationResults.filter((x) => x.ok).length !== 1 ||
+        cancellationResults.filter((x) => !x.ok).length !== 1) {
+      throw new Error('Concurrent order cancellation did not produce exactly one transition: ' + JSON.stringify(cancellationResults));
+    }
+    const cancelledState = await appPool.query(`
+      SELECT o.status, o.stock_state, i.on_hand, i.reserved,
+             (SELECT count(*)::int FROM order_events e WHERE e.order_id = o.id AND e.status = 'cancelled') AS cancel_events,
+             (SELECT count(*)::int FROM inventory_logs l WHERE l.order_id = o.id AND l.reason = 'release_cancelled') AS release_logs,
+             (SELECT count(*)::int FROM audit_logs a WHERE a.entity_id = o.id AND a.action = 'order.status') AS status_audits,
+             (SELECT count(*)::int FROM notifications n WHERE n.order_id = o.id AND n.event_key = 'order.status') AS status_notices
+      FROM orders o JOIN order_items oi ON oi.order_id = o.id
+      JOIN inventory i ON i.variant_id = oi.variant_id WHERE o.id = 'ci-cancel-order'
+    `);
+    const cancelled = cancelledState.rows[0];
+    if (!cancelled || cancelled.status !== 'cancelled' || cancelled.stock_state !== 'released' ||
+        cancelled.on_hand !== 3 || cancelled.reserved !== 0 ||
+        cancelled.cancel_events !== 1 || cancelled.release_logs !== 1 ||
+        cancelled.status_audits !== 1 || cancelled.status_notices !== 1) {
+      throw new Error('Concurrent order cancellation left inconsistent state: ' + JSON.stringify(cancelled));
+    }
+    console.log('[postgres-app-order-transition] PASS — concurrent cancellation requests committed one transition, one stock release, one event, one audit and one notice');
     console.log('[postgres-app-payment-capture] PASS — two concurrent verified captures for an expired order recovered stock and committed one payment, one stock decrement, one paid event and one audit');
     console.log('[postgres-app-hold-release] PASS — two concurrent workers released one expired unpaid order exactly once; reserved stock, order event and audit stayed consistent');
     console.log('[postgres-app-checkout] PASS — real commitCheckout with two independent customer carts competing for two units: one order committed, one rejected, stock reservation remained exactly 2, no oversell');
