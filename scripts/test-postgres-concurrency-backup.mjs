@@ -89,7 +89,8 @@ async function main() {
   sourcePool = new pg.Pool({ connectionString: sourceUrl.toString(), max: 1 });
   const sourceResult = await sourcePool.query(
     "SELECT (SELECT count(*)::int FROM _migrations) AS migration_count, " +
-    "(SELECT available FROM shahoo_ci_inventory_probe WHERE id = 1) AS available",
+    "(SELECT available FROM shahoo_ci_inventory_probe WHERE id = 1) AS available, " +
+    "(SELECT count(*)::int FROM pg_indexes WHERE schemaname = 'public') AS public_index_count",
   );
   if (sourceResult.rows[0].migration_count < 1 || sourceResult.rows[0].available !== 0) {
     throw new Error("Scratch database does not contain expected migration and concurrency results");
@@ -113,7 +114,8 @@ async function main() {
     "(SELECT count(*)::int FROM pg_indexes WHERE schemaname = 'public') AS public_index_count",
   );
   if (restored.rows[0].migration_count !== sourceResult.rows[0].migration_count ||
-      restored.rows[0].available !== 0 || restored.rows[0].public_index_count < 1) {
+      restored.rows[0].available !== 0 ||
+      restored.rows[0].public_index_count !== sourceResult.rows[0].public_index_count) {
     throw new Error("Restored database verification did not match the source");
   }
   console.log("[postgres-deep-check] PASS — independent row-lock contention prevented overselling; " +
