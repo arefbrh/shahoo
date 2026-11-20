@@ -14,6 +14,7 @@ import type {
   ProfileDraft,
   SectionConfigDraft,
   SectionDraft,
+  StoreLayoutDraft,
 } from "../../lib/cms-types.ts";
 import {
   cleanBody,
@@ -171,6 +172,17 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
         footer: typeof logos.footer === "string" ? logos.footer : "",
       };
     })(),
+    layout: (() => {
+      const value = settingsMap.get("store.layout");
+      const config = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      const clamp = (n: unknown, fallback: number, min: number, max: number) => typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+      return {
+        stickyHeader: config.stickyHeader !== false,
+        headerLogoHeight: clamp(config.headerLogoHeight, 56, 40, 80),
+        footerLogoHeight: clamp(config.footerLogoHeight, 112, 64, 144),
+        footerAlignment: config.footerAlignment === "center" ? "center" as const : "start" as const,
+      };
+    })(),
     carousel: (() => {
       const value = settingsMap.get("home.carousel");
       const config = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -291,6 +303,19 @@ export async function applyCarouselSettings(db: Database, actorId: string, input
     if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "home.carousel"));
     else await tx.insert(settings).values({ key: "home.carousel", value, updatedAt: new Date() });
     await writeAudit(tx, { actorType: "admin", actorId, action: "content.carousel_settings_updated", entityType: "settings", entityId: "home.carousel" });
+  });
+}
+
+export async function applyStoreLayout(db: Database, actorId: string, input: StoreLayoutDraft): Promise<CmsResult> {
+  if (typeof input.stickyHeader !== "boolean" || !Number.isInteger(input.headerLogoHeight) || input.headerLogoHeight < 40 || input.headerLogoHeight > 80 || !Number.isInteger(input.footerLogoHeight) || input.footerLogoHeight < 64 || input.footerLogoHeight > 144 || !["start", "center"].includes(input.footerAlignment)) {
+    return { ok: false, message: "تنظیمات چیدمان معتبر نیست؛ اندازه لوگوی هدر باید ۴۰ تا ۸۰ و فوتر ۶۴ تا ۱۴۴ پیکسل باشد." };
+  }
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.layout")).for("update");
+    const value = { ...input };
+    if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "store.layout"));
+    else await tx.insert(settings).values({ key: "store.layout", value, updatedAt: new Date() });
+    await writeAudit(tx, { actorType: "admin", actorId, action: "store.layout_updated", entityType: "settings", entityId: "store.layout" });
   });
 }
 
