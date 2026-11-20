@@ -7,7 +7,15 @@ import { and, eq, isNull } from "drizzle-orm";
 import { openStorage } from "./disk.ts";
 import { lockLiveMediaAsset } from "./lock.ts";
 
-export { LocalDiskStorage, localMediaDir, localObjectName, openStorage, type ObjectStorage } from "./disk.ts";
+export {
+  LocalDiskStorage,
+  S3ObjectStorage,
+  localMediaDir,
+  localObjectName,
+  objectNameForStorageKey,
+  openStorage,
+  type ObjectStorage,
+} from "./disk.ts";
 
 export async function storeUploadedImage(db: AppDatabase, actorId: string, bytes: Uint8Array, alt: string) {
   const clean = sanitizeImage(bytes);
@@ -31,7 +39,7 @@ export async function storeUploadedImage(db: AppDatabase, actorId: string, bytes
         mimeType: clean.mime,
         byteSize: clean.bytes.length,
         alt: safeAlt,
-        storageKey: `local:${name}`,
+        storageKey: storage.storageKey(name),
         publicUrl: `/media/file/${id}`,
       });
       await writeAudit(tx, {
@@ -65,19 +73,14 @@ export async function attachMediaToProduct(db: AppDatabase, actorId: string, pro
       .from(productImages)
       .where(and(eq(productImages.productId, productId), eq(productImages.mediaId, mediaId)))
       .limit(1);
-    if (primary) {
-      await tx.update(productImages).set({ isPrimary: false }).where(eq(productImages.productId, productId));
-    }
+    if (primary) await tx.update(productImages).set({ isPrimary: false }).where(eq(productImages.productId, productId));
     if (existing) {
-      await tx
-        .update(productImages)
-        .set({
-          isPrimary: primary ? true : existing.isPrimary,
-          url: media.publicUrl,
-          alt: media.alt,
-          sortOrder: primary ? 0 : existing.sortOrder,
-        })
-        .where(eq(productImages.id, existing.id));
+      await tx.update(productImages).set({
+        isPrimary: primary ? true : existing.isPrimary,
+        url: media.publicUrl,
+        alt: media.alt,
+        sortOrder: primary ? 0 : existing.sortOrder,
+      }).where(eq(productImages.id, existing.id));
     } else {
       await tx.insert(productImages).values({
         id: `img-${crypto.randomUUID()}`,
@@ -108,10 +111,7 @@ export async function replaceProductMediaLink(db: AppDatabase, actorId: string, 
     const media = await lockLiveMediaAsset(tx, mediaId);
     if (!image || !media) return { ok: false as const, message: "محصول یا تصویر پیدا نشد." };
     const previousMediaId = image.mediaId;
-    await tx
-      .update(productImages)
-      .set({ mediaId: media.id, url: media.publicUrl, alt: media.alt })
-      .where(eq(productImages.id, image.id));
+    await tx.update(productImages).set({ mediaId: media.id, url: media.publicUrl, alt: media.alt }).where(eq(productImages.id, image.id));
     await writeAudit(tx, {
       actorType: "admin",
       actorId,

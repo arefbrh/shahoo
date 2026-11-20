@@ -188,3 +188,14 @@ Before handing this work to another agent:
 - Fresh CI run: `44768520455` for commit `a6ed3bc42e5ca474dbbb2962b62ea9b7a219be2c` was started; a subsequent small formatting commit `32875c63c5601ad5bc52b751c399a2ffced48151` is the current branch head and must also be covered by CI/Preview.
 - Latest Preview deployment for current head: `https://shahoo-mg8u5earf-shahoo.vercel.app`, deployment `dpl_8QtFdwxmRtyYCcrRWA4ZW6F83kb3`; last observed state BUILDING. Do not ask owner to test until READY.
 - Production remains untouched. PR #9 remains draft and stacked on PR #8; no merge or Production promotion.
+
+
+## 13. S3-compatible media storage adapter (2026-11-20)
+
+- Added `S3ObjectStorage` using native Node crypto and Fetch with AWS Signature Version 4; supports S3-compatible PUT, GET and DELETE, including Cloudflare R2-style endpoints.
+- `STORAGE_PROVIDER=s3` selects the adapter only when endpoint, bucket, region, access-key ID and secret are all present and valid. Incomplete/invalid configuration fails closed; local ephemeral disk is not used as a fallback.
+- Media database rows now persist provider-qualified object keys (`local:` or `s3:`). The public media route resolves either configured provider, and storage read failures return 503 rather than silently masquerading as missing assets.
+- Added `docs/MEDIA_STORAGE.md` with Vercel and self-hosted setup, environment variable names, backup considerations and staged rollout guidance.
+- No storage credentials were configured, no bucket was created, no Vercel environment variables were changed, and no Production data or deployment was touched. S3 uploads remain unavailable until an operator provisions a bucket and adds Preview-only credentials.
+- CI for the previous upload UI commit `1f4c4ef12bffec1555e1c9cfc6b076158696406d` passed. The S3 adapter changes in the following commit require a fresh CI run; do not claim them verified until all required jobs pass.
+- Next: validate S3 signing/path behavior with focused tests and CI, configure a dedicated Preview bucket only with owner-approved credentials, then smoke-test upload/read/delete and image display before considering Production.
