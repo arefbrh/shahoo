@@ -20,6 +20,7 @@ import {
   saveStoreProfileFn,
 } from "@/server/cms/api";
 import { buttonGhost, buttonPrimary, fieldClass, panelClass } from "./ui";
+import { AdminHelp } from "./admin-help";
 
 type Tab = "home" | "nav" | "pages" | "magazine" | "media";
 
@@ -81,6 +82,7 @@ export function ContentDesk() {
           {notice}
         </p>
       ) : null}
+      <AdminHelp title="محتوا و برند">این میز برای تغییر ظاهر و محتوای عمومی فروشگاه است، نه مدیریت کالا و قیمت. هر زبانه یک محل مشخص از سایت را کنترل می‌کند. بعد از ذخیره، صفحه عمومی مرتبط را بازخوانی کنید. رسانه‌ها فعلاً با نشانی عمومی HTTPS ثبت می‌شوند و بارگذاری مستقیم فایل هنوز فعال نیست.</AdminHelp>
       <div className="mt-4 flex flex-wrap gap-2">
         {TABS.map((item) => (
           <button key={item.id} type="button" className={tab === item.id ? buttonPrimary : buttonGhost} onClick={() => setTab(item.id)}>
@@ -91,11 +93,11 @@ export function ContentDesk() {
       {!desk ? <p className="mt-4 text-sm">در حال خواندن...</p> : null}
       {desk ? (
         <div key={stamp} className="mt-6 space-y-4">
-          {tab === "home" ? <HomeTab desk={desk} onDone={finish} onMove={move} /> : null}
-          {tab === "nav" ? <NavTab desk={desk} onDone={finish} onMove={move} /> : null}
-          {tab === "pages" ? <PagesTab desk={desk} onDone={finish} /> : null}
-          {tab === "magazine" ? <MagazineTab desk={desk} onDone={finish} /> : null}
-          {tab === "media" ? <MediaTab desk={desk} onDone={finish} /> : null}
+          {tab === "home" ? <><AdminHelp title="صفحه اول" example="برای تغییر نام و لوگوی فروشگاه از «هویت برند» استفاده کنید؛ برای متن معرفی از «معرفی و نوار بالا» و برای بنر تبلیغاتی از «اسلایدها» استفاده کنید.">این زبانه چند قسمت مستقل دارد: هویت برند و لوگوها، متن معرفی، اطلاعات تماس، بخش‌های محتوایی و اسلایدهای صفحه اول. تغییر عنوان محصول یا قیمت از کاتالوگ انجام می‌شود، نه اینجا.</AdminHelp><HomeTab desk={desk} onDone={finish} onMove={move} /></> : null}
+          {tab === "nav" ? <><AdminHelp title="منوهای سایت" example="عنوان «مجله» با نشانی /magazine یک پیوند داخلی است؛ برای یک سایت خارجی نشانی کامل https:// وارد کنید.">اینجا فقط عنوان و مقصد پیوندهای منوی هدر/فوتر و ترتیب آن‌ها تغییر می‌کند. برای افزودن صفحه جدید ابتدا آن را در «صفحه‌ها» بسازید و سپس نشانی همان صفحه را به منو اضافه کنید. خاموش‌کردن یک مورد آن را از نمایش عمومی پنهان می‌کند.</AdminHelp><NavTab desk={desk} onDone={finish} onMove={move} /></> : null}
+          {tab === "pages" ? <><AdminHelp title="صفحه‌های ثابت" example="صفحه «درباره ما» می‌تواند نشانی about و محتوای معرفی فروشگاه داشته باشد.">برای ساخت و ویرایش صفحه‌های اطلاعاتی مانند درباره ما، تماس با ما و قوانین استفاده کنید. عنوان برای نمایش به کاربر است؛ شناسه انگلیسی بخشی از نشانی صفحه می‌شود و بهتر است پس از انتشار بی‌دلیل تغییر نکند.</AdminHelp><PagesTab desk={desk} onDone={finish} /></> : null}
+          {tab === "magazine" ? <><AdminHelp title="مجله و مقاله‌ها" example="برای مقاله راهنمای نگهداری روغن، عنوان روشن، نشانی کوتاه مثل oil-care، خلاصه و تصویر مرتبط انتخاب کنید.">مقاله‌ها و محتوای تحریریه در این بخش مدیریت می‌شوند و با صفحه‌های ثابت تفاوت دارند. برای انتشار عمومی وضعیت انتشار و تاریخ را بررسی کنید؛ بازنشسته‌کردن مقاله آن را از فهرست عمومی خارج می‌کند، نه اینکه سفارش یا محصولی را تغییر دهد.</AdminHelp><MagazineTab desk={desk} onDone={finish} /></> : null}
+          {tab === "media" ? <><AdminHelp title="کتابخانه رسانه" example="نام: olive-bottle-front؛ متن جایگزین: بطری روغن زیتون شاهو از نمای روبه‌رو؛ نشانی: https://example.com/olive.webp">رسانه‌ها تصاویر قابل استفاده در بنرها و محتوا هستند. نشانی باید مستقیم، عمومی و HTTPS باشد؛ متن جایگزین برای دسترس‌پذیری تصویر است. حذف/بازنشستگی رسانه‌ای که هنوز در بنر یا محتوای فعال استفاده می‌شود ممکن است تصویر آن بخش را از دسترس خارج کند؛ پیش از آن محل‌های استفاده را بررسی کنید.</AdminHelp><MediaTab desk={desk} onDone={finish} /></> : null}
         </div>
       ) : null}
     </div>
@@ -163,7 +165,7 @@ function CopyForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
           .catch(() => setMessage("ذخیره انجام نشد."));
       }}
     >
-      <h2 className="font-bold text-forest">معرفی و نوار بالا</h2>
+      <h2 className="font-bold text-forest">معرفی و نوار بالا</h2><p className="text-xs leading-6 text-muted">عنوان و متن داستان/معرفی فروشگاه و پیام کوتاه نوار بالای سایت را کنترل می‌کند. مثال نوار: «ارسال رایگان برای سفارش‌های بالای ... تومان». این متن با شعار برند یکی نیست.</p>
       <input className={fieldClass} value={storyTitle} onChange={(event) => setStoryTitle(event.target.value)} aria-label="عنوان معرفی" />
       <textarea className={`${fieldClass} min-h-28`} value={storyAbout} onChange={(event) => setStoryAbout(event.target.value)} aria-label="متن معرفی" />
       <textarea className={`${fieldClass} min-h-24`} value={storyPhilosophy} onChange={(event) => setStoryPhilosophy(event.target.value)} aria-label="فلسفه" />
@@ -196,7 +198,7 @@ function BrandSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: C
           .catch(() => setMessage("ذخیره تنظیمات برند انجام نشد."));
       }}
     >
-      <h2 className="font-bold text-forest">هویت برند و لوگوها</h2>
+      <h2 className="font-bold text-forest">هویت برند و لوگوها</h2><p className="text-xs leading-6 text-muted">نام برند برای متن جایگزین لوگو، شعار در معرفی برند و کپی‌رایت در فوتر مصرف می‌شود. نمونه کپی‌رایت: «© ۲۰۲۶ شاهو؛ تمامی حقوق محفوظ است.»</p>
       <p className="text-xs leading-6 text-muted">این مقادیر منبع مرکزی هدر و فوتر هستند. برای لوگو از مسیر /assets/brand/ یا نشانی عمومی HTTPS با پسوند PNG، JPG یا WebP استفاده کنید.</p>
       <label className="block space-y-1 text-sm"><span>نام برند</span><input className={fieldClass} value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} /></label>
       <label className="block space-y-1 text-sm"><span>شعار فروشگاه</span><input className={fieldClass} value={tagline} onChange={(event) => setTagline(event.target.value)} maxLength={180} /></label>
@@ -227,7 +229,7 @@ function ProfileForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResu
           .catch(() => setMessage("ذخیره انجام نشد."));
       }}
     >
-      <h2 className="font-bold text-forest">راه‌های تماس</h2>
+      <h2 className="font-bold text-forest">راه‌های تماس</h2><p className="text-xs leading-6 text-muted">اطلاعات واقعی پاسخ‌گویی و نشانی فروشگاه را وارد کنید؛ این داده‌ها ممکن است در فوتر و صفحه تماس نمایش داده شوند. نمونه تلفن: ۰۲۱۱۲۳۴۵۶۷۸ و نمونه شبکه اجتماعی: https://instagram.com/yourstore</p>
       <p className="text-xs leading-6 text-muted">خالی بماند تا وقتی شماره، نشانی یا شبکه واقعی را خودتان وارد کنید. مقدار نمونه منتشر نمی‌شود.</p>
       <input className={fieldClass} value={phone} onChange={(event) => setPhone(event.target.value)} aria-label="تلفن" placeholder="تلفن" />
       <input className={fieldClass} value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} aria-label="واتساپ" placeholder="واتساپ" />
@@ -298,7 +300,7 @@ function SectionForm({
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-bold text-forest">{label}</h2>
+        <h2 className="font-bold text-forest">{label}</h2><p className="text-xs leading-6 text-muted">عنوان و زیرعنوان روی کارت این بخش در صفحه اول دیده می‌شود. بخش محصولی تعداد و ویژگی‌های نمایشی را تعیین می‌کند؛ فعال‌بودن یعنی امکان نمایش عمومی، به شرط آنکه خود بخش از نوع قابل نمایش باشد.</p>
         <button type="button" className={buttonGhost} disabled={!canUp} onClick={onUp}>
           بالاتر
         </button>
@@ -427,7 +429,7 @@ function BannerForm({
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-bold text-forest">{banner ? "اسلاید" : "اسلاید تازه"}</h2>
+        <h2 className="font-bold text-forest">{banner ? "اسلاید" : "اسلاید تازه"}</h2><p className="w-full text-xs leading-6 text-muted">اسلاید یک بنر تصویری صفحه اول است. عنوان و متن، پیام را می‌سازند؛ متن دکمه و نشانی آن مقصد کلیک را مشخص می‌کند. مثال: «مشاهده محصولات» و /products. تاریخ شروع/پایان اختیاری‌اند؛ تصویر دسکتاپ و موبایل را جدا انتخاب کنید.</p>
         {banner ? (
           <>
             <button type="button" className={buttonGhost} disabled={!canUp} onClick={onUp}>
@@ -510,7 +512,7 @@ function NavTab({
     <>
       {desk.menus.map((menu) => (
         <section key={menu.key} className="space-y-3">
-          <h2 className="font-bold text-forest">{menu.name}</h2>
+          <h2 className="font-bold text-forest">{menu.name}</h2><p className="text-xs leading-6 text-muted">این گروه از پیوندها در بخش «{menu.name}» سایت نمایش داده می‌شود. عنوان کوتاه و مقصد معتبر وارد کنید؛ برای تغییر ترتیب از دکمه‌های بالا/پایین استفاده کنید.</p>
           {menu.items.map((item, index) => (
             <NavForm
               key={item.id}
