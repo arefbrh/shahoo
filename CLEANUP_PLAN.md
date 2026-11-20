@@ -1,4 +1,4 @@
-> **Revision 02.1 continuity notice (2026-11-19):** The content below is a historical snapshot, not current release or next-batch authorization. The latest completed remediation is Batch 08 Revision 02; current work is Batch 08 Revision 02.1. Release is **NOT READY FOR RELEASE**, final approval is pending, and Batch 09 has not started. For current evidence and actions, read `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md`, `REMAINING_ISSUES.md`, `BATCH_08_FINAL_RELEASE_EVIDENCE.md`, and `docs/PRODUCTION.md`. Historical “checkpoint” numbering is not authorization for Batch 09.
+> **Historical cleanup note:** This file records the original v1.0.0 dependency and retention decisions. It is not the current repository inventory or release plan. Current status and authoritative engineering instructions are in [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md); the documentation map is [docs/README.md](docs/README.md).
 
 ---
 
