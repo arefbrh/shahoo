@@ -297,3 +297,13 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added integration coverage for selecting a valid library asset and rejecting a missing asset. The test uses the existing PGlite CMS database fixture.
 - Existing published logo settings and legacy official asset paths are preserved; no migration or live data mutation was performed.
 - Validation status: previous CI runs `44797010227` and `44797863097` passed all active jobs. The new logo integration commits require their own CI run before this change is considered verified.
+
+
+## 18. Shipping-label standards research (2026-11-20)
+
+- Public-source review did not locate a current, official Iran National Post merchant label specification that confirms a mandatory domestic label size (including 100×150 mm / 4×6 in), exact barcode symbology/placement, or acceptance of merchant-generated labels. These values must not be presented as Iran Post requirements until confirmed directly with the carrier or its merchant/contract documentation.
+- The postal-law definition of a postal item requires sender and/or recipient addressing; a secondary reproduction of the statute notes the sender/recipient address must appear on the item wrapper. Treat this as a baseline addressing principle, not a complete label layout specification. Reference: https://hoghogh.ai/laws/قانون-اساسنامه-شرکت-ملی-پست-جمهوری-اسلامی-ایران/2
+- UPU Convention Regulations 2025 Article 17-215 specify an S10 identifier for outward international parcels: human-readable and barcode forms, placed near and on the same side as the addressee address. This is an international-parcel rule and must not be assumed to govern domestic Iran Post parcels. Reference: https://www.upu.int/getmedia/b46605b5-4485-435a-9f20-92f8a00ef1e8/POC-REGL-2025-1%E2%94%80Doc-1
+- UPU addressing guidance identifies postcode as a fundamental address element and directs users to country-specific designated-operator formats. Reference: https://www.upu.int/en/postal-solutions/programmes-services/addressing-solutions
+- Provisional SHAHOO label design can therefore include clear recipient/sender blocks, province/city, full address, postal code, contact phone, and a reserved tracking/barcode region populated only with a carrier-issued identifier. This is a proposed merchant layout, not a certified Iran Post label.
+- Before finalizing the carrier label, obtain written/official confirmation from Iran Post or the actual contracted carrier for domestic label stock size, printer format, barcode type and quiet zones, required fields, and whether the merchant may generate the label. Keep 100×150 mm and A4/A5 as configurable print presets only, not as claimed official standards.
