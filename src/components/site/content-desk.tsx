@@ -6,6 +6,8 @@ import type { CmsArticle, CmsBanner, CmsDesk, CmsMenu, CmsPage, CmsResult, CmsSe
 import {
   getCmsDesk,
   getContentHistoryFn,
+  publishArticleFn,
+  publishPageFn,
   registerMediaFn,
   retireArticleFn,
   restoreContentRevisionFn,
@@ -698,14 +700,13 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
   const [body, setBody] = useState(page?.body ?? "");
   const [seoTitle, setSeoTitle] = useState(page?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(page?.seoDescription ?? "");
-  const [isPublished, setIsPublished] = useState(page?.isPublished ?? false);
   const [message, setMessage] = useState("");
   return (
     <form
       className={`${panelClass} space-y-3 p-4`}
       onSubmit={(event) => {
         event.preventDefault();
-        void savePageFn({ data: { id: page?.id, slug, title, body, seoTitle, seoDescription, isPublished } })
+        void savePageFn({ data: { id: page?.id, slug, title, body, seoTitle, seoDescription, isPublished: page?.isPublished ?? false } })
           .then(onDone)
           .catch(() => setMessage("ذخیره انجام نشد."));
       }}
@@ -723,10 +724,17 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
       <textarea className={`${fieldClass} min-h-40`} value={body} onChange={(event) => setBody(event.target.value)} aria-label="متن صفحه" />
       <input className={fieldClass} value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} aria-label="عنوان سئو" placeholder="عنوان سئو؛ خالی = عنوان صفحه" />
       <input className={fieldClass} value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} aria-label="شرح سئو" placeholder="خلاصه صفحه برای نتایج جست‌وجو" />
-      <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" checked={isPublished} onChange={(event) => setIsPublished(event.target.checked)} />
-        منتشر شده
-      </label>
+      {page ? (
+        <div className="space-y-2 rounded-2xl border border-line p-3">
+          <p className="text-sm text-muted">وضعیت فعلی: <strong className="text-forest">{page.isPublished ? "منتشرشده" : "پیش‌نویس"}</strong></p>
+          <p className="text-xs leading-6 text-muted">انتشار و لغو انتشار فقط روی آخرین نسخه ذخیره‌شده انجام می‌شود. ابتدا تغییرات فرم را ذخیره کنید؛ عملیات انتشار تغییرات ذخیره‌نشده را نگه نمی‌دارد.</p>
+          <button type="button" className={page.isPublished ? buttonGhost : buttonPrimary} onClick={() => {
+            const next = !page.isPublished;
+            if (!window.confirm(next ? "آخرین نسخه ذخیره‌شده این صفحه منتشر شود؟" : "این صفحه از سایت عمومی برداشته شود؟")) return;
+            void publishPageFn({ data: { id: page.id, published: next } }).then(onDone).catch(() => setMessage("تغییر وضعیت انتشار انجام نشد."));
+          }}>{page.isPublished ? "لغو انتشار صفحه" : "انتشار صفحه"}</button>
+        </div>
+      ) : <p className="text-xs text-muted">برای انتشار، ابتدا صفحه را ذخیره کنید.</p>}
       {message ? <p className="text-sm font-bold text-forest">{message}</p> : null}
       <button type="submit" className={buttonPrimary}>
         ذخیره صفحه
@@ -832,7 +840,6 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
   const [content, setContent] = useState(article?.content ?? "");
   const [authorName, setAuthorName] = useState(article?.authorName ?? "کارگاه شاهو");
   const [readMinutes, setReadMinutes] = useState(String(article?.readMinutes ?? 3));
-  const [status, setStatus] = useState<"draft" | "published">(article?.status ?? "draft");
   const [categoryId, setCategoryId] = useState(article?.categoryId || desk.articleCategories[0]?.id || "");
   const [coverMediaId, setCoverMediaId] = useState(article?.coverMediaId ?? "");
   const [related, setRelated] = useState<string[]>(article?.relatedProductIds ?? []);
@@ -858,7 +865,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
             content,
             authorName,
             readMinutes: minutes,
-            status,
+            status: article?.status ?? "draft",
             categoryId,
             coverMediaId: coverMediaId || null,
             relatedProductIds: related,
@@ -890,10 +897,17 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           ))}
         </select>
       </div>
-      <select className={fieldClass} value={status} onChange={(event) => setStatus(event.target.value === "published" ? "published" : "draft")} aria-label="وضعیت مقاله">
-        <option value="draft">پیش‌نویس</option>
-        <option value="published">منتشر شده</option>
-      </select>
+      {article ? (
+        <div className="space-y-2 rounded-2xl border border-line p-3">
+          <p className="text-sm text-muted">وضعیت فعلی: <strong className="text-forest">{article.status === "published" ? "منتشرشده" : "پیش‌نویس"}</strong></p>
+          <p className="text-xs leading-6 text-muted">انتشار و لغو انتشار فقط روی آخرین نسخه ذخیره‌شده انجام می‌شود. ابتدا تغییرات فرم را ذخیره کنید؛ عملیات انتشار تغییرات ذخیره‌نشده را نگه نمی‌دارد.</p>
+          <button type="button" className={article.status === "published" ? buttonGhost : buttonPrimary} onClick={() => {
+            const next = article.status !== "published";
+            if (!window.confirm(next ? "آخرین نسخه ذخیره‌شده این مقاله منتشر شود؟" : "این مقاله از مجله عمومی برداشته شود؟")) return;
+            void publishArticleFn({ data: { id: article.id, published: next } }).then(onDone).catch(() => setMessage("تغییر وضعیت انتشار انجام نشد."));
+          }}>{article.status === "published" ? "لغو انتشار مقاله" : "انتشار مقاله"}</button>
+        </div>
+      ) : <p className="text-xs text-muted">برای انتشار، ابتدا مقاله را ذخیره کنید.</p>}
       <select className={fieldClass} value={coverMediaId} onChange={(event) => setCoverMediaId(event.target.value)} aria-label="جلد">
         <option value="">بدون جلد</option>
         {desk.media.map((media) => (
