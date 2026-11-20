@@ -57,14 +57,16 @@ The admin platform must remain portable across:
 
 - [x] Add centralized carousel autoplay and interval controls (3–15 seconds), with reduced-motion support on the public homepage.
 - [x] Add centralized header/footer layout controls: sticky-header toggle, header/footer logo heights with bounded validation, and footer content alignment. Settings are stored under `store.layout`, audited, and consumed by the public shell; defaults preserve the current layout.
-- [ ] Complete any further responsive layout refinements after the final Preview review.
-- [ ] Ensure public components read the same canonical settings and invalidate/cache-refresh consistently.
-- [ ] Add preview/publish workflows and revision/audit history.
+- [ ] Complete responsive layout refinements after the next available Preview review.
+- [ ] Audit every public component for canonical settings consumption and consistent cache invalidation/revalidation.
+- [ ] Add admin-only preview links and explicit preview/publish workflow for pages and articles.
+- [x] Add immutable page/article revision history, transactional restore, and audit events (migration 0017).
 
 ### Phase 3 — Media library
-- [ ] Implement provider-neutral media storage interface.
-- [ ] Support a persistent object-storage adapter for Vercel and a documented S3-compatible adapter for Linux/Windows hosting.
-- [ ] Add upload, validation, MIME sniffing, size limits, safe filenames, image processing, alt text, preview, replacement, usage references and safe retirement.
+- [x] Implement provider-neutral media storage interface and provider-qualified object keys.
+- [x] Add documented S3-compatible persistent object-storage adapter for Vercel and Linux/Windows hosting.
+- [x] Add guarded upload, file validation, size limits, safe object names, alt text, usage references and provider-aware safe retirement/cleanup.
+- [ ] Add image processing/thumbnail generation and verify all product/category/banner/article/logo workflows share the same media library.
 - [ ] Never rely on local ephemeral disk for production uploads.
 - [ ] Ensure product/category/banner/article/logo images share the same media library.
 
@@ -207,3 +209,26 @@ Before handing this work to another agent:
 - Cleanup failures create diagnostics; retries leave provider-mismatched items pending rather than marking them skipped or deleting from the wrong bucket.
 - Added mocked tests for signed S3 PUT/GET/DELETE, endpoint path prefixes, unsafe names, fail-closed production configuration, provider-qualified keys and local traversal protection. Registered the test in `scripts/run-tests.mjs`.
 - These additions are awaiting CI on the latest branch head; do not consider the adapter validated until the new suite passes.
+
+
+## 14. CMS revision history and media storage verification (2026-11-20)
+
+- Latest PR #9 head: `c6b7fcf8f9cd2a14a4e32178816ea168a7459730`; branch `feat/admin-cms-phase2`; PR remains open/draft and stacked on PR #8. The PR compares 50 commits ahead of `feat/admin-catalog-ux-phase1`, with no commits behind.
+- CI run [`44781020108`](https://github.com/arefbrh/shahoo/actions/runs/44781020108) on that exact head completed successfully:
+  - Quality (typecheck, lint, build): success.
+  - Project tests: success.
+  - PostgreSQL integration/migrations, multi-connection contention, backup/restore: success.
+  - Migration inventory: success.
+  - Security checks: success.
+  - Payment/SMS mocks: success.
+  - Manus private platform harness: skipped by workflow configuration; not counted as passed.
+- Added migration `0017_content_revisions.sql` and the Drizzle schema for immutable page/article snapshots. Page/article create/update operations append snapshots transactionally. Admin history shows the latest 30 versions; restore validates the stored snapshot, restores page/article content and related product links transactionally, appends a new revision, and records an audit event.
+- Added permission-guarded `getContentHistoryFn` and `restoreContentRevisionFn`; both require `content.write`. The history UI is present in page/article editor forms.
+- Added S3-compatible storage adapter using AWS Signature Version 4, provider-qualified keys, fail-closed configuration, media route reads, and provider-aware retirement/retry cleanup. Added mocked PUT/GET/DELETE, path-prefix, unsafe-name, fail-closed config, provider-key and traversal tests.
+- The exact latest CI run above passed the full project test suite and Quality, PostgreSQL, migration, security, and payment/SMS checks, including the S3 lifecycle test coverage.
+- No S3 bucket or credentials have been provisioned. Upload remains disabled until an operator configures a persistent S3-compatible bucket and Preview-only credentials. No Vercel environment variables, Preview deployment, Production deployment, or Production data were changed in this work.
+- Vercel's deployment creation limit previously blocked new Preview builds after the project exceeded its 24-hour deployment quota. The owner asked to defer deployment until the final review; no manual Preview deployment was triggered.
+- PR #8 and PR #9 remain open/draft; neither is merged. PR #9 is stacked on PR #8. No Production changes or release approval.
+- Remaining Phase 2 work: admin-only content preview/publish workflow, final responsive review, and an end-to-end audit of canonical settings/cache invalidation.
+- Remaining Phase 3 work: image processing/thumbnail generation, shared-media-library coverage across all asset types, and an owner-approved Preview bucket configuration followed by upload/read/delete smoke testing.
+- Next implementation step: add a safe admin-only preview path for unpublished pages/articles without exposing drafts publicly; then add explicit publish/unpublish actions with permission checks, transactional audit history and regression tests.
