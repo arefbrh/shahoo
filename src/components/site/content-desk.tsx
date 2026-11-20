@@ -11,6 +11,7 @@ import {
   saveBannerFn,
   saveBannerOrderFn,
   saveBrandSettingsFn,
+  saveCarouselSettingsFn,
   saveNavFn,
   saveNavOrderFn,
   savePageFn,
@@ -116,6 +117,7 @@ function HomeTab({
   return (
     <>
       <BrandSettingsForm desk={desk} onDone={onDone} />
+      <CarouselSettingsForm desk={desk} onDone={onDone} />
       <CopyForm desk={desk} onDone={onDone} />
       <ProfileForm desk={desk} onDone={onDone} />
       <p className="text-sm leading-7 text-muted">پس از به‌روزرسانی، عنوان و زیرعنوان سه بخش محصولات را بررسی کنید. متن‌هایی که قبلاً در مدیریت ویرایش شده‌اند خودکار جایگزین نمی‌شوند.</p>
@@ -147,6 +149,44 @@ function HomeTab({
       ))}
       <BannerForm banner={null} media={desk.media} canUp={false} canDown={false} onUp={() => undefined} onDown={() => undefined} onDone={onDone} />
     </>
+  );
+}
+
+function CarouselSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult) => Promise<void> }) {
+  const [autoPlay, setAutoPlay] = useState(desk.carousel.autoPlay);
+  const [intervalMs, setIntervalMs] = useState(String(desk.carousel.intervalMs));
+  const [message, setMessage] = useState("");
+  return (
+    <form
+      className={`${panelClass} space-y-3 p-4`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        const interval = Number(intervalMs);
+        if (!Number.isInteger(interval) || interval < 3000 || interval > 15000) {
+          setMessage("فاصله نمایش باید بین ۳ تا ۱۵ ثانیه باشد.");
+          return;
+        }
+        void saveCarouselSettingsFn({ data: { autoPlay, intervalMs: interval } })
+          .then(async (result) => {
+            if (!result.ok) setMessage(result.message);
+            else { setMessage("تنظیمات اسلایدر ذخیره شد."); await onDone(result); }
+          })
+          .catch(() => setMessage("ذخیره تنظیمات اسلایدر انجام نشد."));
+      }}
+    >
+      <h2 className="font-bold text-forest">رفتار اسلایدر صفحه اول</h2>
+      <p className="text-xs leading-6 text-muted">این تنظیم روی همه بنرهای فعال صفحه اول اثر می‌گذارد. مثال: ۶۵۰۰ میلی‌ثانیه یعنی هر ۶٫۵ ثانیه اسلاید بعدی نمایش داده می‌شود. با غیرفعال‌کردن پخش خودکار، بازدیدکننده همچنان می‌تواند دستی بین اسلایدها جابه‌جا شود. تنظیمات کاهش حرکت مرورگر همیشه رعایت می‌شود.</p>
+      <label className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-forest">
+        <input type="checkbox" checked={autoPlay} onChange={(event) => setAutoPlay(event.target.checked)} />
+        پخش خودکار اسلایدها فعال باشد
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>فاصله بین اسلایدها (میلی‌ثانیه)</span>
+        <input className={fieldClass} type="number" min={3000} max={15000} step={500} value={intervalMs} onChange={(event) => setIntervalMs(event.target.value)} dir="ltr" />
+      </label>
+      {message ? <p className="text-sm font-bold text-forest" role="status">{message}</p> : null}
+      <button type="submit" className={buttonPrimary}>ذخیره تنظیمات اسلایدر</button>
+    </form>
   );
 }
 
