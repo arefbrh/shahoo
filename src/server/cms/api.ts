@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { CmsDesk, CmsResult } from "@/lib/cms-types";
 import { requireAdmin } from "../auth/guard";
 import {
+  applyArticlePublication,
   applyArticleRetire,
   applyArticleSave,
   applyBrandSettings,
@@ -12,6 +13,7 @@ import {
   applyBannerSave,
   applyNavOrder,
   applyNavSave,
+  applyPagePublication,
   applyPageUpdate,
   applySectionOrder,
   applySectionUpdate,
@@ -175,9 +177,17 @@ export const restoreContentRevisionFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ revisionId: z.string().min(2).max(100) }).parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => restoreContentRevision(db, actorId, data.revisionId)));
 
+export const publishPageFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ id: z.string().min(2).max(80), published: z.boolean() }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyPagePublication(db, actorId, data.id, data.published)));
+
 export const savePageFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => pageSchema.parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyPageUpdate(db, actorId, data)));
+
+export const publishArticleFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ id: z.string().min(2).max(80), published: z.boolean() }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyArticlePublication(db, actorId, data.id, data.published)));
 
 export const saveArticleFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => articleSchema.parse(input))
