@@ -337,3 +337,6 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added admin-only read and write server functions. Read requires `orders.read`; write requires `orders.write`. Writes lock the order row, validate that every submitted line belongs to the order, reject duplicate/unknown line IDs and prevent picked quantities exceeding the ordered quantity.
 - Writes use an order-level upsert and append an audit event. No customer-facing route exposes this internal record.
 - Migration and CI must be verified before merge or deployment. Production migration is not run here.
+
+
+- The packing slip UI now loads the saved work record, allows per-line partial picked quantities, and persists operator names, package count, weight and discrepancy notes through an explicit save action.
