@@ -320,10 +320,8 @@ export interface FileRoutesByFullPath {
   '/account/orders': typeof AccountOrdersRoute
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -370,6 +368,7 @@ export interface FileRoutesByTo {
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -417,6 +416,7 @@ export interface FileRoutesById {
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/content': typeof AdminContentRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -466,10 +466,8 @@ export interface FileRouteTypes {
     | '/account/orders'
     | '/account/settings'
     | '/admin/catalog'
-    | '/admin/content-preview/$entityType/$entityId'
-    | '/admin/content-preview/$entityType/$entityId'
-    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/content'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/customers'
     | '/admin/inventory'
     | '/admin/offers'
@@ -516,6 +514,7 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/admin/catalog'
     | '/admin/content'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/inventory'
     | '/admin/offers'
     | '/admin/reports'
@@ -562,6 +561,7 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/admin/catalog'
     | '/admin/content'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/customers'
     | '/admin/inventory'
     | '/admin/offers'
