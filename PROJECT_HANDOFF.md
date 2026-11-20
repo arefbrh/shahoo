@@ -352,3 +352,48 @@ Do not represent the project as fully tested, production-ready, or connected to 
 ---
 
 **End of handoff.** If this document conflicts with the live repository, current CI, or a newer dated audit, verify the live evidence and update this file. Do not silently assume the older statement is still true.
+
+
+---
+
+## Live-state reconciliation addendum — 2026-11-20
+
+This addendum supersedes earlier statements in this file where live GitHub or Neon metadata now provides newer evidence. Historical entries above are retained for traceability.
+
+### GitHub main and CI
+
+- Current `main` commit at this reconciliation: `321c0d640685e4e99af3053059fbd95047179524` (PR #4 squash merge).
+- GitHub Actions run [44716528199](https://github.com/arefbrh/shahoo/actions/runs/44716528199) completed with conclusion **success** for that exact main commit.
+- Security checks, PostgreSQL integration/migrations, quality (typecheck/lint/build), project tests, payment/SMS mocks, and migration inventory all completed successfully.
+- The main project-test job ran three groups: scripts 113/113, application 227/227, and migration-integration 120/120 (460 passed, 0 failed, 0 skipped across those groups). The private platform harness was separately skipped by the workflow; it is not counted as a passing private-harness run.
+- This CI result is evidence for the exact main commit above. It does not establish live provider, Production deployment, browser E2E, backup/restore, or independent-connection concurrency readiness.
+
+### PR #1 — current live status
+
+- PR #1 remains **open, Draft, and unmerged**: [Fix Vercel runtime loading of PGlite adapter](https://github.com/arefbrh/shahoo/pull/1).
+- PR #1 was reconciled onto current `main` after the above snapshot. Its new head is `3442af0246387cf4617dc36fac99c2416a7f61cc`; GitHub compare confirms it is **4 commits ahead and 0 behind** current main (`321c0d640685e4e99af3053059fbd95047179524`).
+- PR #1 remains **open, Draft, and unmerged**, with `mergeable=true`. The new CI run `44718356786` is running for the reconciled head; security, quality, payment/SMS mocks, migration inventory, and PostgreSQL integration/migrations have passed, while project tests were still running at this check. The Vercel commit status for the new head is **success**.
+- The four source/test changes remain outside `main`: dynamic PGlite adapter import, Preview-only demo-seed gate and tests, and Nitro externalization for both `drizzle-orm/pglite` and `@electric-sql/pglite`.
+- Do not merge/promote to Production until the separate Production database, final CI, Preview smoke test, and release gates below are satisfied.
+
+### Neon account/project observation
+
+- The connected Neon project listing search for `shahoo` returned one matching project: `shahoo-staging` (project ID `morning-voice-81212343`, PostgreSQL 16, region `aws-eu-central-1`).
+- Its only listed branch is the default `staging` branch (`br-young-heart-b96c797x`), with one read-write endpoint (`ep-blue-sunset-b9z17mpp`).
+- No separate SHAHOO Production Neon project or branch was present in the accessible matching project results at the time of this check. Treat Production DB as **not provisioned/verified**. Do not repurpose the staging branch as Production.
+- This was a metadata-only inspection. No database rows, credentials, schema, or secrets were read or changed.
+
+### Source-file cleanup audit
+
+- The current recursive Git tree contains 467 entries and was not truncated.
+- No files were deleted in this pass. Several initially suspicious scripts have concrete active contracts or references: `build-windows.mjs` and `release-expired-holds.mjs` are package-script entry points; `browser-smoke.mjs` imports `brand-check.mjs`; `preview-thumbnail.mjs` documents its internal preview-capture contract; and `sign-out-plan.mjs` is a pure module used by the authentication client and tests.
+- Filename age or lack of GitHub code-search results is not proof of dead code. Continue with repository-wide reference and workflow analysis before proposing any deletion. Preserve historical reports, migrations, tests, assets and evidence.
+
+### Next safe sequence
+
+1. Reconcile/update PR #1 against current main, then rerun CI and Preview; keep it Draft until reviewed.
+2. Finish a reference-based script/asset cleanup audit without deleting unproven files.
+3. Execute the documented real-PostgreSQL multi-connection and backup/restore procedures only against disposable isolated infrastructure.
+4. Obtain owner-controlled confirmation of the exposed OAuth credential rotation/revocation.
+5. Provision a separate Neon Production database only after explicit owner approval, then configure Vercel Production separately.
+6. Complete browser E2E, accessibility, admin/customer journey checks and provider sandbox checklists before any public launch.
