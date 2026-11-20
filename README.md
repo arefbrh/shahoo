@@ -8,3 +8,4 @@ SHAHOO — Organic Products E-commerce Platform
 - [Current source and release evidence: Batch 09 comprehensive audit](BATCH_09_COMPREHENSIVE_AUDIT.md)
 - [Batch 09 remediation report](BATCH_09_REMEDIATION_REPORT.md)
 - [Remaining issues register](REMAINING_ISSUES.md)
+- [Documentation map and historical-file policy](docs/README.md)
