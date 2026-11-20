@@ -9,6 +9,7 @@ const LINKS: Array<{ href: string; label: string; allow: (permissions: string[])
   { href: "/admin/orders", label: "سفارش‌ها", allow: (permissions) => permissions.includes("orders.read") },
   { href: "/admin/customers", label: "مشتریان", allow: (permissions) => permissions.includes("customers.read") },
   { href: "/admin/catalog", label: "کاتالوگ", allow: (permissions) => permissions.includes("catalog.read") },
+  { href: "/admin/content", label: "محتوا و برند", allow: (permissions) => permissions.includes("content.write") },
   { href: "/admin/inventory", label: "موجودی", allow: (permissions) => permissions.includes("inventory.read") || permissions.includes("inventory.write") },
   { href: "/admin/offers", label: "تخفیف و ارسال", allow: (permissions) => permissions.includes("settings.read") || permissions.includes("settings.write") },
   { href: "/admin/support", label: "پشتیبانی", allow: (permissions) => permissions.includes("customers.read") || permissions.includes("support.write") },
