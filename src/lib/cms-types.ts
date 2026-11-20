@@ -90,6 +90,7 @@ export type CmsDesk = {
   copyright: string;
   logos: { header: string; footer: string };
   carousel: { autoPlay: boolean; intervalMs: number };
+  layout: StoreLayoutSettings;
   storyTitle: string;
   storyAbout: string;
   storyPhilosophy: string;
@@ -182,6 +183,10 @@ export type ProfileDraft = {
   instagram: string;
   telegram: string;
 };
+
+export type StoreLayoutSettings = { stickyHeader: boolean; headerLogoHeight: number; footerLogoHeight: number; footerAlignment: "start" | "center" };
+
+export type StoreLayoutDraft = StoreLayoutSettings;
 
 export type BrandSettingsDraft = {
   brandName: string;
