@@ -251,6 +251,7 @@ function gifLzwOk(minCodeSize: number, data: Uint8Array, expectedPixels: number)
   reset();
   let previous: { first: number; length: number } | null = null;
   let decodedPixels = 0;
+  let sawInitialClear = false;
   let buffer = 0;
   let bits = 0;
   let cursor = 0;
@@ -270,12 +271,14 @@ function gifLzwOk(minCodeSize: number, data: Uint8Array, expectedPixels: number)
     const code = readCode();
     if (code < 0) return false;
     if (code === clear) {
+      sawInitialClear = true;
       codeSize = minCodeSize + 1;
       next = end + 1;
       reset();
       previous = null;
       continue;
     }
+    if (!sawInitialClear) return false;
     if (code === end) return decodedPixels === expectedPixels;
     let entry = code < next ? dict[code] : undefined;
     if (!entry && code === next && previous) entry = { first: previous.first, length: previous.length + 1 };
