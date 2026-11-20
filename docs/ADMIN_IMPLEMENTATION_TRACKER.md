@@ -122,11 +122,15 @@ The admin platform must remain portable across:
 - Commits on the branch:
   - `df368c7be68bded15c4e7ebbbaa01d8c16f7f712` — API validation/error handling.
   - `2976facfef1717e88fe07512af58e014cce97772` — category/product form reliability.
-  - Latest UI follow-up commit is recorded in GitHub branch history; update this section with its exact SHA before handoff.
+  - `8d1199ad52673cbdb90b794bc40ccfb5bafea9d0` — add required cues and examples for product/package fields.
+  - `e3953720c1c6a18914153ab01ea4d0141db9570c` — add client-side product identity checks.
 - No database schema/migration changes in Phase 1 so far.
 - No Neon data has been changed.
 - No Vercel Production environment variables or Production deployment have been changed.
-- Preview deployment and CI for this branch are pending at the time of this record.
+- Latest Preview deployment: `https://shahoo-oyfyjszzu-shahoo.vercel.app` (`dpl_BiZ6g9K3iZvhMf4hr37GLo1G8NmH`), READY for commit `e3953720c1c6a18914153ab01ea4d0141db9570c`.
+- CI run `44761442398`: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed; Project tests were still running at last check; private platform harness skipped. Re-poll before claiming complete.
+- Vercel environment metadata confirms a Preview `DATABASE_URL` and Preview `SEED_DEMO` variable are configured (values not read); Production `DATABASE_URL` is separately configured. No secrets were retrieved.
+- Read-only Neon Production check confirmed database `shahoo`, role `shahoo_app`, 52 public tables, and zero non-deleted categories/products/variants. No Production rows were modified.
 
 ## 7. Required handoff checklist
 
