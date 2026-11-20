@@ -288,3 +288,12 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Media-library audit (read-only): the `media_assets` table exists and product images plus article covers can reference it, but category imagery, banners/homepage section visuals and brand/header/footer logos still use URL/path fields rather than a shared `mediaId` relation. The CMS upload flow registers assets, but it is not yet a complete searchable/selectable media desk reused by every content editor. Thumbnail/derivative generation is also absent. This is why Phase 3 remains open.
 - Identified gaps for the planned Phase 7: no dedicated immutable invoice/document snapshot or invoice numbering/version record; no configurable sender profile or sender snapshot per shipment; no package/parcel, weight/dimensions, pick/pack item checklist or partial-fulfillment model; no carrier-issued label artifact/barcode record, label reprint history or print-job settings; and no verified carrier API integration. These are audit findings from schema/code inspection, not changes to live data.
 - Next: finish and verify the running Project tests; then close the remaining CMS/media gaps without deploying. Phase 7 implementation stays deferred until Phase 2/3 review. Invoice visual concept must be shown to the owner and explicitly approved before its template is added to the application.
+
+
+## 17. Brand logo media-library integration (2026-11-20)
+
+- Brand settings editor now offers shared-library selectors for header and footer logos while preserving manual path/HTTPS entry for compatibility.
+- Server-side save validates library-backed logo paths against a non-retired `media_assets` row and restricts them to PNG/JPEG/WebP. Arbitrary or retired media paths cannot be saved as logos.
+- Added integration coverage for selecting a valid library asset and rejecting a missing asset. The test uses the existing PGlite CMS database fixture.
+- Existing published logo settings and legacy official asset paths are preserved; no migration or live data mutation was performed.
+- Validation status: previous CI runs `44797010227` and `44797863097` passed all active jobs. The new logo integration commits require their own CI run before this change is considered verified.
