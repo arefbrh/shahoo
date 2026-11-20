@@ -1,5 +1,6 @@
 import type { OrderView } from "@/lib/commerce-types";
 import { formatTomanFromIrr, toPersianNum } from "@/lib/format";
+import { downloadInvoicePng, downloadInvoiceXlsx } from "@/lib/invoice-export";
 
 export function OrderInvoice({ order }: { order: OrderView }) {
   return (
@@ -9,9 +10,13 @@ export function OrderInvoice({ order }: { order: OrderView }) {
           <h2 className="font-bold text-forest">فاکتور فروش</h2>
           <p className="mt-1 text-xs text-muted">نسخه قابل چاپ · اطلاعات بر اساس سفارش ثبت‌شده</p>
         </div>
-        <button type="button" className="rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-ivory hover:bg-deep" onClick={() => { document.body.dataset.printTarget = "invoice"; window.addEventListener("afterprint", () => { delete document.body.dataset.printTarget; }, { once: true }); window.print(); }}>
-          چاپ فاکتور / ذخیره PDF
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="rounded-full border border-line px-4 py-2.5 text-sm font-bold text-forest" onClick={() => downloadInvoicePng(order)}>خروجی PNG</button>
+          <button type="button" className="rounded-full border border-line px-4 py-2.5 text-sm font-bold text-forest" onClick={() => downloadInvoiceXlsx(order)}>خروجی Excel (XLSX)</button>
+          <button type="button" className="rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-ivory hover:bg-deep" onClick={() => { document.body.dataset.printTarget = "invoice"; window.addEventListener("afterprint", () => { delete document.body.dataset.printTarget; }, { once: true }); window.print(); }}>
+            چاپ فاکتور / ذخیره PDF
+          </button>
+        </div>
       </div>
 
       <article className="invoice-sheet" dir="rtl">
