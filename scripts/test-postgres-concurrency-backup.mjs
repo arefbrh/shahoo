@@ -16,6 +16,7 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../src/server/db/schema.ts";
 import { commitCheckout } from "../src/server/commerce/checkout.ts";
+import { releaseExpiredHolds } from "../src/server/commerce/holds.ts";
 
 const execFileAsync = promisify(execFile);
 const rawUrl = process.env.DATABASE_URL?.trim();
@@ -110,6 +111,37 @@ async function main() {
     if (state.orders !== 1 || state.reserved !== 2 || state.order_items !== 1 || state.remaining_lines !== 1) {
       throw new Error('Application checkout race left inconsistent state: ' + JSON.stringify(state));
     }
+    const createdOrder = await appPool.query(
+      "SELECT id FROM orders WHERE idempotency_key IN ('ci-checkout-a','ci-checkout-b')",
+    );
+    if (createdOrder.rowCount !== 1) throw new Error('Expected exactly one checkout order before hold expiry test');
+    const checkoutOrderId = createdOrder.rows[0].id;
+    await appPool.query(
+      "UPDATE orders SET stock_hold_until = NOW() - INTERVAL '1 minute' WHERE id = $1",
+      [checkoutOrderId],
+    );
+    const releaseResults = await Promise.all([
+      releaseExpiredHolds(appDb),
+      releaseExpiredHolds(appDb),
+    ]);
+    if (releaseResults[0] + releaseResults[1] !== 1) {
+      throw new Error('Concurrent expired-hold workers did not release exactly one order: ' + JSON.stringify(releaseResults));
+    }
+    const releasedState = await appPool.query(
+      `SELECT o.status, o.stock_state, i.on_hand, i.reserved,
+              (SELECT count(*)::int FROM order_events e WHERE e.order_id = o.id AND e.status = 'expired') AS expired_events,
+              (SELECT count(*)::int FROM audit_logs a WHERE a.entity_id = o.id AND a.action = 'order.hold_released') AS release_audits
+       FROM orders o JOIN order_items oi ON oi.order_id = o.id
+       JOIN inventory i ON i.variant_id = oi.variant_id WHERE o.id = $1`,
+      [checkoutOrderId],
+    );
+    const released = releasedState.rows[0];
+    if (!released || released.status !== 'expired' || released.stock_state !== 'released' ||
+        released.on_hand !== 3 || released.reserved !== 0 ||
+        released.expired_events !== 1 || released.release_audits !== 1) {
+      throw new Error('Expired-hold release left inconsistent state: ' + JSON.stringify(released));
+    }
+    console.log('[postgres-app-hold-release] PASS — two concurrent workers released one expired unpaid order exactly once; reserved stock, order event and audit stayed consistent');
     console.log('[postgres-app-checkout] PASS — real commitCheckout with two independent customer carts competing for two units: one order committed, one rejected, stock reservation remained exactly 2, no oversell');
   } finally {
     await appPool.end();
