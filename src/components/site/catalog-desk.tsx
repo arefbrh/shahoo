@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { AdminCatalog, AdminProduct, AdminVariant } from "@/lib/catalog-types";
 import { toPersianNum } from "@/lib/format";
 import { adjustInventoryFn, attachProductMediaFn, detachProductImageFn, getAdminCatalog, reorderProductImagesFn, saveCategoryFn, saveProductFn } from "@/server/catalog/api";
@@ -144,7 +144,7 @@ function CategoryForm({
     setMessage("");
   }
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     const order = parseWhole(sortOrder);
@@ -398,6 +398,22 @@ function ProductEditor({
     setMessage("");
     setPending(true);
     try {
+      if (!categoryId) {
+        setMessage("ابتدا یک دسته‌بندی بسازید و سپس محصول را ثبت کنید.");
+        return;
+      }
+      if (name.trim().length < 2) {
+        setMessage("نام محصول باید حداقل ۲ نویسه داشته باشد.");
+        return;
+      }
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug.trim())) {
+        setMessage("شناسه انگلیسی محصول معتبر نیست؛ نمونه: cold-pressed-oil");
+        return;
+      }
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(sku.trim())) {
+        setMessage("کد محصول معتبر نیست؛ فقط حروف انگلیسی، عدد و خط تیره استفاده کنید.");
+        return;
+      }
       const payloadVariants = variants.map((variant) => {
         const price = parseWhole(variant.priceToman);
         const compareText = variant.compareAtToman.trim();
