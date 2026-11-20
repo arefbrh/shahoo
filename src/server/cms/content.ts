@@ -171,6 +171,12 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
         footer: typeof logos.footer === "string" ? logos.footer : "",
       };
     })(),
+    carousel: (() => {
+      const value = settingsMap.get("home.carousel");
+      const config = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      const interval = typeof config.intervalMs === "number" ? config.intervalMs : 6500;
+      return { autoPlay: config.autoPlay !== false, intervalMs: Math.min(15000, Math.max(3000, interval)) };
+    })(),
     storyTitle: story.title ?? "",
     storyAbout: story.about ?? "",
     storyPhilosophy: story.philosophy ?? "",
@@ -272,6 +278,19 @@ export async function applySiteCopy(db: Database, actorId: string, input: CopyDr
       entityType: "settings",
       entityId: "store.story",
     });
+  });
+}
+
+export async function applyCarouselSettings(db: Database, actorId: string, input: { autoPlay: boolean; intervalMs: number }): Promise<CmsResult> {
+  if (!Number.isInteger(input.intervalMs) || input.intervalMs < 3000 || input.intervalMs > 15000) {
+    return { ok: false, message: "فاصله نمایش باید بین ۳۰۰۰ تا ۱۵۰۰۰ میلی‌ثانیه باشد." };
+  }
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "home.carousel")).for("update");
+    const value = { autoPlay: input.autoPlay, intervalMs: input.intervalMs };
+    if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "home.carousel"));
+    else await tx.insert(settings).values({ key: "home.carousel", value, updatedAt: new Date() });
+    await writeAudit(tx, { actorType: "admin", actorId, action: "content.carousel_settings_updated", entityType: "settings", entityId: "home.carousel" });
   });
 }
 
