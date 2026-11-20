@@ -349,6 +349,59 @@ test("expiry releases a hold once, skips a paid order, and payment can recover s
   assert.equal(untouched?.reserved, 0);
 });
 
+test("concurrent expiry restores coupon usage exactly once", async () => {
+  const { db } = await open();
+  const past = new Date(Date.now() - 60_000);
+  await db.insert(schema.coupons).values({
+    id: "coupon-expiry", code: "EXPIRE-ONCE", amountOffIrr: 10000, usedCount: 1, usageLimit: 5,
+  });
+  await db.insert(orders).values({
+    id: "ord-coupon-expiry",
+    publicCode: "SH-20261120-COUPON",
+    status: "awaiting_payment",
+    paymentStatus: "unpaid",
+    stockState: "held",
+    stockHoldUntil: past,
+    couponId: "coupon-expiry",
+    couponCode: "EXPIRE-ONCE",
+    fullName: "آزاده",
+    mobile: "09120000001",
+    province: "تهران",
+    city: "تهران",
+    addressLine: "خیابان آزمایشی بلندتر",
+    subtotalIrr: 100000,
+    discountIrr: 10000,
+    totalIrr: 90000,
+  });
+  await db.insert(schema.orderItems).values({
+    id: "oi-coupon-expiry",
+    orderId: "ord-coupon-expiry",
+    variantId: "var-a",
+    productName: "روغن",
+    variantLabel: "۳۰ میلی",
+    sku: "SKU-A-1",
+    quantity: 1,
+    unitPriceIrr: 100000,
+    lineTotalIrr: 100000,
+  });
+  await db.update(inventory).set({ onHand: 5, reserved: 1 }).where(eq(inventory.variantId, "var-a"));
+
+  const released = await Promise.all([releaseExpiredHolds(db), releaseExpiredHolds(db)]);
+  const [coupon] = await db.select().from(schema.coupons).where(eq(schema.coupons.id, "coupon-expiry"));
+  const [order] = await db.select().from(orders).where(eq(orders.id, "ord-coupon-expiry"));
+  const [stock] = await db.select().from(inventory);
+  const events = await db.select().from(schema.orderEvents).where(eq(schema.orderEvents.orderId, "ord-coupon-expiry"));
+  const logs = await db.select().from(inventoryLogs).where(eq(inventoryLogs.orderId, "ord-coupon-expiry"));
+
+  assert.equal(released[0]! + released[1]!, 1);
+  assert.equal(coupon.usedCount, 0, "coupon usage must be restored once");
+  assert.equal(order.status, "expired");
+  assert.equal(order.stockState, "released");
+  assert.equal(stock.reserved, 0, "reserved stock must be released once");
+  assert.equal(events.filter((event) => event.status === "expired").length, 1);
+  assert.equal(logs.filter((entry) => entry.reason === "release_expired").length, 1);
+});
+
 test("payment after an expired hold does not mark the order paid when stock is gone", async () => {
   const { db } = await open();
   await db.insert(orders).values({
