@@ -6,7 +6,6 @@ import { cancelUnpaidOrderFn } from "@/server/offers/api";
 import { retryPayPingSettlementForAdminFn, retryPayPingVerificationForAdminFn } from "@/server/payments/api";
 import { buttonGhost, buttonPrimary, pageKicker, pageTitle, panelClass } from "./ui";
 import { OrderActions } from "./order-actions";
-import { OrderInvoice } from "./order-invoice";
 
 export function OrderDetail({ order }: { order: OrderView | null }) {
   if (!order) {
@@ -29,7 +28,6 @@ export function OrderDetail({ order }: { order: OrderView | null }) {
       <h1 className={`${pageTitle} text-left`} dir="ltr">
         {order.publicCode}
       </h1>
-      <OrderInvoice order={order} />
       <OrderTrack isPaid={order.isPaid} isClosed={order.isClosed} label={order.statusLabel} paymentLabel={order.paymentStatusLabel} />
       <OrderActions order={order} />
       {order.canManagePayments && order.paymentRecovery?.length ? <PaymentRecovery attempts={order.paymentRecovery} /> : null}

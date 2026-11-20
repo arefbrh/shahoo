@@ -9,7 +9,7 @@ export function OrderInvoice({ order }: { order: OrderView }) {
           <h2 className="font-bold text-forest">فاکتور فروش</h2>
           <p className="mt-1 text-xs text-muted">نسخه قابل چاپ · اطلاعات بر اساس سفارش ثبت‌شده</p>
         </div>
-        <button type="button" className="rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-ivory hover:bg-deep" onClick={() => window.print()}>
+        <button type="button" className="rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-ivory hover:bg-deep" onClick={() => { document.body.dataset.printTarget = "invoice"; window.addEventListener("afterprint", () => { delete document.body.dataset.printTarget; }, { once: true }); window.print(); }}>
           چاپ فاکتور / ذخیره PDF
         </button>
       </div>

@@ -318,3 +318,14 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added an A4 browser-print layout with repeating table headings, non-splitting item rows and multi-page flow. Browser print can save the document as PDF. No artificial limit is imposed on item count; a 10-line order is supported by the dynamic table.
 - This first implementation does not yet claim PNG or XLSX export, immutable invoice-number snapshots beyond the existing order code, seller contact/address configuration, or final page-number support across all browsers. Those remain explicit follow-up tasks; do not represent the complete print/export center as finished yet.
 - Validation is pending CI on this commit. The work remains on the stacked PR #9 branch; no PR merge, Preview deployment, Production deployment, or Production data change was performed.
+
+
+
+## 20. Internal picking and packing slip — first implementation (2026-11-20)
+
+- Added an admin-order-only internal picking/packing slip, separate from the customer invoice and not rendered on customer order pages.
+- The slip uses the order's stored recipient/address/shipping snapshots and item name, variant, SKU and quantity snapshots.
+- Added interactive per-line picking checkboxes, requested/collected quantity columns, and manual fields for picker, final checker, package count, weight and packing discrepancy notes.
+- Added a dedicated print action and print-target isolation so the warehouse slip prints without exposing/printing the customer invoice, and vice versa.
+- Package weights/dimensions, partial fulfilment, persistent picking progress and immutable shipment snapshots are not yet implemented; blank operational fields are intentionally manual and must not be mistaken for saved data.
+- CI validation is pending. No merge or deployment performed.

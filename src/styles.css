@@ -135,3 +135,21 @@
   * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 }
 
+
+/* Internal warehouse picking/packing slip; rendered only on admin order detail. */
+.packing-slip-sheet { background:#fff; border:1px solid #d9c9a8; border-radius:14px; padding:24px; color:#29291f; font-size:12px; line-height:1.9; }
+.packing-slip-lines th,.packing-slip-lines td { border:1px solid #d9c9a8; padding:8px 6px; text-align:center; vertical-align:middle; }
+.packing-slip-lines th { background:#173d28; color:#fff9ee; font-weight:700; }
+.packing-slip-lines tbody tr { break-inside:avoid; page-break-inside:avoid; }
+.packing-slip-lines input { width:18px; height:18px; accent-color:#173d28; }
+@media print {
+  body[data-print-target="invoice"] * { visibility:hidden !important; }
+  body[data-print-target="invoice"] .invoice-print-root,body[data-print-target="invoice"] .invoice-print-root * { visibility:visible !important; }
+  body[data-print-target="packing-slip"] * { visibility:hidden !important; }
+  body[data-print-target="packing-slip"] .packing-slip-print-root,body[data-print-target="packing-slip"] .packing-slip-print-root * { visibility:visible !important; }
+  body[data-print-target="packing-slip"] .packing-slip-print-root { position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; margin:0 !important; }
+  body[data-print-target="packing-slip"] .packing-slip-toolbar { display:none !important; }
+  body[data-print-target="packing-slip"] .packing-slip-sheet { border:0 !important; border-radius:0 !important; padding:0 !important; }
+  body[data-print-target="packing-slip"] .packing-slip-lines thead { display:table-header-group; }
+  body[data-print-target="packing-slip"] .packing-slip-lines tr { break-inside:avoid; page-break-inside:avoid; }
+}
