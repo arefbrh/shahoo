@@ -294,8 +294,8 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
     const profileRow = rows.find((row) => row.key === "store.profile");
     const logosRow = rows.find((row) => row.key === "brand.logos");
     if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
-    const profile = profileRow.value && typeof profileRow.value === "object" ? (profileRow.value as Record<string, unknown>) : {};
-    const logos = logosRow.value && typeof logosRow.value === "object" ? (logosRow.value as Record<string, unknown>) : {};
+    const profile = profileRow!.value && typeof profileRow!.value === "object" ? (profileRow!.value as Record<string, unknown>) : {};
+    const logos = logosRow!.value && typeof logosRow!.value === "object" ? (logosRow!.value as Record<string, unknown>) : {};
     await tx.update(settings).set({ value: { ...profile, brandName, tagline, copyright }, updatedAt: new Date() }).where(eq(settings.key, "store.profile"));
     await tx.update(settings).set({
       value: { ...logos, header: headerLogo, footer: footerLogo, headerPng: headerLogo, footerPng: footerLogo },
