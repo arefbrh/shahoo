@@ -1,11 +1,9 @@
-<!-- BATCH 08 REVISION 02.1 CURRENT STATUS -->
-# Current inventory notice — Batch 08 Revision 02.1
+# Historical file inventory — superseded snapshot
 
-This document's counts and change descriptions below are historical Batch 06/earlier snapshots, **not** the current archive inventory. For the authoritative current input/output archive identity, eligible file and directory counts, exclusions, integrity checks and checksums, see [BATCH_08_FINAL_RELEASE_EVIDENCE.md](BATCH_08_FINAL_RELEASE_EVIDENCE.md). The current documentation includes the rebuilt [issue register](REMAINING_ISSUES.md) and its [superseded original](docs/archive/REMAINING_ISSUES_pre_revision_02_1.md). Do not substitute historical counts for final packaging evidence.
-
-**Historical content notice:** Everything below is historical; conflicting statements about current contents, status or counts are superseded. Final approval has not been granted; Batch 09 has not started.
+The counts and change descriptions below describe the Batch 06 archive, not the current Git repository. Do not use these figures as current repository counts. For the current file/documentation structure see [docs/README.md](docs/README.md); for current release and test evidence see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md), and [REMAINING_ISSUES.md](REMAINING_ISSUES.md).
 
 ---
+
 
 # FILE INVENTORY — SHAHOO 1.0.0 (Batch 06 product/CMS package)
 
