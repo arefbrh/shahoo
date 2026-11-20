@@ -20,6 +20,7 @@ import {
   applySiteCopy,
   applyStoreProfile,
   loadCmsDesk,
+  loadContentPreview,
   loadContentHistory,
   restoreContentRevision,
   registerExternalMedia,
@@ -93,6 +94,13 @@ async function withContentWrite<T>(run: (db: Awaited<ReturnType<typeof requireAd
   const { db, admin } = await requireAdmin("content.write");
   return run(db, admin.id);
 }
+
+export const getContentPreviewFn = createServerFn({ method: "GET" })
+  .validator((input: unknown) => z.object({
+    entityType: z.enum(["page", "article"]),
+    entityId: z.string().min(2).max(100),
+  }).parse(input))
+  .handler(async ({ data }) => withContentWrite((db) => loadContentPreview(db, data.entityType, data.entityId)));
 
 export const getCmsDesk = createServerFn({ method: "GET" }).handler(async (): Promise<CmsDesk> => withContentWrite((db) => loadCmsDesk(db)));
 
