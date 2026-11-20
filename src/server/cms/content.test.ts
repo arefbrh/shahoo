@@ -16,6 +16,7 @@ import {
   applyPagePublication,
   applyPageUpdate,
   loadContentHistory,
+  loadContentPreview,
   restoreContentRevision,
   applySectionOrder,
   applySectionUpdate,
@@ -403,6 +404,10 @@ test("page and article publication are independent, audited, and versioned trans
   assert.equal(pageSaved.ok, true);
   const [page] = await db.select().from(sitePages).where(eq(sitePages.slug, "shipping-info"));
   assert.ok(page);
+  const pagePreview = await loadContentPreview(db, "page", page!.id);
+  assert.equal(pagePreview?.kind, "page");
+  assert.equal(pagePreview?.status, "draft");
+  assert.equal(pagePreview?.body, "متن ذخیره‌شده راهنمای ارسال.");
   assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, true)).ok, true);
   assert.equal((await db.select().from(sitePages).where(eq(sitePages.id, page!.id)))[0]?.isPublished, true);
   assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, false)).ok, true);
@@ -425,6 +430,10 @@ test("page and article publication are independent, audited, and versioned trans
   assert.equal(articleSaved.ok, true);
   const [article] = await db.select().from(articles).where(eq(articles.slug, "shipping-guide"));
   assert.ok(article);
+  const articlePreview = await loadContentPreview(db, "article", article!.id);
+  assert.equal(articlePreview?.kind, "article");
+  assert.equal(articlePreview?.status, "draft");
+  assert.equal(articlePreview?.body, "متن کامل راهنمای ارسال سفارش.");
   assert.equal((await applyArticlePublication(db, "admin-publisher", article!.id, true)).ok, true);
   const [publishedArticle] = await db.select().from(articles).where(eq(articles.id, article!.id));
   assert.equal(publishedArticle?.status, "published");
