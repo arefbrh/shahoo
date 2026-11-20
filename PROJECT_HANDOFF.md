@@ -2,14 +2,15 @@
 
 > **Canonical handoff for future agents and maintainers.** Read this file before changing code, infrastructure, migrations, or release state. It consolidates repository evidence and the verified project history available on 2026-11-20. It is deliberately explicit about what was tested, what was only reviewed, and what remains blocked.
 >
-> **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but live provider activation, Production database setup, PostgreSQL multi-connection verification, and final release checks are still outstanding.
+> **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but live provider activation, Production database setup, broader PostgreSQL application concurrency/DR coverage, and final release checks are still outstanding.
 
-**Last reconciled:** 2026-11-20 (post-PR #3 merge reconciliation)
+**Last reconciled:** 2026-11-20 (PR #6 PostgreSQL application checkout and backup/restore CI evidence)
 
 ## 0. Latest verified repository maintenance
 
 - PR #2, `docs: add comprehensive SHAHOO project handoff`, was merged after its full GitHub Actions CI run completed successfully. Merge commit: `299b85a7aa1b76d05bd03594915b888d7d469ca9`. This was documentation-only; it did not change application code, migrations, database settings, or deploy Production.
 - PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updated the agent entry point and marked superseded batch/status documents as historical. Its CI run `44713902624` completed successfully for head `a0516f65a2474a1e8cb9b60b3981f31493184401`; it was squash-merged into `main` as `ab5d3617f62b7156b2a90504d86f2e4d9409e2d3`. Documentation-only; no application source, dependencies, migrations, database data, secrets, or deployment settings changed.
+- PR #6 ([PostgreSQL concurrency and backup/restore verification](https://github.com/arefbrh/shahoo/pull/6)) is open and not merged. CI run `44724055534` completed successfully for head `8c5b12be4cad81a46f9c823ff38d42394016dfe3`: Quality, Project tests, PostgreSQL integration/migrations, Security, Migration inventory and Payment/SMS mocks all passed; the private platform harness was skipped because its repository variable is not enabled. PostgreSQL job executed both independent-client SQL row-lock contention, the real `commitCheckout` race with two customer carts (one order committed, one safely rejected, exactly two units reserved, no oversell), and PostgreSQL 16 `pg_dump`/`pg_restore` comparison of migration count, probe row and public index count. All data was synthetic in the disposable GitHub Actions PostgreSQL service. PR6 is not merged and did not change Neon, Vercel or Production.
 - Current documentation entry point: [docs/README.md](docs/README.md). Start with this handoff and do not treat historical batch instructions as current authorization.
 
 **Repository:** [arefbrh/shahoo](https://github.com/arefbrh/shahoo)  
@@ -33,7 +34,7 @@
 | Production database | Not provisioned/verified | Create a separate Neon Production database and configure Vercel Production `DATABASE_URL` before any Production deploy |
 | Production deployment | Not verified / not approved | Do not merge or promote blindly; see release gates below |
 | PayPing / SMS.ir | Source integration exists; disabled pending controlled account verification | No live credentials, sandbox transaction, real SMS, or real payment was tested |
-| Real PostgreSQL concurrency and restore | Not executed in the documented Batch 09 evidence | Use the guarded disposable PostgreSQL procedure; do not target Production |
+| Real PostgreSQL application checkout race and DB restore | Verified in disposable CI for the exact PR #6 head | Real `commitCheckout` race, independent SQL row locks and PG16 dump/restore passed in run `44724055534`; broader payment/expiry/order-transition races and full DR remain open |
 | Full script test suite | Four platform-only tests blocked | 212/216 script tests in the latest documented run; missing private `.grok` inputs explain the four failures |
 | App + migration/integration suites | Passed in latest documented run | 226/226 app tests and 110/110 migration/integration tests (Batch 09 final corrective-phase evidence) |
 
@@ -235,13 +236,13 @@ The four blocked script tests are private platform harness/documentation checks,
 - PayPing merchant confirmation, controlled provider verification, callback reachability and real payment/refund.
 - Production hosting, persistent media, backup, observability and rollback verification.
 
-See `docs/POSTGRESQL_VERIFICATION.md` for the guarded PostgreSQL procedure. It is a **prepared procedure, not an executed test**.
+See `docs/POSTGRESQL_VERIFICATION.md` for the guarded PostgreSQL procedure and the PR #6 CI execution addendum. The broader fresh/upgrade, payment/expiry/order-transition and production-like DR procedures remain unexecuted.
 
 ## 7. Current release blockers and risks
 
 1. **Production Neon database is not confirmed.** Must be separate from Preview and configured only in Vercel Production.
 2. **Previously exposed OAuth credential rotation is unconfirmed.** Owner/credential administrator must rotate/revoke and review usage.
-3. **Real PostgreSQL multi-connection tests and backup/restore are outstanding.**
+3. **Broader PostgreSQL multi-connection coverage and full disaster-recovery validation remain outstanding.** PR #6 verified real checkout contention and a synthetic PG16 dump/restore round trip in CI; payment/expiry/duplicate-callback/order-transition/seed races and full production-like recovery (roles, media, host config) are not covered.
 4. **Four private platform script tests remain blocked** until the matching authorized private harness is available.
 5. **PayPing/SMS.ir account configuration and controlled provider verification are outstanding.** Keep both live paths disabled.
 6. **PayPing amount-unit convention requires merchant confirmation** despite supporting integration documentation and source checks.
