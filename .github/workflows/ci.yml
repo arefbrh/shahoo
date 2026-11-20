@@ -69,7 +69,7 @@ jobs:
       - name: Verify real PostgreSQL integration
         run: node scripts/test-postgres-smoke.mjs
       - name: Verify multi-connection contention and backup/restore
-        run: node scripts/test-postgres-concurrency-backup.mjs
+        run: node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/test-postgres-concurrency-backup.mjs
 
   payment-and-sms-mocks:
     name: Payment and SMS mocks
