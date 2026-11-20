@@ -66,10 +66,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrate
-      - name: Install PostgreSQL 16 client tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
       - name: Verify real PostgreSQL integration
         run: node scripts/test-postgres-smoke.mjs
       - name: Verify multi-connection contention and backup/restore
