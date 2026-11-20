@@ -30,8 +30,11 @@ test("production database configuration fails closed", () => {
   assert.equal(connectionErrorUsesPglite(), false);
 });
 
-test("demo seed and development flags cannot turn on in production", () => {
+test("demo seed is opt-in and can only cross NODE_ENV=production on Vercel Preview", () => {
   assert.equal(demoSeedAllowed({ NODE_ENV: "production", SEED_DEMO: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(demoSeedAllowed({ NODE_ENV: "production", VERCEL_ENV: "production", SEED_DEMO: "1" } as NodeJS.ProcessEnv), false);
+  assert.equal(demoSeedAllowed({ NODE_ENV: "production", VERCEL_ENV: "preview" } as NodeJS.ProcessEnv), false);
+  assert.equal(demoSeedAllowed({ NODE_ENV: "production", VERCEL_ENV: "preview", SEED_DEMO: "1" } as NodeJS.ProcessEnv), true);
   assert.equal(demoSeedAllowed({ NODE_ENV: "development" } as NodeJS.ProcessEnv), false);
   assert.equal(demoSeedAllowed({ NODE_ENV: "development", SEED_DEMO: "1" } as NodeJS.ProcessEnv), true);
   assert.equal(otpEchoAllowed({ NODE_ENV: "production", ECHO_OTP: "1" } as NodeJS.ProcessEnv), false);
