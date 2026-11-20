@@ -283,8 +283,8 @@ function BrandSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: C
       <label className="block space-y-1 text-sm"><span>نام برند</span><input className={fieldClass} value={brandName} onChange={(event) => setBrandName(event.target.value)} maxLength={80} /></label>
       <label className="block space-y-1 text-sm"><span>شعار فروشگاه</span><input className={fieldClass} value={tagline} onChange={(event) => setTagline(event.target.value)} maxLength={180} /></label>
       <label className="block space-y-1 text-sm"><span>متن کپی‌رایت</span><input className={fieldClass} value={copyright} onChange={(event) => setCopyright(event.target.value)} maxLength={180} /></label>
-      <label className="block space-y-1 text-sm"><span>انتخاب لوگوی هدر از کتابخانه رسانه</span><select className={fieldClass} value={logoMedia.some((item) => item.publicUrl === headerLogo) ? headerLogo : ""} onChange={(event) => setHeaderLogo(event.target.value)}><option value="">انتخاب نشده / استفاده از نشانی دستی</option>{logoMedia.map((item) => <option key={item.id} value={item.publicUrl}>{item.alt || item.filename}</option>)}</select><input className={fieldClass} dir="ltr" value={headerLogo} onChange={(event) => setHeaderLogo(event.target.value)} maxLength={500} aria-label="نشانی لوگوی هدر" /></label>
-      <label className="block space-y-1 text-sm"><span>انتخاب لوگوی فوتر از کتابخانه رسانه</span><select className={fieldClass} value={logoMedia.some((item) => item.publicUrl === footerLogo) ? footerLogo : ""} onChange={(event) => setFooterLogo(event.target.value)}><option value="">انتخاب نشده / استفاده از نشانی دستی</option>{logoMedia.map((item) => <option key={item.id} value={item.publicUrl}>{item.alt || item.filename}</option>)}</select><input className={fieldClass} dir="ltr" value={footerLogo} onChange={(event) => setFooterLogo(event.target.value)} maxLength={500} aria-label="نشانی لوگوی فوتر" /></label>
+      <div className="space-y-2"><MediaChoice label="لوگوی هدر از کتابخانه رسانه" value={headerLogo} media={logoMedia} onChange={setHeaderLogo} valueMode="url" /><label className="block space-y-1 text-sm"><span>یا نشانی دستی لوگوی هدر</span><input className={fieldClass} dir="ltr" value={headerLogo} onChange={(event) => setHeaderLogo(event.target.value)} maxLength={500} aria-label="نشانی لوگوی هدر" /></label></div>
+      <div className="space-y-2"><MediaChoice label="لوگوی فوتر از کتابخانه رسانه" value={footerLogo} media={logoMedia} onChange={setFooterLogo} valueMode="url" /><label className="block space-y-1 text-sm"><span>یا نشانی دستی لوگوی فوتر</span><input className={fieldClass} dir="ltr" value={footerLogo} onChange={(event) => setFooterLogo(event.target.value)} maxLength={500} aria-label="نشانی لوگوی فوتر" /></label></div>
       {message ? <p className="text-sm font-bold text-forest" role="status">{message}</p> : null}
       <button type="submit" className={buttonPrimary}>ذخیره هویت برند</button>
     </form>
@@ -553,28 +553,58 @@ function MediaChoice({
   value,
   media,
   onChange,
+  valueMode = "id",
+  acceptedMimes,
 }: {
   label: string;
   value: string;
   media: CmsDesk["media"];
-  onChange: (id: string) => void;
+  onChange: (value: string) => void;
+  valueMode?: "id" | "url";
+  acceptedMimes?: string[];
 }) {
-  const selected = media.find((item) => item.id === value);
+  const [query, setQuery] = useState("");
+  const selected = media.find((item) => (valueMode === "url" ? item.publicUrl === value : item.id === value));
+  const filtered = media.filter((item) =>
+    (!acceptedMimes || acceptedMimes.includes(item.mimeType)) &&
+    `${item.alt} ${item.filename} ${item.publicUrl}`.toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
     <div className="space-y-2">
       <label className="block text-sm font-bold text-forest">
         {label}
-        <select className={`${fieldClass} mt-2`} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
-          <option value="">بدون تصویر</option>
-          {media.map((item) => (
-            <option key={item.id} value={item.id}>
+        <input
+          className={`${fieldClass} mt-2`}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="جست‌وجو در نام و متن جایگزین رسانه"
+          aria-label={`جست‌وجو: ${label}`}
+        />
+        <select
+          className={`${fieldClass} mt-2`}
+          value={selected ? (valueMode === "url" ? selected.publicUrl : selected.id) : ""}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={label}
+        >
+          <option value="">بدون تصویر / انتخاب نشده</option>
+          {filtered.map((item) => (
+            <option key={item.id} value={valueMode === "url" ? item.publicUrl : item.id}>
               {item.alt || item.filename}
             </option>
           ))}
         </select>
       </label>
-      {selected ? <MediaThumb src={selected.publicUrl} className="h-20 w-full rounded-2xl border border-line bg-cream object-contain" /> : null}
-      {value && !selected ? <p className="text-xs text-muted">این تصویر دیگر در کتابخانه نیست.</p> : null}
+      {selected ? (
+        <div className="flex items-center gap-3 rounded-xl border border-line p-2">
+          <MediaThumb src={selected.publicUrl} className="h-16 w-16 rounded-lg border border-line bg-cream object-contain" />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-forest">{selected.alt || selected.filename}</p>
+            <p className="truncate text-[10px] text-muted" dir="ltr">{selected.filename}</p>
+          </div>
+        </div>
+      ) : null}
+      {value && !selected ? <p className="text-xs text-muted">نشانی فعلی در کتابخانه نیست؛ مقدار دستی حفظ می‌شود.</p> : null}
+      {query && filtered.length === 0 ? <p className="text-xs text-muted">رسانه‌ای با این عبارت پیدا نشد.</p> : null}
     </div>
   );
 }
@@ -911,14 +941,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           }}>{article.status === "published" ? "لغو انتشار مقاله" : "انتشار مقاله"}</button>
         </div>
       ) : <p className="text-xs text-muted">برای انتشار، ابتدا مقاله را ذخیره کنید.</p>}
-      <select className={fieldClass} value={coverMediaId} onChange={(event) => setCoverMediaId(event.target.value)} aria-label="جلد">
-        <option value="">بدون جلد</option>
-        {desk.media.map((media) => (
-          <option key={media.id} value={media.id}>
-            {media.alt || media.filename}
-          </option>
-        ))}
-      </select>
+      <MediaChoice label="تصویر جلد مقاله" value={coverMediaId} media={desk.media} onChange={setCoverMediaId} />
       <div className="flex flex-wrap gap-3 text-sm">
         {desk.products.map((product) => (
           <label key={product.id} className="inline-flex min-h-11 items-center gap-2">
