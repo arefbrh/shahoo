@@ -3,7 +3,7 @@
 **Last updated:** 2026-11-20  
 **Repository:** https://github.com/arefbrh/shahoo  
 **Active implementation branch:** `feat/admin-catalog-ux-phase1`  
-**Current phase:** Phase 1 — catalog reliability and operator clarity  
+**Current phase:** Phase 2 — CMS and central brand/content controls (Phase 1 complete on its feature branch)  
 **Release posture:** NOT APPROVED. No Production promotion or merge authorization is implied by this tracker.
 
 This is the canonical continuation note for the admin-platform work. Update it in the same pull request as meaningful implementation milestones. Keep facts, test evidence, and remaining work separate.
@@ -45,10 +45,10 @@ The admin platform must remain portable across:
 - [x] Add category required-field, slug, and sort-order validation before submission.
 - [x] Add product/package field explanations and required-field cues.
 - [x] Clarify that the product image must be a direct product image, not the site header logo.
-- [ ] Run CI: typecheck, lint, build, project tests, PostgreSQL integration.
-- [ ] Verify the generated Vercel Preview with the connected Preview database.
-- [ ] Owner smoke test: create category, create draft product, add package/price, edit and reload.
-- [ ] Close Phase 1 only after all evidence is recorded.
+- [x] Run CI: typecheck, lint, build, project tests, PostgreSQL integration.
+- [x] Verify the generated Vercel Preview with the connected Preview database.
+- [x] Owner smoke test: owner confirmed successful admin login and that all tested catalog actions worked correctly.
+- [x] Close Phase 1 implementation/testing checklist; PR remains unmerged pending explicit owner authorization.
 
 ### Phase 2 — CMS and central brand/content controls
 - [ ] Review and complete PR #7 (`feat/admin-brand-settings`); it is not merged.
@@ -128,8 +128,9 @@ The admin platform must remain portable across:
 - No Neon data has been changed.
 - No Vercel Production environment variables or Production deployment have been changed.
 - Latest Preview deployment: `https://shahoo-j3j1ndmtu-shahoo.vercel.app` (`dpl_Hg83VWXQBrzkjMYiqtKr2ijmvjb6`), READY for docs-updated branch head `66b799933ef22ce1c455ab754ab4b9389a987267`. The immediately preceding code deployment for `e3953720c1c6a18914153ab01ea4d0141db9570c` also reached READY.
-- CI run `44761442398` applies to code head `e3953720c1c6a18914153ab01ea4d0141db9570c`: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed; Project tests remained in progress at last poll; private platform harness skipped. The later `66b7999` commit only updates documentation, and no separate CI run was returned for it.
-- Automated external inspection of the Preview `/admin` route was blocked by Vercel SSO protection. Owner browser smoke test remains pending; this is not represented as a passed E2E test. Re-poll before claiming complete.
+- CI run `44761442398` applies to code head `e3953720c1c6a18914153ab01ea4d0141db9570c`: Quality (typecheck/lint/build), Project tests, PostgreSQL integration/migrations including contention and backup/restore, migration inventory, Security, and Payment/SMS mocks all passed. Manus private platform harness was skipped.
+- Owner completed the Preview admin smoke test and confirmed that login and all tested catalog workflows worked correctly. This is owner-reported browser verification, not a claim that the private platform harness ran.
+- Preview admin bootstrap deployment used for the owner test: `https://shahoo-47810kea7-shahoo.vercel.app` (`dpl_EqqjPtkXRD8yVN4krmf9n8Pa34jo`), READY, commit `0e0e5079672423c2945186ba61daf3fbda3c2316`.
 - Vercel environment metadata confirms a Preview `DATABASE_URL` and Preview `SEED_DEMO` variable are configured (values not read); Production `DATABASE_URL` is separately configured. No secrets were retrieved.
 - Read-only Neon Production check confirmed database `shahoo`, role `shahoo_app`, 52 public tables, and zero non-deleted categories/products/variants. No Production rows were modified.
 
@@ -153,3 +154,12 @@ Before handing this work to another agent:
 - The admin account is created lazily by `ensureAdminFromEnv` on the first request to `/admin`; therefore open the Preview `/admin` route once before login. Verify the staging `admin_users` row after that request.
 - A unique staging-only password was generated and provided to the owner in the conversation. Do not store it in this repository.
 - Production account and database were not modified. Production login credentials remain separate.
+
+
+## 9. Phase 1 completion confirmation (2026-11-20)
+
+- Owner confirmed: "همه رو انجام دادم همه چیز درست بود" after testing the Preview admin login and catalog workflows.
+- CI run `44761442398` was re-polled after the owner confirmation; every required job completed successfully, including Project tests. The Manus private platform harness was skipped by workflow configuration.
+- Phase 1 implementation and owner smoke-test checklist are complete on `feat/admin-catalog-ux-phase1`.
+- PR #8 remains open/draft and is **not merged**. No Production deployment, Production data mutation, or Production configuration change was made as part of this completion.
+- Next workstream: Phase 2, CMS and central brand/content controls. PR #7 remains a separate, unmerged change and must be reviewed/integrated deliberately; the admin navigation still needs a discoverable CMS entry.
