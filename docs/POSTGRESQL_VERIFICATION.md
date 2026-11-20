@@ -257,3 +257,18 @@ The CI PostgreSQL job now includes `scripts/test-postgres-concurrency-backup.mjs
 The test clones the freshly migrated CI database into uniquely named scratch databases, opens two independent PostgreSQL clients, and coordinates a row-lock contention test against one synthetic inventory unit. The first transaction reserves the unit; the second waits for the row lock, observes zero remaining units and must not decrement below zero. It then uses PostgreSQL 16 `pg_dump` and `pg_restore` to restore the scratch database into a separate empty database and verifies migration records, the synthetic row, and indexes. Both scratch databases and the temporary dump directory are cleaned up in the CI job.
 
 **Evidence boundary:** this now includes real PostgreSQL multi-connection SQL/locking, actual application `commitCheckout`, concurrent `releaseExpiredHolds`, and concurrent `captureVerifiedPayment` with a local fake provider, plus a native database dump/restore round trip. It does **not** test PayPing/SMS live providers, duplicate callback/settlement races through the callback route, quote/order transitions, multi-process seed initialization, external media/roles/host restoration or a production disaster-recovery procedure. CI's PostgreSQL service and cloned scratch DBs are disposable and contain synthetic fixtures only; no Neon staging or production database is used.
+
+
+---
+
+## CI execution addendum — application recovery matrix and callback races (2026-11-20)
+
+Latest PR #6 head `17c8e9dd38c7c6a792a39b2b430eb08cf715ab3d` passed GitHub Actions run [44733552547](https://github.com/arefbrh/shahoo/actions/runs/44733552547). The run completed the project suite, PostgreSQL integration/migrations, payment/SMS mocks, quality checks, security checks and migration inventory successfully. The optional private platform harness was skipped because its opt-in repository variable is not enabled.
+
+Additional application-level coverage in this head:
+
+- Late-payment recovery rollback matrix: seven invalid states (unpublished product, soft-deleted product, inactive variant, soft-deleted variant, inactive category, soft-deleted category and insufficient stock). Each case asserts recovery is denied, the order remains expired/unpaid/released, inventory is unchanged, and no payment row, inventory log or audit side effect is written.
+- Duplicate concurrent PayPing callback lifecycle race: two callbacks reach provider verification concurrently; assertions require accepted responses, a settled attempt, paid/verified order, exactly one payment row and exactly one verified-payment log.
+- Concurrent coupon restoration during expiry: two expiry workers compete on one expired unpaid order; assertions require exactly one release, coupon usage restored to zero once, stock reservation released once and one expiry event/inventory log.
+
+These tests use synthetic fixtures and local/mock provider behavior; they are not live PayPing/SMS.ir tests. PostgreSQL integration and dump/restore continue to run only on disposable GitHub Actions PostgreSQL 16 infrastructure. This evidence does not cover the callback HTTP route end-to-end, checkout competing with late-payment recovery, full migration upgrade/rollback parity, or production-like disaster recovery (roles/globals, external media, secrets, host/network configuration, encryption and retention). No Neon or Production database was accessed.
