@@ -193,7 +193,7 @@ export default defineConfig(({ command, isPreview }) => ({
             // PGLite resolves pglite.data next to its real package. Bundling it
             // into Nitro's _libs folder drops that file and crashes preview.
             rollupConfig: {
-              external: [/^@electric-sql\/pglite/],
+              external: [/^drizzle-orm\/pglite(?:\/.*)?$/, /^@electric-sql\/pglite(?:\/.*)?$/],
             },
           }),
         ]
