@@ -1,11 +1,9 @@
-<!-- BATCH 08 REVISION 02.1 CURRENT STATUS -->
-# Current handoff — Batch 09 remediation
+# Historical handoff archive — superseded
 
-**NOT READY FOR RELEASE; final approval has not been granted.** Revision 02 is the latest completed remediation; Revision 02.1 reconciles the documentation and release evidence. See [current issue register](REMAINING_ISSUES.md), [final release evidence](BATCH_08_FINAL_RELEASE_EVIDENCE.md), and [master handoff](SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md). Prior Revision 02 test and zero-audit figures are historical; use the evidence register for actual 02.1 results. Real PostgreSQL and backup/restore, target hosting/auth configuration, browser E2E and accessibility require evidence; the private platform suite and missing audit source remain explicit limitations. Batch 09 source remediation is current; real providers, production credentials, and hosting remain disabled. The next authorized action is complete 02.1 handoff/evidence reconciliation and stop for owner review.
-
-**Historical content notice:** Everything below this notice records older batch handoffs and is retained for history only. Any conflicting current status, test result, instruction, next-batch authorization or release decision below is superseded by this notice and the current documents linked above.
+This file contains chronological handoffs from earlier batches. Some instructions and status statements below are obsolete. Do not use them to determine current project state or authorization. Start with [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), then [REMAINING_ISSUES.md](REMAINING_ISSUES.md) and [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md). The documentation map is [docs/README.md](docs/README.md).
 
 ---
+
 
 # Latest Handoff — Batch 06 product/CMS (2026-11-19)
 
