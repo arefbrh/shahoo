@@ -34,6 +34,7 @@ import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountSettingsRouteImport } from './routes/account.settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCatalogRouteImport } from './routes/admin.catalog'
+import { Route as AdminContentPreviewEntityTypeEntityIdRouteImport } from './routes/admin.content-preview.$entityType.$entityId'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
@@ -186,6 +187,11 @@ const AdminContentRoute = AdminContentRouteImport.update({
   path: '/content',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContentPreviewEntityTypeEntityIdRoute = AdminContentPreviewEntityTypeEntityIdRouteImport.update({
+  id: '/content-preview/$entityType/$entityId',
+  path: '/content-preview/$entityType/$entityId',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -314,6 +320,9 @@ export interface FileRoutesByFullPath {
   '/account/orders': typeof AccountOrdersRoute
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/content': typeof AdminContentRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRoute
@@ -457,6 +466,9 @@ export interface FileRouteTypes {
     | '/account/orders'
     | '/account/settings'
     | '/admin/catalog'
+    | '/admin/content-preview/$entityType/$entityId'
+    | '/admin/content-preview/$entityType/$entityId'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/content'
     | '/admin/customers'
     | '/admin/inventory'
@@ -778,6 +790,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCatalogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/content-preview/$entityType/$entityId': {
+      id: '/admin/content-preview/$entityType/$entityId'
+      path: '/content-preview/$entityType/$entityId'
+      fullPath: '/admin/content-preview/$entityType/$entityId'
+      preLoaderRoute: typeof AdminContentPreviewEntityTypeEntityIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/content': {
       id: '/admin/content'
       path: '/content'
@@ -973,6 +992,7 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
   AdminOrdersRouteChildren,
 )
 
+  AdminContentPreviewEntityTypeEntityIdRoute: typeof AdminContentPreviewEntityTypeEntityIdRoute
 interface AdminRouteChildren {
   AdminCatalogRoute: typeof AdminCatalogRoute
   AdminContentRoute: typeof AdminContentRoute
@@ -987,6 +1007,7 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
+  AdminContentPreviewEntityTypeEntityIdRoute: AdminContentPreviewEntityTypeEntityIdRoute,
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCatalogRoute: AdminCatalogRoute,
   AdminContentRoute: AdminContentRoute,
