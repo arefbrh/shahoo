@@ -14,6 +14,7 @@ import { adjustInventoryFn } from "@/server/catalog/api";
 import { setAdminAccessFn, setCustomerStatusFn } from "@/server/admin/api";
 import { OrderDetail } from "./order-view";
 import { buttonGhost, buttonPrimary, fieldClass, panelClass } from "./ui";
+import { AdminHelp } from "./admin-help";
 import type { OrderView } from "@/lib/commerce-types";
 
 function isDenied(value: { denied: boolean }): value is DeskDenied {
@@ -27,6 +28,7 @@ export function DashboardView({ data }: { data: DashboardData | DeskDenied | nul
     <div>
       <p className="text-xs font-bold text-gold">شاهو</p>
       <h1 className="mt-2 text-3xl font-bold text-forest">نمای کلی</h1>
+      <AdminHelp title="نمای کلی">خلاصه عملکرد فروشگاه در بازه انتخابی را می‌بینید. برای بررسی یک سفارش مشخص وارد «سفارش‌ها» شوید؛ برای جزئیات روندها از «گزارش‌ها» استفاده کنید. اعداد این صفحه جایگزین تسویه بانکی نیستند.</AdminHelp>
       <div className="mt-4 flex flex-wrap gap-2">
         {[
           ["today", "امروز"],
@@ -92,6 +94,7 @@ export function OrdersView({ data }: { data: AdminOrderList | DeskDenied | null 
   if (isDenied(data)) return <Note text={data.message} />;
   return <div>
     <h1 className="text-3xl font-bold text-forest">سفارش‌ها</h1>
+    <AdminHelp title="سفارش‌ها" example="برای پیدا کردن سفارش، کد سفارش را بدون فاصله در جست‌وجو وارد کنید و سپس وضعیت پرداخت یا تاریخ را محدود کنید.">این فهرست برای پیگیری چرخه سفارش است؛ فیلتر وضعیت سفارش با فیلتر وضعیت پرداخت فرق دارد. برای دیدن اقلام، نشانی، رویدادها و اقدامات مجاز روی کد سفارش بزنید. تأیید پرداخت از این صفحه انجام نمی‌شود و ثبت استرداد داخلی به معنی برگشت وجه در بانک نیست.</AdminHelp>
     <p className="mt-2 text-sm leading-7 text-muted">پرداخت از این صفحه تأیید نمی‌شود. استردادها فقط در دفتر داخلی ثبت می‌شوند و به معنی بازگشت وجه بانکی نیستند.</p>
     <form method="get" action="/admin/orders" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <input name="q" defaultValue={data.q} placeholder={data.canSearchMobile ? "شماره سفارش، نام یا موبایل" : "شماره سفارش"} className={fieldClass} aria-label="جستجوی سفارش" />
@@ -128,6 +131,7 @@ export function CustomersView({ data }: { data: CustomerList | DeskDenied | null
   if (isDenied(data)) return <Note text={data.message} />;
   return <div>
     <h1 className="text-3xl font-bold text-forest">مشتریان</h1>
+    <AdminHelp title="مشتریان" example="برای یافتن فرد، بخشی از نام یا شماره موبایل را جست‌وجو کنید؛ روی ردیف او بزنید تا نشانی‌ها و سفارش‌های اخیر را ببینید.">این بخش پرونده مشتریان ثبت‌نام‌کرده را نشان می‌دهد. فیلتر تاریخ مربوط به زمان عضویت است، نه تاریخ سفارش. مبلغ کنار هر مشتری جمع سفارش‌های ثبت‌شده است و نباید آن را درآمد قطعی تلقی کرد. مسدودسازی ورود فقط با ثبت دلیل انجام می‌شود.</AdminHelp>
     <form method="get" action="/admin/customers" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <input name="q" defaultValue={data.q} placeholder="نام یا موبایل" className={fieldClass} />
       <select name="status" defaultValue={data.status} className={fieldClass} aria-label="وضعیت حساب"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="blocked">مسدود</option></select>
@@ -191,7 +195,7 @@ export function InventoryView({ data }: { data: InventoryDesk | DeskDenied | nul
     catch { setMessage("اصلاح موجودی انجام نشد."); } finally { setPending(false); }
   }
   return <div>
-    <h1 className="text-3xl font-bold text-forest">موجودی</h1><p className="mt-2 text-sm text-muted">قابل فروش = موجودی فیزیکی − رزرو. رزرو پرداخت‌نشده برداشت فیزیکی نیست؛ رزرو با تأیید پرداخت به برداشت موجودی تبدیل می‌شود.</p>
+    <h1 className="text-3xl font-bold text-forest">موجودی</h1><AdminHelp title="موجودی" example="اگر ۱۲ عدد فیزیکی دارید و ۲ عدد برای سفارش‌ها رزرو شده، موجودی قابل فروش ۱۰ است. برای اصلاح فیزیکی، تغییر +۳ یا -۲ و دلیل دقیق ثبت کنید.">موجودی بر اساس بسته هر محصول مدیریت می‌شود. «فیزیکی» تعداد ثبت‌شده در انبار، «رزرو» تعداد کنارگذاشته‌شده برای سفارش و «قابل فروش» اختلاف این دو است. فیلتر کم‌موجود از آستانه همان بسته استفاده می‌کند. اصلاح دستی دائمی و قابل ردگیری است؛ فقط برای شمارش یا اصلاح واقعی انبار از آن استفاده کنید.</AdminHelp><p className="mt-2 text-sm text-muted">قابل فروش = موجودی فیزیکی − رزرو. رزرو پرداخت‌نشده برداشت فیزیکی نیست؛ رزرو با تأیید پرداخت به برداشت موجودی تبدیل می‌شود.</p>
     {data.diagnostics.length ? <ul className="mt-4 space-y-2 text-sm">{data.diagnostics.map((row) => <li key={row.id} className="rounded-2xl bg-cream px-4 py-3" role="alert">{row.message}</li>)}</ul> : null}
     <form method="get" action="/admin/inventory" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><input name="q" defaultValue={data.q} placeholder="نام محصول، بسته یا SKU" className={fieldClass} /><select name="categoryId" defaultValue={data.categoryId} className={fieldClass} aria-label="دسته‌بندی"><option value="">همه دسته‌ها</option>{data.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select name="stock" defaultValue={data.stock} className={fieldClass} aria-label="وضعیت موجودی"><option value="">همه موجودی‌ها</option><option value="low">کم‌موجود طبق آستانه ذخیره‌شده</option><option value="out">ناموجود (قابل فروش صفر)</option></select><button className={buttonPrimary} type="submit">اعمال فیلتر</button></form>
     <p className="mt-3 text-xs text-muted">{toPersianNum(data.total)} بسته · ۲۰ مورد در هر صفحه</p>
@@ -218,6 +222,7 @@ export function ReportsView({ data }: { data: ReportsData | DeskDenied | null })
   return (
     <div>
       <h1 className="text-3xl font-bold text-forest">گزارش‌ها</h1>
+      <AdminHelp title="گزارش‌ها">این صفحه خلاصه‌های عملیاتی موجود مانند وضعیت سفارش، ثبت‌نام مشتری، موجودی، کدهای تخفیف و روش‌های ارسال را نشان می‌دهد. برای رسیدگی به یک رکورد خاص از صفحه مربوط به خودش استفاده کنید. تعریف درآمد و محدودیت داده‌های پرداخت در یادداشت زیر آمده است.</AdminHelp>
       <p className="mt-3 rounded-3xl bg-cream p-4 text-sm leading-8">{data.revenueNote}</p>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {blocks.map(([title, rows]) => (
@@ -267,6 +272,7 @@ export function StaffView({ data }: { data: StaffDesk | DeskDenied | null }) {
   return (
     <div>
       <h1 className="text-3xl font-bold text-forest">مدیران</h1>
+      <AdminHelp title="مدیران" example="برای همکار پشتیبانی فقط نقش و دسترسی‌های لازم را نگه دارید؛ دسترسی سفارش یا تنظیمات را بدون نیاز فعال نکنید.">در این بخش حساب‌های مدیریتی و سطح دسترسی آن‌ها را بازبینی می‌کنید. تغییر نقش فوراً روی دسترسی‌های مدیریتی اثر می‌گذارد. رمز عبور در این صفحه نمایش داده نمی‌شود؛ آخرین مدیر ارشد فعال نیز برای جلوگیری از قفل‌شدن پنل قابل حذف یا غیرفعال‌سازی نیست.</AdminHelp>
       <p className="mt-2 text-sm leading-7 text-muted">رمز مدیر اینجا ساخته یا نشان داده نمی‌شود. آخرین مدیر ارشد فعال را نمی‌توان برداشت.</p>
       <ul className="mt-4 space-y-4">
         {data.admins.map((row) => (
