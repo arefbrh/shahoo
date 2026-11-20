@@ -388,9 +388,11 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
     if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
     for (const logoUrl of [headerLogo, footerLogo]) {
       if (logoUrl.startsWith("/media/file/")) {
-        const [asset] = await tx.select({ id: mediaAssets.id }).from(mediaAssets)
+        const [asset] = await tx.select({ id: mediaAssets.id, mimeType: mediaAssets.mimeType }).from(mediaAssets)
           .where(and(eq(mediaAssets.publicUrl, logoUrl), isNull(mediaAssets.deletedAt))).limit(1);
-        if (!asset) deny("لوگوی انتخاب‌شده در کتابخانه رسانه موجود نیست یا کنار گذاشته شده است.");
+        if (!asset || !["image/png", "image/jpeg", "image/webp"].includes(asset.mimeType)) {
+          deny("لوگوی انتخاب‌شده باید رسانه فعال PNG، JPG یا WebP در کتابخانه باشد.");
+        }
       }
     }
     const profile = profileRow!.value && typeof profileRow!.value === "object" ? (profileRow!.value as Record<string, unknown>) : {};
