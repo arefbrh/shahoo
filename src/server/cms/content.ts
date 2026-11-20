@@ -683,14 +683,12 @@ export async function restoreContentRevision(db: Database, actorId: string, revi
     if (revision.entityType === "page") {
       const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, revision.entityId)).for("update");
       if (!row) deny("صفحه‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
-      const title = cleanInline(snapshotText("title"), 2, 120);
-      const body = cleanBody(snapshotText("body"), 2, 12000);
-      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120);
-      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240);
-      if (!title || !body || seoTitle === null || seoDescription === null || typeof snapshot.isPublished !== "boolean") {
-        deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
-      }
-      const next = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: snapshot.isPublished };
+      const title = cleanInline(snapshotText("title"), 2, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const body = cleanBody(snapshotText("body"), 2, 12000) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const isPublished = typeof snapshot.isPublished === "boolean" ? snapshot.isPublished : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const next = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished };
       await tx.update(sitePages).set({ ...next, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
       await appendContentRevision(tx, actorId, "page", row.id, next);
       await writeAudit(tx, { actorType: "admin", actorId, action: "content.page_revision_restored", entityType: "site_page", entityId: row.id, metadata: { revisionId, slug: row.slug } });
@@ -702,22 +700,20 @@ export async function restoreContentRevision(db: Database, actorId: string, revi
       const categoryId = snapshotText("categoryId");
       const [category] = await tx.select({ id: articleCategories.id }).from(articleCategories).where(eq(articleCategories.id, categoryId));
       if (!category) deny("دسته این نسخه دیگر وجود ندارد.");
-      const title = cleanInline(snapshotText("title"), 2, 140);
-      const excerpt = cleanBody(snapshotText("excerpt"), 0, 400);
-      const content = cleanBody(snapshotText("content"), 0, 20000);
-      const authorName = cleanInline(snapshotText("authorName"), 2, 80);
-      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120);
-      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240);
-      const readMinutes = snapshot.readMinutes;
-      const status = snapshot.status;
-      const slug = parseSlug(snapshotText("slug"));
+      const title = cleanInline(snapshotText("title"), 2, 140) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const excerpt = cleanBody(snapshotText("excerpt"), 0, 400) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const content = cleanBody(snapshotText("content"), 0, 20000) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const authorName = cleanInline(snapshotText("authorName"), 2, 80) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const readMinutes = typeof snapshot.readMinutes === "number" && Number.isInteger(snapshot.readMinutes) && snapshot.readMinutes >= 1 && snapshot.readMinutes <= 60
+        ? snapshot.readMinutes : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const status = snapshot.status === "draft" || snapshot.status === "published" ? snapshot.status : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const slug = parseSlug(snapshotText("slug")) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
       const coverMediaId = typeof snapshot.coverMediaId === "string" ? snapshot.coverMediaId : null;
-      const relatedProductIds = Array.isArray(snapshot.relatedProductIds) && snapshot.relatedProductIds.every((id) => typeof id === "string") ? snapshot.relatedProductIds as string[] : [];
-      if (!slug || !title || excerpt === null || content === null || !authorName || seoTitle === null || seoDescription === null ||
-        typeof readMinutes !== "number" || !Number.isInteger(readMinutes) || readMinutes < 1 || readMinutes > 60 ||
-        (status !== "draft" && status !== "published") || (status === "published" && (excerpt.length < 2 || content.length < 2))) {
-        deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
-      }
+      const relatedProductIds = Array.isArray(snapshot.relatedProductIds) && snapshot.relatedProductIds.every((id: unknown): id is string => typeof id === "string")
+        ? snapshot.relatedProductIds : [];
+      if (status === "published" && (excerpt.length < 2 || content.length < 2)) deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
       await assertCover(tx, coverMediaId, deny);
       const next = {
         categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes,
