@@ -10,6 +10,7 @@ import * as schema from "../db/schema.ts";
 import { auditLogs, articleCategories, articles, banners, contentRevisions, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
 import {
   applyArticlePublication,
+  applyBrandSettings,
   applyArticleSave,
   applyBannerSave,
   applyNavSave,
@@ -202,6 +203,39 @@ test("store layout settings are validated, persisted and audited", async () => {
   const [unchanged] = await db.select().from(settings).where(eq(settings.key, "store.layout"));
   assert.deepEqual(unchanged?.value, value);
   assert.equal((await db.select().from(auditLogs)).length, 1);
+});
+
+
+test("brand header and footer logos can be selected from the managed media library", async () => {
+  const db = await database();
+  await db.insert(mediaAssets).values({
+    id: "media-header-logo",
+    folder: "library",
+    filename: "shahoo-header.png",
+    mimeType: "image/png",
+    byteSize: 120,
+    alt: "لوگوی هدر شاهو",
+    storageKey: "s3:shahoo-header.png",
+    publicUrl: "/media/file/media-header-logo",
+  });
+  const saved = await applyBrandSettings(db, "admin-brand", {
+    brandName: "شاهو",
+    tagline: "طبیعت در هر قطره",
+    copyright: "© شاهو",
+    headerLogo: "/media/file/media-header-logo",
+    footerLogo: "/assets/brand/shahoo-logo-primary.png",
+  });
+  assert.equal(saved.ok, true);
+  const [logos] = await db.select().from(settings).where(eq(settings.key, "brand.logos"));
+  assert.equal((logos?.value as Record<string, unknown>).header, "/media/file/media-header-logo");
+  const rejected = await applyBrandSettings(db, "admin-brand", {
+    brandName: "شاهو",
+    tagline: "",
+    copyright: "",
+    headerLogo: "/media/file/media-missing-logo",
+    footerLogo: "/assets/brand/shahoo-logo-primary.png",
+  });
+  assert.equal(rejected.ok, false);
 });
 
 test("story copy does not rewrite the official logo settings", async () => {
