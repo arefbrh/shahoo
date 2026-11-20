@@ -55,7 +55,9 @@ The admin platform must remain portable across:
 - [x] Add the CMS route to admin navigation, gated by `content.write`; `/admin/content` retains its server-side permission check.
 - [x] Make existing banners, homepage sections, navigation, pages, magazine/articles, store profile/contact and brand settings discoverable from the CMS desk.
 
-- [ ] Complete carousel/slider, header and footer layout controls (brand name, tagline, copyright and header/footer logo URL settings are now present; layout controls remain).
+- [x] Add centralized carousel autoplay and interval controls (3–15 seconds), with reduced-motion support on the public homepage.
+- [x] Add centralized header/footer layout controls: sticky-header toggle, header/footer logo heights with bounded validation, and footer content alignment. Settings are stored under `store.layout`, audited, and consumed by the public shell; defaults preserve the current layout.
+- [ ] Complete any further responsive layout refinements after the final Preview review.
 - [ ] Ensure public components read the same canonical settings and invalidate/cache-refresh consistently.
 - [ ] Add preview/publish workflows and revision/audit history.
 
