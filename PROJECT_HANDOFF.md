@@ -365,16 +365,16 @@ This addendum supersedes earlier statements in this file where live GitHub or Ne
 - Current `main` commit at this reconciliation: `321c0d640685e4e99af3053059fbd95047179524` (PR #4 squash merge).
 - GitHub Actions run [44716528199](https://github.com/arefbrh/shahoo/actions/runs/44716528199) completed with conclusion **success** for that exact main commit.
 - Security checks, PostgreSQL integration/migrations, quality (typecheck/lint/build), project tests, payment/SMS mocks, and migration inventory all completed successfully.
-- The project-test job log reports 120 tests passed and 0 failed. The private platform harness was skipped by the workflow; this is not counted as a passing private-harness run.
+- The main project-test job ran three groups: scripts 113/113, application 227/227, and migration-integration 120/120 (460 passed, 0 failed, 0 skipped across those groups). The private platform harness was separately skipped by the workflow; it is not counted as a passing private-harness run.
 - This CI result is evidence for the exact main commit above. It does not establish live provider, Production deployment, browser E2E, backup/restore, or independent-connection concurrency readiness.
 
 ### PR #1 — current live status
 
 - PR #1 remains **open, Draft, and unmerged**: [Fix Vercel runtime loading of PGlite adapter](https://github.com/arefbrh/shahoo/pull/1).
-- Current head remains `2082b8eed9759a60126c81b3fb2b0482792367f6`. GitHub currently reports `mergeable=true`; this supersedes the earlier `mergeable=false` snapshot, but does not itself authorize merging.
-- Its CI run `44706122336` completed successfully across the public jobs; the private platform harness was skipped. The Vercel Preview status for the same head is Ready.
-- The PR's four code/test changes are **not present on current main**. Direct comparison of the files confirms that main still statically imports `drizzle-orm/pglite`, does not permit the explicit Vercel Preview demo-seed boundary, and only externalizes `@electric-sql/pglite` in Nitro. PR #1 contains the dynamic adapter import, Preview-only seed gate and matching tests, plus Nitro externalization for both adapter and PGlite packages.
-- Before merging, update/rebase the PR branch onto current main, rerun its CI and Preview, and review the resulting diff. Do not merge/promote to Production until the separate Production database and release gates below are satisfied.
+- PR #1 was reconciled onto current `main` after the above snapshot. Its new head is `3442af0246387cf4617dc36fac99c2416a7f61cc`; GitHub compare confirms it is **4 commits ahead and 0 behind** current main (`321c0d640685e4e99af3053059fbd95047179524`).
+- PR #1 remains **open, Draft, and unmerged**, with `mergeable=true`. The new CI run `44718356786` is running for the reconciled head; security, quality, payment/SMS mocks, migration inventory, and PostgreSQL integration/migrations have passed, while project tests were still running at this check. The Vercel commit status for the new head is **success**.
+- The four source/test changes remain outside `main`: dynamic PGlite adapter import, Preview-only demo-seed gate and tests, and Nitro externalization for both `drizzle-orm/pglite` and `@electric-sql/pglite`.
+- Do not merge/promote to Production until the separate Production database, final CI, Preview smoke test, and release gates below are satisfied.
 
 ### Neon account/project observation
 
