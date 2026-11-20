@@ -117,6 +117,7 @@ function CategoryForm({
   const [iconType, setIconType] = useState("herbs");
   const [sortOrder, setSortOrder] = useState(String(catalog.categories.length + 1));
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
   if (!canWrite) return null;
 
   function load(category: AdminCatalog["categories"][number]) {
@@ -140,43 +141,86 @@ function CategoryForm({
     setDescription("");
     setIconType("herbs");
     setSortOrder(String(catalog.categories.length + 1));
+    setMessage("");
+  }
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    const order = parseWhole(sortOrder);
+    if (order === null || order < 0 || order > 999) {
+      setMessage("ترتیب نمایش باید یک عدد صحیح بین صفر تا ۹۹۹ باشد.");
+      return;
+    }
+    if (!name.trim() || name.trim().length < 2) {
+      setMessage("نام دسته باید حداقل ۲ نویسه داشته باشد.");
+      return;
+    }
+    if (!shortName.trim() || shortName.trim().length < 2) {
+      setMessage("نام کوتاه باید حداقل ۲ نویسه داشته باشد.");
+      return;
+    }
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug.trim().toLowerCase())) {
+      setMessage("شناسه انگلیسی فقط حروف کوچک، عدد و خط تیره داشته باشد؛ نمونه: cold-pressed-oils");
+      return;
+    }
+    const current = editingId ? catalog.categories.find((category) => category.id === editingId) : undefined;
+    setPending(true);
+    setMessage("");
+    try {
+      const result = await saveCategoryFn({
+        data: {
+          id: editingId ?? undefined,
+          name,
+          englishName,
+          shortName,
+          slug,
+          description,
+          iconType,
+          isActive: current?.isActive ?? true,
+          sortOrder: order,
+        },
+      });
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      reset();
+      onSaved();
+    } catch (error) {
+      setMessage(getCatalogActionError(error, "ذخیره دسته انجام نشد. اطلاعات را بررسی و دوباره تلاش کنید."));
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
-    <form
-      className={`${panelClass} mt-4 grid gap-3 p-4 sm:grid-cols-4`}
-      onSubmit={(event) => {
-        event.preventDefault();
-        setMessage("");
-        const current = editingId ? catalog.categories.find((category) => category.id === editingId) : undefined;
-        void saveCategoryFn({
-          data: {
-            id: editingId ?? undefined,
-            name,
-            englishName,
-            shortName,
-            slug,
-            description,
-            iconType,
-            isActive: current?.isActive ?? true,
-            sortOrder: parseWhole(sortOrder) ?? current?.sortOrder ?? catalog.categories.length + 1,
-          },
-        }).then((result) => {
-          if (!result.ok) {
-            setMessage(result.message);
-            return;
-          }
-          reset();
-          onSaved();
-        });
-      }}
-    >
-      <input value={name} onChange={(event) => setName(event.target.value)} placeholder="نام دسته" className={fieldClass} />
-      <input value={englishName} onChange={(event) => setEnglishName(event.target.value)} placeholder="نام انگلیسی، اختیاری" className={fieldClass} />
-      <input value={shortName} onChange={(event) => setShortName(event.target.value)} placeholder="نام کوتاه" className={fieldClass} />
-      <input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="slug" dir="ltr" className={`${fieldClass} text-left`} />
+    <form className={`${panelClass} mt-4 grid gap-3 p-4 sm:grid-cols-4`} onSubmit={(event) => void submit(event)}>
+      <div className="sm:col-span-4">
+        <h3 className="font-bold text-forest">{editingId ? "ویرایش دسته‌بندی" : "افزودن دسته‌بندی"}</h3>
+        <p className="mt-1 text-xs leading-6 text-muted">
+          نام دسته در فروشگاه دیده می‌شود؛ نام کوتاه برای نمایش فشرده است؛ شناسه انگلیسی در آدرس صفحه استفاده می‌شود و باید یکتا باشد.
+        </p>
+      </div>
       <label className="text-sm font-bold text-forest">
-        نشان
+        نام دسته *
+        <input required minLength={2} maxLength={60} value={name} onChange={(event) => setName(event.target.value)} placeholder="مثلاً روغن‌های گیاهی" className={`${fieldClass} mt-2`} />
+      </label>
+      <label className="text-sm font-bold text-forest">
+        نام انگلیسی
+        <input maxLength={80} value={englishName} onChange={(event) => setEnglishName(event.target.value)} placeholder="مثلاً Herbal Oils" dir="ltr" className={`${fieldClass} mt-2 text-left`} />
+      </label>
+      <label className="text-sm font-bold text-forest">
+        نام کوتاه *
+        <input required minLength={2} maxLength={40} value={shortName} onChange={(event) => setShortName(event.target.value)} placeholder="مثلاً روغن" className={`${fieldClass} mt-2`} />
+      </label>
+      <label className="text-sm font-bold text-forest">
+        شناسه انگلیسی (Slug) *
+        <input required minLength={2} maxLength={80} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="herbal-oils" dir="ltr" className={`${fieldClass} mt-2 text-left`} />
+        <span className="mt-1 block text-xs font-normal text-muted">برای نشانی صفحه است؛ فاصله و حروف فارسی نداشته باشد.</span>
+      </label>
+      <label className="text-sm font-bold text-forest">
+        نشان دسته
         <select value={iconType} onChange={(event) => setIconType(event.target.value)} className={`${fieldClass} mt-2`}>
           <option value="oils">روغن</option>
           <option value="butters">کره</option>
@@ -184,41 +228,53 @@ function CategoryForm({
           <option value="herbs">گیاه</option>
         </select>
       </label>
-      <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="توضیح کوتاه، اختیاری" className={`${fieldClass} sm:col-span-3`} />
-      <input value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} placeholder="ترتیب" aria-label="ترتیب دسته" inputMode="numeric" dir="ltr" className={`${fieldClass} text-left`} />
-      <button type="submit" className={buttonPrimary}>
-        {editingId ? "ذخیره دسته" : "دسته تازه"}
-      </button>
-      {message ? <p className="text-sm font-bold text-forest sm:col-span-4">{message}</p> : null}
+      <label className="text-sm font-bold text-forest sm:col-span-2">
+        توضیح کوتاه
+        <input maxLength={400} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="توضیحی که در صفحه دسته نمایش داده می‌شود" className={`${fieldClass} mt-2`} />
+      </label>
+      <label className="text-sm font-bold text-forest">
+        ترتیب نمایش
+        <input required value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} placeholder="۱" aria-label="ترتیب دسته" inputMode="numeric" dir="ltr" className={`${fieldClass} mt-2 text-left`} />
+        <span className="mt-1 block text-xs font-normal text-muted">عدد کمتر یعنی نمایش زودتر.</span>
+      </label>
+      <div className="flex flex-wrap items-end gap-2">
+        <button type="submit" disabled={pending} className={buttonPrimary}>
+          {pending ? "در حال ذخیره..." : editingId ? "ذخیره تغییرات" : "افزودن دسته"}
+        </button>
+        {editingId ? <button type="button" disabled={pending} className={buttonGhost} onClick={reset}>لغو ویرایش</button> : null}
+      </div>
+      {message ? <p role="alert" className="text-sm font-bold text-forest sm:col-span-4">{message}</p> : null}
       <ul className="space-y-2 sm:col-span-4">
         {catalog.categories.map((category) => (
           <li key={category.id} className="flex min-h-11 flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="font-bold text-forest">{category.name}</span>
+            <span className="font-bold text-forest">{category.name}<span className="ms-2 text-xs font-normal text-muted" dir="ltr">{category.slug}</span></span>
             <span className="flex items-center gap-3">
-              <button type="button" className="font-bold text-gold" onClick={() => load(category)}>
-                ویرایش
-              </button>
+              <button type="button" className="font-bold text-gold" onClick={() => load(category)}>ویرایش</button>
               <label className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={category.isActive}
-                  onChange={(event) => {
-                    void saveCategoryFn({
-                      data: {
-                        id: category.id,
-                        name: category.name,
-                        englishName: category.englishName,
-                        shortName: category.shortName,
-                        slug: category.slug,
-                        description: category.description,
-                        iconType: category.iconType,
-                        isActive: event.target.checked,
-                        sortOrder: category.sortOrder,
-                      },
-                    }).then((result) => {
+                  onChange={async (event) => {
+                    setMessage("");
+                    try {
+                      const result = await saveCategoryFn({
+                        data: {
+                          id: category.id,
+                          name: category.name,
+                          englishName: category.englishName,
+                          shortName: category.shortName,
+                          slug: category.slug,
+                          description: category.description,
+                          iconType: category.iconType,
+                          isActive: event.target.checked,
+                          sortOrder: category.sortOrder,
+                        },
+                      });
                       if (!result.ok) setMessage(result.message);
                       else onSaved();
-                    });
+                    } catch (error) {
+                      setMessage(getCatalogActionError(error, "وضعیت دسته تغییر نکرد. دوباره تلاش کنید."));
+                    }
                   }}
                 />
                 فعال در فروشگاه
@@ -405,8 +461,8 @@ function ProductEditor({
       }
       await onSaved("محصول ذخیره شد.");
       onClose();
-    } catch {
-      setMessage("ذخیره انجام نشد.");
+    } catch (error) {
+      setMessage(getCatalogActionError(error, "ذخیره محصول انجام نشد. فیلدهای اجباری، کدها و قیمت بسته‌ها را بررسی کنید."));
     } finally {
       setPending(false);
     }
@@ -415,7 +471,10 @@ function ProductEditor({
   return (
     <div className={`${panelClass} mt-4 space-y-4 p-4`}>
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-bold text-forest">{product ? product.name : "محصول تازه"}</h3>
+        <div>
+          <h3 className="font-bold text-forest">{product ? product.name : "محصول تازه"}</h3>
+          <p className="mt-1 text-xs leading-6 text-muted">فیلدهای دارای * اجباری‌اند. ابتدا اطلاعات پایه و حداقل یک بسته با کد یکتا و قیمت تومان را کامل کنید؛ برای انتشار، حداقل یک بسته باید فعال باشد.</p>
+        </div>
         <button type="button" className={buttonGhost} onClick={onClose}>
           بستن
         </button>
@@ -519,7 +578,14 @@ function ProductEditor({
         ))}
         {canWrite && specs.length < 12 ? <button type="button" className={buttonGhost} onClick={() => setSpecs((current) => [...current, { label: "", value: "" }])}>ویژگی تازه</button> : null}
       </fieldset>
-      <Field label="نشانی تصویر https" value={imageUrl} onChange={setImageUrl} disabled={!canWrite} ltr />
+      <Field
+        label="نشانی تصویر اصلی محصول"
+        value={imageUrl}
+        onChange={setImageUrl}
+        disabled={!canWrite}
+        ltr
+        hint="لینک مستقیم تصویر همین محصول را وارد کنید، نه لوگوی سربرگ یا صفحه اصلی. نشانی باید HTTPS باشد؛ پیش‌نمایش زیر نتیجه را نشان می‌دهد."
+      />
       {imageUrl ? <img src={imageUrl} alt="" className="h-24 w-24 rounded-2xl border border-line bg-cream object-contain" /> : null}
       {product ? (
         <div className="space-y-3">
@@ -752,17 +818,22 @@ function Field({
   onChange,
   disabled,
   ltr = false,
+  required = false,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   ltr?: boolean;
+  required?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="block text-sm font-bold text-forest">
-      {label}
-      <input value={value} disabled={disabled} dir={ltr ? "ltr" : undefined} onChange={(event) => onChange(event.target.value)} className={`${fieldClass} mt-2 ${ltr ? "text-left" : ""}`} />
+      {label}{required ? " *" : ""}
+      <input required={required} value={value} disabled={disabled} dir={ltr ? "ltr" : undefined} onChange={(event) => onChange(event.target.value)} className={`${fieldClass} mt-2 ${ltr ? "text-left" : ""}`} />
+      {hint ? <span className="mt-1 block text-xs font-normal leading-5 text-muted">{hint}</span> : null}
     </label>
   );
 }
@@ -784,6 +855,13 @@ function Check({
       {label}
     </label>
   );
+}
+
+function getCatalogActionError(error: unknown, fallback: string): string {
+  if (error instanceof Error && /[\\u0600-\\u06FF]/.test(error.message) && error.message.length <= 240) {
+    return error.message;
+  }
+  return fallback;
 }
 
 function toDraft(variant: AdminVariant): DraftVariant {
