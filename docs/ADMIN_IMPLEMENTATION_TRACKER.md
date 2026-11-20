@@ -59,16 +59,17 @@ The admin platform must remain portable across:
 - [x] Add centralized header/footer layout controls: sticky-header toggle, header/footer logo heights with bounded validation, and footer content alignment. Settings are stored under `store.layout`, audited, and consumed by the public shell; defaults preserve the current layout.
 - [ ] Complete responsive layout refinements after the next available Preview review.
 - [ ] Audit every public component for canonical settings consumption and consistent cache invalidation/revalidation.
-- [ ] Add admin-only preview links and explicit preview/publish workflow for pages and articles.
+- [x] Add admin-only saved-content preview links for pages and articles (including drafts); unsaved changes preview in-editor. Saved preview is served through a noindex, permission-guarded route. Explicit publish/unpublish workflow remains to be completed.
 - [x] Add immutable page/article revision history, transactional restore, and audit events (migration 0017).
 
 ### Phase 3 — Media library
 - [x] Implement provider-neutral media storage interface and provider-qualified object keys.
 - [x] Add documented S3-compatible persistent object-storage adapter for Vercel and Linux/Windows hosting.
 - [x] Add guarded upload, file validation, size limits, safe object names, alt text, usage references and provider-aware safe retirement/cleanup.
-- [ ] Add image processing/thumbnail generation and verify all product/category/banner/article/logo workflows share the same media library.
+- [ ] Add image processing/thumbnail generation and verify all product/category/banner/article/logo workflows share the same media library. GIF upload sanitization now validates frame bounds, LZW clear/end codes and decoded pixel counts; focused regression tests are registered.
 - [ ] Never rely on local ephemeral disk for production uploads.
 - [ ] Ensure product/category/banner/article/logo images share the same media library.
+- [x] Add S3-compatible upload/read/delete adapter tests, provider-aware retirement cleanup and fail-closed configuration tests. Latest code head includes these tests; current CI project-test job is still running.
 
 ### Phase 4 — Admin dashboard and reports
 - [ ] Add date-range controls and server-side aggregation.
@@ -274,3 +275,14 @@ Owner requirement: expand order management beyond a basic status field into an e
 6. Validate browser print and real standard/thermal printers, then owner-smoke-test Preview.
 7. Only after explicit owner approval, merge and promote through the normal release process.
 
+
+
+## 16. Saved content previews, GIF validation and order-schema audit (2026-11-20)
+
+- Latest observed PR #9 head: `a88dd6af38ed906d64c411b9c0e062b22925ae3c`; PR #9 remains draft and stacked on PR #8. No merge or deployment was performed.
+- Added saved page/article preview loading for drafts and published content, with an admin-only server function and a noindex preview route. The editor offers a new-tab preview of saved content while retaining an in-form preview for unsaved edits. Preview tests cover page and article drafts.
+- Hardened GIF sanitization: require an initial LZW clear code, validate frame rectangles against the logical canvas, validate decoded pixel counts, and correct dictionary phrase-length handling. Regression tests include valid and malformed GIF fixtures.
+- Latest CI run `44797010227` on the observed head: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed. Project tests were still in progress at the last poll; do not claim the full suite passed until it completes. Private platform harness is skipped by workflow configuration.
+- Order-schema audit (read-only): existing `orders` rows already snapshot recipient name/mobile/address/province/city/postal code/plaque/unit, shipping method/title, tracking code, monetary totals and payment status. `order_items` already snapshot product name, variant label, SKU, quantity, unit price and line total. `order_events` and `shipping_logs` provide event history; `payment_attempts` and `payments` are separate records. Existing admin actions support manual fulfillment status transitions and manual carrier/tracking entry.
+- Identified gaps for the planned Phase 7: no dedicated immutable invoice/document snapshot or invoice numbering/version record; no configurable sender profile or sender snapshot per shipment; no package/parcel, weight/dimensions, pick/pack item checklist or partial-fulfillment model; no carrier-issued label artifact/barcode record, label reprint history or print-job settings; and no verified carrier API integration. These are audit findings from schema/code inspection, not changes to live data.
+- Next: finish and verify the running Project tests; then close the remaining CMS/media gaps without deploying. Phase 7 implementation stays deferred until Phase 2/3 review. Invoice visual concept must be shown to the owner and explicitly approved before its template is added to the application.
