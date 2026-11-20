@@ -1,7 +1,7 @@
 /**
  * Process environment policy for SHAHOO.
  * Pure and side-effect free so tests can cover the matrix without a database.
- * Production fails closed. Development flags never override NODE_ENV=production.
+ * Production fails closed. Demo catalog data may be explicitly seeded on Vercel Preview only.
  */
 
 export type DatabasePlan =
@@ -35,9 +35,15 @@ export function connectionErrorUsesPglite(): false {
   return false;
 }
 
+/**
+ * Demo catalog seeding is opt-in in development and on Vercel Preview only.
+ * Vercel Preview runs with NODE_ENV=production, so VERCEL_ENV is the
+ * additional deployment boundary. Production deployments can never opt in.
+ */
 export function demoSeedAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (isProductionEnv(env)) return false;
-  return env.SEED_DEMO === "1";
+  if (env.SEED_DEMO !== "1") return false;
+  if (env.VERCEL_ENV === "preview") return true;
+  return !isProductionEnv(env);
 }
 
 /** OTP plaintext may be returned to the browser only with an explicit non-production flag and no SMS provider. */
