@@ -1,7 +1,7 @@
 import { and, eq, isNull, or } from "drizzle-orm";
 import type { AppDatabase } from "../db/client";
 import { articles, banners, mediaAssets, opsDiagnostics, productImages } from "../db/schema.ts";
-import { localObjectName, openStorage, type ObjectStorage } from "./disk.ts";
+import { objectNameForStorageKey, openStorage, type ObjectStorage } from "./disk.ts";
 
 /**
  * Media reference safety (Batch 02 correction).
@@ -60,7 +60,8 @@ export async function removeFileOrRecord(
   storage: ObjectStorage | null = openStorage(),
 ): Promise<boolean> {
   try {
-    await storage?.remove(objectName);
+    if (!storage) throw new Error("storage_unavailable");
+    await storage.remove(objectName);
     return true;
   } catch {
     try {
@@ -69,7 +70,7 @@ export async function removeFileOrRecord(
         kind: FILE_CLEANUP_KIND,
         entityType: "media_asset",
         entityId: id,
-        message: "فایل محلی پس از حذف رکورد پاک نشد. رکورد رسانه دیگر منتشر نیست.",
+        message: "فایل رسانه پس از حذف رکورد پاک نشد؛ فایل دیگر از سایت منتشر نمی‌شود.",
         metadata: {},
       });
     } catch {
@@ -79,11 +80,7 @@ export async function removeFileOrRecord(
   }
 }
 
-/**
- * Retry pending file cleanups. For every unresolved `media.file_cleanup` row the
- * asset is locked and re-verified: it must still be soft-deleted and have no
- * reference. Otherwise the file is kept and the diagnostic is closed as skipped.
- */
+/** Retry pending cleanup only when the currently configured adapter owns the asset key. */
 export async function retryPendingMediaCleanup(
   db: AppDatabase,
   storage: ObjectStorage | null = openStorage(),
@@ -95,10 +92,17 @@ export async function retryPendingMediaCleanup(
     if (meta.resolvedAt || !diag.entityId) continue;
     const assetId = diag.entityId;
     let name: string | null = null;
+    let providerMismatch = false;
     await db.transaction(async (tx) => {
       const [asset] = await tx.select().from(mediaAssets).where(eq(mediaAssets.id, assetId)).for("update").limit(1);
-      if (asset && asset.deletedAt && !(await mediaInUse(tx, assetId))) name = localObjectName(asset.storageKey);
-      if (!name) {
+      if (asset && asset.deletedAt && !(await mediaInUse(tx, assetId))) {
+        name = objectNameForStorageKey(asset.storageKey);
+        if (name && storage?.storageKey(name) !== asset.storageKey) {
+          providerMismatch = true;
+          name = null;
+        }
+      }
+      if (!name && !providerMismatch) {
         await tx
           .update(opsDiagnostics)
           .set({ metadata: { resolvedAt: new Date().toISOString(), outcome: "skipped" } })
@@ -108,7 +112,8 @@ export async function retryPendingMediaCleanup(
     });
     if (!name) continue;
     try {
-      await storage?.remove(name);
+      if (!storage) throw new Error("storage_unavailable");
+      await storage.remove(name);
       await db
         .update(opsDiagnostics)
         .set({ metadata: { resolvedAt: new Date().toISOString(), outcome: "removed" } })

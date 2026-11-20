@@ -809,6 +809,7 @@ export async function registerExternalMedia(db: Database, actorId: string, input
 
 export async function retireMedia(db: Database, actorId: string, id: string): Promise<CmsResult> {
   let removeName: string | null = null;
+  let removeStorageKey: string | null = null;
   const result = await transactionResult(db, async (tx, deny) => {
     const row = await lockLiveMediaAsset(tx, id);
     if (!row) deny("رسانه پیدا نشد.");
@@ -816,12 +817,19 @@ export async function retireMedia(db: Database, actorId: string, id: string): Pr
     if (await mediaInUse(tx, row.id)) deny("این رسانه هنوز به بنر، مقاله یا تصویر محصول وصل است.");
     await tx.update(mediaAssets).set({ deletedAt: new Date() }).where(eq(mediaAssets.id, row.id));
     await writeAudit(tx, { actorType: "admin", actorId, action: "content.media_retired", entityType: "media_asset", entityId: row.id });
-    removeName = localObjectName(row.storageKey);
+    removeName = objectNameForStorageKey(row.storageKey);
+    removeStorageKey = row.storageKey;
   });
-  if (!result.ok || !removeName) return result;
+  if (!result.ok) return result;
+  const storage = openStorage();
+  // Only delete through the adapter that owns this exact provider-qualified key.
+  if (removeName && storage?.storageKey(removeName) === removeStorageKey) {
+    await removeFileOrRecord(db, id, removeName, storage);
+  } else if (removeName) {
+    await removeFileOrRecord(db, id, removeName, null);
+  }
   // Earlier failed file cleanups are retried here (each re-verifies under the asset lock); never blocks the result.
-  await retryPendingMediaCleanup(db).catch(() => undefined);
-  await removeFileOrRecord(db, id, removeName);
+  await retryPendingMediaCleanup(db, storage).catch(() => undefined);
   return result;
 }
 
