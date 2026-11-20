@@ -349,6 +349,59 @@ test("expiry releases a hold once, skips a paid order, and payment can recover s
   assert.equal(untouched?.reserved, 0);
 });
 
+test("concurrent expiry restores coupon usage exactly once", async () => {
+  const { db } = await open();
+  const past = new Date(Date.now() - 60_000);
+  await db.insert(schema.coupons).values({
+    id: "coupon-expiry", code: "EXPIRE-ONCE", amountOffIrr: 10000, usedCount: 1, usageLimit: 5,
+  });
+  await db.insert(orders).values({
+    id: "ord-coupon-expiry",
+    publicCode: "SH-20261120-COUPON",
+    status: "awaiting_payment",
+    paymentStatus: "unpaid",
+    stockState: "held",
+    stockHoldUntil: past,
+    couponId: "coupon-expiry",
+    couponCode: "EXPIRE-ONCE",
+    fullName: "آزاده",
+    mobile: "09120000001",
+    province: "تهران",
+    city: "تهران",
+    addressLine: "خیابان آزمایشی بلندتر",
+    subtotalIrr: 100000,
+    discountIrr: 10000,
+    totalIrr: 90000,
+  });
+  await db.insert(schema.orderItems).values({
+    id: "oi-coupon-expiry",
+    orderId: "ord-coupon-expiry",
+    variantId: "var-a",
+    productName: "روغن",
+    variantLabel: "۳۰ میلی",
+    sku: "SKU-A-1",
+    quantity: 1,
+    unitPriceIrr: 100000,
+    lineTotalIrr: 100000,
+  });
+  await db.update(inventory).set({ onHand: 5, reserved: 1 }).where(eq(inventory.variantId, "var-a"));
+
+  const released = await Promise.all([releaseExpiredHolds(db), releaseExpiredHolds(db)]);
+  const [coupon] = await db.select().from(schema.coupons).where(eq(schema.coupons.id, "coupon-expiry"));
+  const [order] = await db.select().from(orders).where(eq(orders.id, "ord-coupon-expiry"));
+  const [stock] = await db.select().from(inventory);
+  const events = await db.select().from(schema.orderEvents).where(eq(schema.orderEvents.orderId, "ord-coupon-expiry"));
+  const logs = await db.select().from(inventoryLogs).where(eq(inventoryLogs.orderId, "ord-coupon-expiry"));
+
+  assert.equal(released[0]! + released[1]!, 1);
+  assert.equal(coupon.usedCount, 0, "coupon usage must be restored once");
+  assert.equal(order.status, "expired");
+  assert.equal(order.stockState, "released");
+  assert.equal(stock.reserved, 0, "reserved stock must be released once");
+  assert.equal(events.filter((event) => event.status === "expired").length, 1);
+  assert.equal(logs.filter((entry) => entry.reason === "release_expired").length, 1);
+});
+
 test("payment after an expired hold does not mark the order paid when stock is gone", async () => {
   const { db } = await open();
   await db.insert(orders).values({
@@ -390,6 +443,50 @@ test("payment after an expired hold does not mark the order paid when stock is g
   assert.equal((await db.select().from(payments)).length, 0);
   const [stock] = await db.select().from(inventory);
   assert.equal(stock?.onHand, 0);
+});
+
+test("late payment recovery rejects every unsellable line and rolls back all effects", async () => {
+  const cases = [
+    ["unpublished product", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.products).set({ status: "draft" }).where(eq(schema.products.id, "prod-a"))],
+    ["soft-deleted product", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.products).set({ deletedAt: new Date() }).where(eq(schema.products.id, "prod-a"))],
+    ["inactive variant", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.productVariants).set({ status: "inactive" }).where(eq(schema.productVariants.id, "var-a"))],
+    ["soft-deleted variant", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.productVariants).set({ deletedAt: new Date() }).where(eq(schema.productVariants.id, "var-a"))],
+    ["inactive category", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.productCategories).set({ isActive: false }).where(eq(schema.productCategories.id, "cat-a"))],
+    ["soft-deleted category", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(schema.productCategories).set({ deletedAt: new Date() }).where(eq(schema.productCategories.id, "cat-a"))],
+    ["insufficient available stock", async (db: Awaited<ReturnType<typeof open>>["db"]) => db.update(inventory).set({ onHand: 0, reserved: 0 }).where(eq(inventory.variantId, "var-a"))],
+  ] as const;
+
+  for (const [label, invalidate] of cases) {
+    const { db } = await open();
+    await db.insert(orders).values({
+      id: "ord-recovery-matrix", publicCode: "SH-20261120-MATRIX",
+      status: "expired", paymentStatus: "unpaid", stockState: "released",
+      fullName: "آزاده", mobile: "09120000001", province: "تهران", city: "تهران",
+      addressLine: "خیابان آزمایشی بلندتر", subtotalIrr: 100000, totalIrr: 100000,
+    });
+    await db.insert(schema.orderItems).values({
+      id: "oi-recovery-matrix", orderId: "ord-recovery-matrix", variantId: "var-a",
+      productName: "روغن", variantLabel: "۳۰ میلی", sku: "SKU-A-1",
+      quantity: 1, unitPriceIrr: 100000, lineTotalIrr: 100000,
+    });
+    await invalidate(db);
+    const beforeStock = (await db.select().from(inventory))[0];
+    const result = await captureVerifiedPayment(db, {
+      orderId: "ord-recovery-matrix", idempotencyKey: "pay-recovery-matrix-" + label.replaceAll(" ", "-"),
+      token: "mock-ok:mock-pay-recovery-matrix-" + label.replaceAll(" ", "-"), provider,
+    });
+    assert.equal(result.ok, false, label + ": payment must not be captured");
+    const [order] = await db.select().from(orders).where(eq(orders.id, "ord-recovery-matrix"));
+    const afterStock = (await db.select().from(inventory))[0];
+    assert.equal(order?.status, "expired", label + ": order status");
+    assert.equal(order?.paymentStatus, "unpaid", label + ": payment status");
+    assert.equal(order?.stockState, "released", label + ": stock state");
+    assert.deepEqual(afterStock && { onHand: afterStock.onHand, reserved: afterStock.reserved },
+      beforeStock && { onHand: beforeStock.onHand, reserved: beforeStock.reserved }, label + ": inventory rollback");
+    assert.equal((await db.select().from(payments)).length, 0, label + ": no payment row");
+    assert.equal((await db.select().from(inventoryLogs)).length, 0, label + ": no inventory log");
+    assert.equal((await db.select().from(auditLogs)).length, 0, label + ": no audit side effect");
+  }
 });
 
 test("expiry and payment leave one consistent stock result", async () => {

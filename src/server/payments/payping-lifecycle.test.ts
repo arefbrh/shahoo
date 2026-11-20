@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { getPglite } from "../../lib/db.ts";
 import { getDb } from "../db/client.ts";
 import { ensureSeed } from "../db/seed.ts";
-import { auditLogs, orders, paymentAttempts } from "../db/schema.ts";
+import { auditLogs, orders, paymentAttempts, payments, paymentLogs } from "../db/schema.ts";
 import { handlePayPingCallback, retryPayPingVerificationAttempt } from "./payping-lifecycle.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -140,6 +140,55 @@ test("verification 408 and 429 remain recoverable instead of becoming failed", a
       assert.equal(row.reconciliationRequired, true);
       assert.equal(row.verificationPaymentRefId, 100 + status);
     } finally { globalThis.fetch = old; }
+  }
+});
+
+test("duplicate successful PayPing callbacks race but settle one payment exactly once", async () => {
+  const fixture = await attempt("redirect_pending", "duplicate-race");
+  const paymentRefId = 244;
+  const old = globalThis.fetch;
+  let verificationCalls = 0;
+  let releaseBoth!: () => void;
+  const bothVerified = new Promise<void>((resolve) => { releaseBoth = resolve; });
+  globalThis.fetch = (async () => {
+    verificationCalls += 1;
+    if (verificationCalls === 2) releaseBoth();
+    await bothVerified;
+    return new Response(JSON.stringify({
+      amount: 100,
+      paymentRefId,
+      clientRefId: fixture.clientRefId,
+      code: fixture.paymentCode,
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+
+  try {
+    const [first, replay] = await Promise.all([
+      handlePayPingCallback(callback({ clientRefId: fixture.clientRefId, paymentCode: fixture.paymentCode, paymentRefId })),
+      handlePayPingCallback(callback({ clientRefId: fixture.clientRefId, paymentCode: fixture.paymentCode, paymentRefId })),
+    ]);
+    assert.equal(verificationCalls, 2, "both concurrent callbacks reached provider verification");
+    assert.equal([first.status, replay.status].every((status) => status === 200 || status === 202), true);
+    assert.equal([first.status, replay.status].some((status) => status === 200), true,
+      "at least one callback must complete or observe the completed settlement");
+
+    const [attemptRow] = await db.select().from(paymentAttempts).where(eq(paymentAttempts.id, fixture.attemptId));
+    const [order] = await db.select().from(orders).where(eq(orders.id, fixture.orderId));
+    const paymentRows = await db.select().from(payments).where(eq(payments.orderId, fixture.orderId));
+    const paymentLogRows = paymentRows.length
+      ? await db.select().from(paymentLogs).where(eq(paymentLogs.paymentId, paymentRows[0]!.id))
+      : [];
+
+    assert.equal(attemptRow.state, "settled");
+    assert.equal(attemptRow.reconciliationRequired, false);
+    assert.equal(attemptRow.providerReferenceId, String(paymentRefId));
+    assert.equal(order.status, "paid");
+    assert.equal(order.paymentStatus, "verified");
+    assert.equal(paymentRows.length, 1, "duplicate callbacks must not create duplicate payments");
+    assert.equal(paymentRows[0]?.status, "verified");
+    assert.equal(paymentLogRows.filter((entry) => entry.event === "verified").length, 1);
+  } finally {
+    globalThis.fetch = old;
   }
 });
 
