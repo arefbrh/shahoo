@@ -1,4 +1,7 @@
-<!-- BATCH 08 REVISION 02.1 CURRENT STATUS -->
+> **Historical document — not current instructions.** This file preserves earlier planning, review guidance, or test snapshots. Some dates, statuses, commands, and next-step instructions may be superseded. For the authoritative current state and roadmap, start with [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), then [REMAINING_ISSUES.md](REMAINING_ISSUES.md) and [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md). See [docs/README.md](docs/README.md) for the document map.
+
+---
+
 # Current test evidence notice — Batch 08 Revision 02.1
 
 For exact commands, environments, actual 02.1 rerun outcomes and release-gate effects, use [BATCH_08_FINAL_RELEASE_EVIDENCE.md](BATCH_08_FINAL_RELEASE_EVIDENCE.md). Do not infer a fresh passing result from this notice or any older figure below. Revision 02 **previously reported**, not as this run's result: `npm ci` and audit with zero vulnerabilities; typecheck and build; lint with 0 errors/5 warnings; application 215/215; PGlite/migration 94/94; focused wrapper/invariant 24/24 and gate identity 25/25; bounded desktop/mobile homepage smoke. It reported a partial platform/script group, 212/216, with four private OG-harness failures; do not call the configured full `npm test` green on that evidence. Its real PostgreSQL, backup/restore, complete browser E2E and accessibility checks were not executed. The private OG skill references and the matching platform `AGENTS.md` contract are environment-dependent; their availability or compatibility is not assumed. See the final evidence for the current audit and all other reruns.

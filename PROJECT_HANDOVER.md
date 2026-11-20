@@ -1,3 +1,7 @@
+> **Historical document — not current instructions.** This file preserves earlier planning, review guidance, or test snapshots. Some dates, statuses, commands, and next-step instructions may be superseded. For the authoritative current state and roadmap, start with [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), then [REMAINING_ISSUES.md](REMAINING_ISSUES.md) and [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md). See [docs/README.md](docs/README.md) for the document map.
+
+---
+
 # PROJECT HANDOVER — SHAHOO v1.0.0
 
 ## Current workflow status — Batch 09 remediation (2026-11-19)

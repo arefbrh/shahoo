@@ -1,3 +1,10 @@
+## 2026-11-20 — Repository documentation consolidation
+
+- PR #2 added the canonical `PROJECT_HANDOFF.md` and was merged after all required GitHub CI jobs completed successfully (merge commit `299b85a7aa1b76d05bd03594915b888d7d469ca9`).
+- A cleanup branch now updates `AGENTS.md` to make the canonical handoff the first read, adds `docs/README.md` as the documentation map, and labels stale batch snapshots as historical rather than current instructions.
+- Historical batch reports, test records, and decisions are retained; no unique evidence, tests, migrations, application source, or data were deleted in this documentation-only cleanup.
+- The cleanup branch is not merged yet; its CI and PR review remain pending.
+
 ## 2026-11-20 — Batch 09 independent remediation pass
 
 - PayPing verification HTTP errors, malformed success payloads, and identity mismatches remain recoverable; the code no longer treats generic HTTP 4xx as proof that no payment occurred.

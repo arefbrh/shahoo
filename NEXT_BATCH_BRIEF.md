@@ -1,11 +1,9 @@
-<!-- BATCH 08 REVISION 02.1 CURRENT STATUS -->
-# Current next-step brief — Batch 08 Revision 02.1
+# Historical batch briefs — superseded
 
-**NOT READY FOR RELEASE.** Revision 02 is the latest completed remediation; 02.1 is documentation and release-evidence reconciliation. Final approval has not been granted. Batch 09 has not started and is not approved; SMS.ir, PayPing, live OTP/payment, shipping APIs, cloud storage and production hosting remain deferred. The next authorized step is finish 02.1 evidence and handoff for owner review—not integration implementation. Review [REMAINING_ISSUES.md](REMAINING_ISSUES.md) for blockers and [BATCH_08_FINAL_RELEASE_EVIDENCE.md](BATCH_08_FINAL_RELEASE_EVIDENCE.md) for actual rerun results; earlier test/audit totals are historical.
-
-**Historical content notice:** All older roadmap proposals, approval gates and next-step instructions below are historical and superseded where they conflict with this notice. None authorizes starting Batch 09.
+This file preserves proposals and instructions from previous batches. They are not current authorization to begin work. For current priorities, blockers, and the no-repeat roadmap, read [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md) and [REMAINING_ISSUES.md](REMAINING_ISSUES.md). See [docs/README.md](docs/README.md) for the documentation map.
 
 ---
+
 
 # Next Batch Brief — Batch 06 delivered; wait for owner review
 
