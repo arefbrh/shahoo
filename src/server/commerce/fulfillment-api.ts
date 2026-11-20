@@ -4,7 +4,7 @@ import { moveOrderForAdmin, refundForAdmin, returnForCustomer, returnQueue, revi
 import { manualNextStatuses } from "@/lib/order-flow";
 import { requireAdmin } from "../auth/guard";
 import { writeAudit } from "../auth/audit";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { orders, orderItems, orderFulfillmentWork, settings, shippingLogs } from "../db/schema";
 
 export const moveOrderFn = createServerFn({ method: "POST" })
