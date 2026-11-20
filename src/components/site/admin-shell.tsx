@@ -82,21 +82,27 @@ export function AdminShell({ session, children }: { session: Extract<AdminSessio
   );
 }
 
-function Nav({ items, pathname }: { items: Array<{ href: string; label: string }>; pathname: string }) {
+function Nav({ items, pathname }: { items: Array<{ href: string; label: string; group: string }>; pathname: string }) {
+  const groups = [...new Set(items.map((item) => item.group))];
   return (
-    <nav className="space-y-1" aria-label="بخش‌های مدیریت">
-      {items.map((item) => {
-        const active = item.href === "/admin" ? pathname === "/admin" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-        return (
-          <a
-            key={item.href}
-            href={item.href}
-            className={`flex min-h-11 items-center rounded-2xl px-3 text-sm font-bold ${active ? "bg-forest text-ivory" : "text-forest hover:bg-ivory"}`}
-          >
-            {item.label}
-          </a>
-        );
-      })}
+    <nav className="space-y-4" aria-label="بخش‌های مدیریت">
+      {groups.map((group) => (
+        <section key={group} className="space-y-1">
+          <p className="px-3 pt-2 text-[11px] font-bold text-muted">{group}</p>
+          {items.filter((item) => item.group === group).map((item) => {
+            const active = item.href === "/admin" ? pathname === "/admin" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                className={`flex min-h-11 items-center rounded-2xl px-3 text-sm font-bold ${active ? "bg-forest text-ivory" : "text-forest hover:bg-ivory"}`}
+              >
+                {item.label}
+              </a>
+            );
+          })}
+        </section>
+      ))}
     </nav>
   );
 }
