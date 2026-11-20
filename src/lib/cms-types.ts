@@ -89,6 +89,7 @@ export type CmsDesk = {
   tagline: string;
   copyright: string;
   logos: { header: string; footer: string };
+  carousel: { autoPlay: boolean; intervalMs: number };
   storyTitle: string;
   storyAbout: string;
   storyPhilosophy: string;
