@@ -480,10 +480,10 @@ function ProductEditor({
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="نام" value={name} onChange={setName} disabled={!canWrite} />
+        <Field label="نام محصول" value={name} onChange={setName} disabled={!canWrite} required />
         <Field label="نام انگلیسی" value={englishName} onChange={setEnglishName} disabled={!canWrite} ltr />
-        <Field label="شناسه انگلیسی" value={slug} onChange={setSlug} disabled={!canWrite} ltr />
-        <Field label="کد محصول" value={sku} onChange={setSku} disabled={!canWrite} ltr />
+        <Field label="شناسه انگلیسی (Slug)" value={slug} onChange={setSlug} disabled={!canWrite} ltr required hint="در آدرس صفحه محصول استفاده می‌شود؛ فقط حروف انگلیسی کوچک، عدد و خط تیره. نمونه: cold-pressed-oil" />
+        <Field label="کد محصول (SKU)" value={sku} onChange={setSku} disabled={!canWrite} ltr required hint="کد یکتا برای شناسایی محصول در انبار و گزارش‌ها؛ نمونه: OLIVE-OIL" />
         <label className="text-sm font-bold text-forest">
           دسته
           <select value={categoryId} disabled={!canWrite} onChange={(event) => setCategoryId(event.target.value)} className={`${fieldClass} mt-2`}>
@@ -726,8 +726,8 @@ function VariantFields({
   return (
     <div className="rounded-2xl border border-line p-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="برچسب بسته" value={variant.label} disabled={!canWrite} onChange={(value) => onChange({ label: value })} />
-        <Field label="کد بسته" value={variant.sku} disabled={!canWrite} ltr onChange={(value) => onChange({ sku: value })} />
+        <Field label="نام بسته" value={variant.label} disabled={!canWrite} required onChange={(value) => onChange({ label: value })} hint="مثلاً بطری ۲۵۰ میلی‌لیتری یا بسته ۵۰۰ گرمی." />
+        <Field label="کد بسته (SKU)" value={variant.sku} disabled={!canWrite} ltr required onChange={(value) => onChange({ sku: value })} hint="برای هر بسته باید یکتا باشد؛ نمونه: OLIVE-OIL-250." />
         <label className="text-sm font-bold text-forest">
           نوع
           <select
@@ -741,9 +741,9 @@ function VariantFields({
             <option value="custom">سفارشی</option>
           </select>
         </label>
-        <Field label="مقدار" value={variant.amount} disabled={!canWrite || variant.unitKind === "custom"} ltr onChange={(value) => onChange({ amount: value })} />
-        <Field label="قیمت تومان" value={variant.priceToman} disabled={!canWrite} ltr onChange={(value) => onChange({ priceToman: value })} />
-        <Field label="قیمت قبل، تومان" value={variant.compareAtToman} disabled={!canWrite} ltr onChange={(value) => onChange({ compareAtToman: value })} />
+        <Field label="مقدار" value={variant.amount} disabled={!canWrite || variant.unitKind === "custom"} ltr required={variant.unitKind !== "custom"} onChange={(value) => onChange({ amount: value })} hint={variant.unitKind === "volume" ? "حجم را بر حسب میلی‌لیتر وارد کنید." : variant.unitKind === "weight" ? "وزن را بر حسب گرم وارد کنید." : "برای بسته سفارشی مقدار لازم نیست."} />
+        <Field label="قیمت فروش (تومان)" value={variant.priceToman} disabled={!canWrite} ltr required onChange={(value) => onChange({ priceToman: value })} hint="قیمت نهایی قابل پرداخت، فقط عدد صحیح؛ ارقام فارسی و انگلیسی پذیرفته می‌شوند." />
+        <Field label="قیمت قبل از تخفیف (تومان)" value={variant.compareAtToman} disabled={!canWrite} ltr onChange={(value) => onChange({ compareAtToman: value })} hint="اختیاری؛ فقط وقتی پر شود که از قیمت فروش بیشتر باشد." />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
         <label className="inline-flex min-h-11 items-center gap-2">
