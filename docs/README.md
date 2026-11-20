@@ -31,3 +31,8 @@ Provider checklists are preparation documents, not proof of live credentials or 
 ## Cleanup policy
 
 Do not delete historical reports, migrations, tests, assets, or scripts solely because they look old or duplicated. First search all references and workflows, verify whether the content is represented elsewhere, and preserve unique evidence in the archive. Delete only files proven to be unused and non-authoritative; never delete customer/order/payment/inventory/media data or weaken tests to make CI pass.
+
+
+## Admin platform implementation
+
+See [Admin Implementation Tracker](./ADMIN_IMPLEMENTATION_TRACKER.md) for the phased admin-platform plan, portability rules, active branch, verification evidence, and agent handoff instructions.
