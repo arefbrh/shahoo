@@ -731,7 +731,14 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
       <button type="submit" className={buttonPrimary}>
         ذخیره صفحه
       </button>
-      {page ? <a href={`/admin/content-preview/page/${encodeURIComponent(page.slug)}`} target="_blank" rel="noreferrer" className={buttonGhost}>پیش‌نمایش نسخه ذخیره‌شده</a> : null}
+      <details className="rounded-2xl border border-line p-3">
+        <summary className="min-h-11 cursor-pointer text-sm font-bold text-forest">پیش‌نمایش همین صفحه (شامل تغییرات ذخیره‌نشده)</summary>
+        <article className="mx-auto max-w-3xl py-4">
+          <p className="text-xs font-bold tracking-wide text-muted">SHAHOO · پیش‌نمایش مدیریت</p>
+          <h2 className="mt-3 text-2xl font-bold text-forest">{title || "عنوان صفحه"}</h2>
+          <div className="mt-5 space-y-4 text-sm leading-8">{body.split("\\n\\n").filter(Boolean).map((block) => <p key={block.slice(0, 24)}>{block}</p>)}</div>
+        </article>
+      </details>
       {page ? <ContentHistory entityType="page" entityId={page.id} onDone={onDone} /> : null}
     </form>
   );
@@ -926,7 +933,17 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           </button>
         ) : null}
       </div>
-      {article ? <a href={`/admin/content-preview/article/${encodeURIComponent(article.slug)}`} target="_blank" rel="noreferrer" className={buttonGhost}>پیش‌نمایش نسخه ذخیره‌شده</a> : null}
+      <details className="rounded-2xl border border-line p-3">
+        <summary className="min-h-11 cursor-pointer text-sm font-bold text-forest">پیش‌نمایش همین مقاله (شامل تغییرات ذخیره‌نشده)</summary>
+        <article className="mx-auto max-w-3xl py-4">
+          <p className="text-xs font-bold text-muted">مجله شاهو · پیش‌نمایش مدیریت</p>
+          <h2 className="mt-3 text-2xl font-bold text-forest">{title || "عنوان مقاله"}</h2>
+          <p className="mt-3 text-sm leading-7 text-muted">{excerpt}</p>
+          <p className="mt-2 text-xs text-muted">{authorName} · {minutes ?? "—"} دقیقه مطالعه</p>
+          {(() => { const cover = desk.media.find((item) => item.id === coverMediaId); return cover ? <img src={cover.publicUrl} alt={cover.alt || title} className="mt-6 max-h-80 w-full rounded-3xl border border-line bg-paper object-contain" /> : null; })()}
+          <div className="mt-6 space-y-4 text-sm leading-8">{content.split("\\n\\n").filter(Boolean).map((block) => <p key={block.slice(0, 24)}>{block}</p>)}</div>
+        </article>
+      </details>
       {article ? <ContentHistory entityType="article" entityId={article.id} onDone={onDone} /> : null}
     </form>
   );
