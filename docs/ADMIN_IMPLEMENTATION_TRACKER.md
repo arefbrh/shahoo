@@ -316,7 +316,9 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added an order-linked invoice view using the existing order-time snapshots for customer, address, SKU/variant, quantities, unit prices, totals and order creation date. Invoice number uses the immutable public order code; the issue date is the order's recorded creation date, not the current date.
 - The official minimal brand asset is served from `/assets/brand/shahoo-logo-minimal.png`.
 - Added an A4 browser-print layout with repeating table headings, non-splitting item rows and multi-page flow. Browser print can save the document as PDF. No artificial limit is imposed on item count; a 10-line order is supported by the dynamic table.
-- This first implementation does not yet claim PNG or XLSX export, immutable invoice-number snapshots beyond the existing order code, seller contact/address configuration, or final page-number support across all browsers. Those remain explicit follow-up tasks; do not represent the complete print/export center as finished yet.
+- Added order-detail integration so the invoice is available from the customer/admin order view, subject to the existing order access checks.
+- Added PNG export (long orders split into numbered image pages) and a real XLSX workbook export with RTL worksheet direction and numeric amount cells. Browser print remains the PDF path; the browser controls the final PDF save/print dialog.
+- Remaining gaps: immutable invoice-number/document snapshots beyond the existing immutable order code, seller contact/address configuration, tax/legal fields if required, and cross-browser page-number behavior. Do not describe the invoice as a certified tax invoice until the seller details and applicable legal requirements are confirmed.
 - Validation is pending CI on this commit. The work remains on the stacked PR #9 branch; no PR merge, Preview deployment, Production deployment, or Production data change was performed.
 
 
@@ -351,4 +353,4 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added migration `0019_shipping_address_snapshots.sql`. No production migration or deployment performed; CI pending.
 
 
-- Added an admin shipping-label desk with shipment history selection and reprint from immutable sender/recipient snapshots. Print presets: 100×150 mm and A4; these are SHAHOO browser-print layouts only, not certified carrier labels. Tracking/barcode area remains blank unless a real carrier-provided tracking/barcode value exists.
+- Added an admin shipping-label desk with shipment history selection and reprint from immutable sender/recipient snapshots. Print presets: 100×150 mm and A4; these are SHAHOO browser-print layouts only, not certified carrier labels. Tracking/barcode area remains blank unless a real carrier-provided tracking/barcode value exists.\n\n- Follow-up implementation commit `5cbc6cf` fixes a missing `desc` import found by CI for the shipping-label query. Invoice exports and order-view integration are now in the same active PR branch; full CI validation is pending for the latest head.\n
