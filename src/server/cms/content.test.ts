@@ -9,9 +9,11 @@ import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "../db/schema.ts";
 import { auditLogs, articleCategories, articles, banners, contentRevisions, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
 import {
+  applyArticlePublication,
   applyArticleSave,
   applyBannerSave,
   applyNavSave,
+  applyPagePublication,
   applyPageUpdate,
   loadContentHistory,
   restoreContentRevision,
@@ -386,3 +388,82 @@ test("concurrent section orders stay a complete permutation", async () => {
   const orders = rows.map((row) => row.sortOrder).sort();
   assert.deepEqual(orders, [1, 2]);
 });
+
+
+test("page and article publication are independent, audited, and versioned transitions", async () => {
+  const db = await database();
+  const pageSaved = await applyPageUpdate(db, "admin-publisher", {
+    slug: "shipping-info",
+    title: "راهنمای ارسال",
+    body: "متن ذخیره‌شده راهنمای ارسال.",
+    seoTitle: "",
+    seoDescription: "",
+    isPublished: false,
+  });
+  assert.equal(pageSaved.ok, true);
+  const [page] = await db.select().from(sitePages).where(eq(sitePages.slug, "shipping-info"));
+  assert.ok(page);
+  assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, true)).ok, true);
+  assert.equal((await db.select().from(sitePages).where(eq(sitePages.id, page!.id)))[0]?.isPublished, true);
+  assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, false)).ok, true);
+  assert.equal((await db.select().from(sitePages).where(eq(sitePages.id, page!.id)))[0]?.isPublished, false);
+
+  const articleSaved = await applyArticleSave(db, "admin-publisher", {
+    slug: "shipping-guide",
+    title: "راهنمای ارسال سفارش",
+    excerpt: "خلاصه راهنمای ارسال سفارش",
+    seoTitle: "",
+    seoDescription: "",
+    content: "متن کامل راهنمای ارسال سفارش.",
+    authorName: "کارگاه شاهو",
+    readMinutes: 3,
+    status: "draft",
+    categoryId: "oils-journal",
+    coverMediaId: null,
+    relatedProductIds: [],
+  });
+  assert.equal(articleSaved.ok, true);
+  const [article] = await db.select().from(articles).where(eq(articles.slug, "shipping-guide"));
+  assert.ok(article);
+  assert.equal((await applyArticlePublication(db, "admin-publisher", article!.id, true)).ok, true);
+  const [publishedArticle] = await db.select().from(articles).where(eq(articles.id, article!.id));
+  assert.equal(publishedArticle?.status, "published");
+  assert.ok(publishedArticle?.publishedAt);
+  assert.equal((await applyArticlePublication(db, "admin-publisher", article!.id, false)).ok, true);
+  const [unpublishedArticle] = await db.select().from(articles).where(eq(articles.id, article!.id));
+  assert.equal(unpublishedArticle?.status, "draft");
+
+  const history = await loadContentHistory(db, "article", article!.id);
+  assert.deepEqual(history.map((item) => item.status), ["draft", "published", "draft"]);
+  const actions = (await db.select({ action: auditLogs.action }).from(auditLogs)).map((row) => row.action);
+  assert.ok(actions.includes("content.page_published"));
+  assert.ok(actions.includes("content.page_unpublished"));
+  assert.ok(actions.includes("content.article_published"));
+  assert.ok(actions.includes("content.article_unpublished"));
+});
+
+test("an article with incomplete body cannot be published through the dedicated action", async () => {
+  const db = await database();
+  const saved = await applyArticleSave(db, "admin-publisher", {
+    slug: "incomplete-guide",
+    title: "مقاله ناتمام",
+    excerpt: "",
+    seoTitle: "",
+    seoDescription: "",
+    content: "",
+    authorName: "کارگاه شاهو",
+    readMinutes: 3,
+    status: "draft",
+    categoryId: "oils-journal",
+    coverMediaId: null,
+    relatedProductIds: [],
+  });
+  assert.equal(saved.ok, true);
+  const [article] = await db.select().from(articles).where(eq(articles.slug, "incomplete-guide"));
+  assert.ok(article);
+  const result = await applyArticlePublication(db, "admin-publisher", article!.id, true);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /خلاصه و متن معتبر/);
+  assert.equal((await db.select().from(articles).where(eq(articles.id, article!.id)))[0]?.status, "draft");
+});
+
