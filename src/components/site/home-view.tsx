@@ -279,7 +279,7 @@ function Hero({ banners, settings }: { banners: HomeData["banners"]; settings: H
         </div>
         {banners.length > 1 ? (
           <div className="mt-2 text-center">
-            <button type="button" disabled={reducedMotion} aria-describedby={reducedMotion ? undefined : rotationHintId} onClick={toggleRotation} className="min-h-11 rounded-full px-3 text-xs font-bold text-forest transition-colors hover:text-[#795d28] active:bg-gold-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-70">
+            <button type="button" disabled={reducedMotion || !settings.autoPlay} aria-describedby={reducedMotion || !settings.autoPlay ? undefined : rotationHintId} onClick={toggleRotation} className="min-h-11 rounded-full px-3 text-xs font-bold text-forest transition-colors hover:text-[#795d28] active:bg-gold-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-70">
               {reducedMotion || !settings.autoPlay ? "نمایش خودکار غیرفعال است" : paused ? "ادامه نمایش خودکار" : "توقف نمایش خودکار"}
             </button>
             {!reducedMotion && settings.autoPlay ? (
