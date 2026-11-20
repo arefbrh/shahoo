@@ -2,8 +2,8 @@
 
 **Last updated:** 2026-11-20  
 **Repository:** https://github.com/arefbrh/shahoo  
-**Active implementation branch:** `feat/admin-catalog-ux-phase1`  
-**Current phase:** Phase 2 — CMS and central brand/content controls (Phase 1 complete on its feature branch)  
+**Active implementation branch:** `feat/admin-cms-phase2` (stacked on `feat/admin-catalog-ux-phase1`)  
+**Current phase:** Phase 2 — CMS, central brand/content controls, and admin usability guidance  
 **Release posture:** NOT APPROVED. No Production promotion or merge authorization is implied by this tracker.
 
 This is the canonical continuation note for the admin-platform work. Update it in the same pull request as meaningful implementation milestones. Keep facts, test evidence, and remaining work separate.
@@ -51,10 +51,11 @@ The admin platform must remain portable across:
 - [x] Close Phase 1 implementation/testing checklist; PR remains unmerged pending explicit owner authorization.
 
 ### Phase 2 — CMS and central brand/content controls
-- [ ] Review and complete PR #7 (`feat/admin-brand-settings`); it is not merged.
-- [ ] Add the CMS route to the admin navigation and ensure permissions are enforced server-side.
-- [ ] Make banners, homepage sections, navigation, pages, magazine/articles, store profile/contact and brand settings discoverable from one admin information architecture.
-- [ ] Complete carousel/slider, header and footer controls.
+- [x] Review and port the central brand settings implementation from PR #7 into the Phase 2 branch; PR #7 remains unmerged and separate.
+- [x] Add the CMS route to admin navigation, gated by `content.write`; `/admin/content` retains its server-side permission check.
+- [x] Make existing banners, homepage sections, navigation, pages, magazine/articles, store profile/contact and brand settings discoverable from the CMS desk.
+
+- [ ] Complete carousel/slider, header and footer layout controls (brand name, tagline, copyright and header/footer logo URL settings are now present; layout controls remain).
 - [ ] Ensure public components read the same canonical settings and invalidate/cache-refresh consistently.
 - [ ] Add preview/publish workflows and revision/audit history.
 
@@ -98,7 +99,7 @@ The admin platform must remain portable across:
 
 ## 5. Related open work
 
-### PR #7 — central brand identity
+### PR #7 — central brand identity (source implementation; not merged)
 - URL: https://github.com/arefbrh/shahoo/pull/7
 - Branch: `feat/admin-brand-settings`
 - Latest known head: `0518a803a600c8d316d4eb42eed141884f92d693`
@@ -163,3 +164,33 @@ Before handing this work to another agent:
 - Phase 1 implementation and owner smoke-test checklist are complete on `feat/admin-catalog-ux-phase1`.
 - PR #8 remains open/draft and is **not merged**. No Production deployment, Production data mutation, or Production configuration change was made as part of this completion.
 - Next workstream: Phase 2, CMS and central brand/content controls. PR #7 remains a separate, unmerged change and must be reviewed/integrated deliberately; the admin navigation still needs a discoverable CMS entry.
+
+
+## 10. Phase 2 initial implementation (2026-11-20)
+
+- Branch: `feat/admin-cms-phase2`, based on the completed Phase 1 branch `feat/admin-catalog-ux-phase1` at `e6190c66aacb5f1b2172ec6f7804725ea9d5379f`.
+- PR #9: https://github.com/arefbrh/shahoo/pull/9 (draft, stacked on PR #8; base is `feat/admin-catalog-ux-phase1`). Merge order must be PR #8 first, then PR #9. Neither has been merged.
+- Added `/admin/content` to `src/components/site/admin-shell.tsx`, visible only when the session includes `content.write`. The route itself independently checks `content.write` before rendering the CMS desk.
+- Ported central brand settings from PR #7 into `src/components/site/content-desk.tsx`, `src/server/cms/content.ts`, `src/server/cms/api.ts`, and `src/lib/cms-types.ts`: brand name, tagline, copyright, header logo and footer logo. Saves are validated and transactional, preserving unrelated store-profile/logo settings and recording an audit event.
+- Updated public header/footer logo alt text to use the canonical brand name in `src/components/site/shell.tsx`.
+- No database migration, Production environment change, Production deploy, or Production data mutation. No direct binary media upload; logo values remain approved asset paths or HTTPS image URLs.
+- Existing CMS functions remain: homepage copy/sections, banners, nav menus, pages, magazine/articles, media URL registration and store contact details. Carousel/header/footer layout controls and media upload/publish/revision workflow remain outstanding.
+- CI status for PR #9 head `c489893bee1b26ccf38ce6299358c9ce40bffadd`: workflow run not yet returned at the time of this update. Do not mark tests passed until a run is available and all required jobs complete.
+- Required next step: poll PR #9 CI, fix any failures, then inspect its Preview and ask the owner to smoke-test CMS navigation, brand save/reload, and storefront reflection. Keep Production untouched.
+\n\n## 11. Admin usability guidance pass (2026-11-20)\n\n- Owner confirmed the CMS/brand settings Preview worked: a brand setting was changed, saved, and reflected on the public site. This is owner-reported browser verification.\n- Owner feedback: admin navigation felt crowded; many areas had no explanation and some appeared empty without context.\n- Added reusable Persian help panel at `src/components/site/admin-help.tsx`.\n- Grouped admin navigation into: «مدیریت روزانه»، «کالا و فروش»، «سایت و محتوا»، and «کنترل و دسترسی». Permission filtering remains unchanged.\n- Added contextual descriptions and practical examples to dashboard, orders, customers, inventory, reports, staff, catalog, CMS tabs/forms, coupons/shipping, support/returns, and reviews. Clarified empty banner/media states and distinguished catalog prices from inventory adjustments and store copy.\n- No schema changes, production data changes, environment changes, or Production deployment.\n- CI for pre-guidance PR #9 code commit `c489893bee1b26ccf38ce6299358c9ce40bffadd` completed successfully: Quality, Project tests, PostgreSQL integration/migrations, migration inventory, Security, Payment/SMS mocks passed; private platform harness skipped. Guidance commits require a new CI run before merge.\n- Owner smoke-tested CMS brand save/render successfully on Preview. Full admin guidance changes need a fresh Preview review, especially navigation grouping and the new explanatory copy.\n
+
+## 12. Admin guidance validation follow-up (2026-11-20)
+
+- Latest guidance branch head: `32875c63c5601ad5bc52b751c399a2ffced48151`.
+- The first guidance CI attempt reported a TypeScript error because the shared offer-field component did not yet accept the new `hint` prop. Added the optional prop and rendered its help text; this was a code-level issue, not a data or migration failure.
+- Fresh CI run: `44768520455` for commit `a6ed3bc42e5ca474dbbb2962b62ea9b7a219be2c` was started; a subsequent small formatting commit `32875c63c5601ad5bc52b751c399a2ffced48151` is the current branch head and must also be covered by CI/Preview.
+- Latest Preview deployment for current head: `https://shahoo-mg8u5earf-shahoo.vercel.app`, deployment `dpl_8QtFdwxmRtyYCcrRWA4ZW6F83kb3`; last observed state BUILDING. Do not ask owner to test until READY.
+- Production remains untouched. PR #9 remains draft and stacked on PR #8; no merge or Production promotion.
+
+
+## 13. Owner approval of admin navigation and guidance (2026-11-20)
+
+- Owner reviewed the latest Preview admin navigation grouping and contextual Persian descriptions/examples and explicitly approved the result.
+- Owner smoke test had already confirmed that changing brand settings persists and renders on the public Preview storefront.
+- Guidance CI run `44768555195` completed successfully for commit `32875c63c5601ad5bc52b751c399a2ffced48151`: Quality (typecheck/lint/build), Project tests, PostgreSQL integration/migrations, Migration inventory, Security checks, and Payment/SMS mocks all passed. Manus private platform harness was skipped by workflow configuration.
+- Current PR #9 head is `43cd9a0e993b715c3b1314237316c385b03d035e`; PR #9 remains Draft and stacked on PR #8. This approval records the Preview UX/content acceptance only; no merge or Production deployment was performed.
