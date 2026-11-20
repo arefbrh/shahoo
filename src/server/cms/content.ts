@@ -33,7 +33,7 @@ import {
 } from "../../lib/cms-rules.ts";
 import { parseProfileContact } from "../../lib/public-profile.ts";
 import { writeAudit } from "../auth/audit.ts";
-import { localObjectName } from "../media/disk.ts";
+import { localObjectName, openStorage } from "../media/disk.ts";
 import { lockLiveMediaAsset, mediaInUse, removeFileOrRecord, retryPendingMediaCleanup } from "../media/lock.ts";
 import * as schema from "../db/schema.ts";
 import {
@@ -160,7 +160,7 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
         })),
     }));
   return {
-    uploadEnabled: false,
+    uploadEnabled: openStorage() !== null,
     brandName: profile.brandName ?? "",
     tagline: profile.tagline ?? "",
     copyright: profile.copyright ?? "",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { uploadMedia, validateUploadFile } from "@/lib/media-upload-client";
 import { parseWhole } from "@/lib/catalog-rules";
 import { FLAG_LABELS, PRODUCT_FLAGS, SECTION_LABELS, isProductSection, isPublicHomeSection, isSectionType } from "@/lib/cms-rules";
 import type { CmsArticle, CmsBanner, CmsDesk, CmsMenu, CmsPage, CmsResult, CmsSection, SectionFlag } from "@/lib/cms-types";
@@ -77,14 +78,14 @@ export function ContentDesk() {
   return (
     <div className="mt-6">
       <p className="text-sm leading-7 text-muted">
-        تنظیمات برند، لوگوها و محتوای صفحه از همین بخش مدیریت می‌شوند. برای رسانه‌های جدید فعلاً نشانی عمومی HTTPS لازم است؛ بارگذاری مستقیم فایل در این نسخه فعال نیست.
+        تنظیمات برند، لوگوها و محتوای صفحه از همین بخش مدیریت می‌شوند. اگر فضای ذخیره‌سازی پایدار روی سرور پیکربندی شده باشد، بارگذاری مستقیم تصویر هم فعال می‌شود؛ در غیر این صورت می‌توانید نشانی عمومی HTTPS را ثبت کنید.
       </p>
       {notice ? (
         <p className="mt-3 text-sm font-bold text-forest" role="status">
           {notice}
         </p>
       ) : null}
-      <AdminHelp title="محتوا و برند">این میز برای تغییر ظاهر و محتوای عمومی فروشگاه است، نه مدیریت کالا و قیمت. هر زبانه یک محل مشخص از سایت را کنترل می‌کند. بعد از ذخیره، صفحه عمومی مرتبط را بازخوانی کنید. رسانه‌ها فعلاً با نشانی عمومی HTTPS ثبت می‌شوند و بارگذاری مستقیم فایل هنوز فعال نیست.</AdminHelp>
+      <AdminHelp title="محتوا و برند">این میز برای تغییر ظاهر و محتوای عمومی فروشگاه است، نه مدیریت کالا و قیمت. هر زبانه یک محل مشخص از سایت را کنترل می‌کند. بعد از ذخیره، صفحه عمومی مرتبط را بازخوانی کنید. بارگذاری فایل فقط وقتی فعال است که فضای ذخیره‌سازی پایدار و مجاز پیکربندی شده باشد؛ در غیر این صورت از نشانی عمومی HTTPS استفاده کنید.</AdminHelp>
       <div className="mt-4 flex flex-wrap gap-2">
         {TABS.map((item) => (
           <button key={item.id} type="button" className={tab === item.id ? buttonPrimary : buttonGhost} onClick={() => setTab(item.id)}>
@@ -99,7 +100,7 @@ export function ContentDesk() {
           {tab === "nav" ? <><AdminHelp title="منوهای سایت" example="عنوان «مجله» با نشانی /magazine یک پیوند داخلی است؛ برای یک سایت خارجی نشانی کامل https:// وارد کنید.">اینجا فقط عنوان و مقصد پیوندهای منوی هدر/فوتر و ترتیب آن‌ها تغییر می‌کند. برای افزودن صفحه جدید ابتدا آن را در «صفحه‌ها» بسازید و سپس نشانی همان صفحه را به منو اضافه کنید. خاموش‌کردن یک مورد آن را از نمایش عمومی پنهان می‌کند.</AdminHelp><NavTab desk={desk} onDone={finish} onMove={move} /></> : null}
           {tab === "pages" ? <><AdminHelp title="صفحه‌های ثابت" example="صفحه «درباره ما» می‌تواند نشانی about و محتوای معرفی فروشگاه داشته باشد.">برای ساخت و ویرایش صفحه‌های اطلاعاتی مانند درباره ما، تماس با ما و قوانین استفاده کنید. عنوان برای نمایش به کاربر است؛ شناسه انگلیسی بخشی از نشانی صفحه می‌شود و بهتر است پس از انتشار بی‌دلیل تغییر نکند.</AdminHelp><PagesTab desk={desk} onDone={finish} /></> : null}
           {tab === "magazine" ? <><AdminHelp title="مجله و مقاله‌ها" example="برای مقاله راهنمای نگهداری روغن، عنوان روشن، نشانی کوتاه مثل oil-care، خلاصه و تصویر مرتبط انتخاب کنید.">مقاله‌ها و محتوای تحریریه در این بخش مدیریت می‌شوند و با صفحه‌های ثابت تفاوت دارند. برای انتشار عمومی وضعیت انتشار و تاریخ را بررسی کنید؛ بازنشسته‌کردن مقاله آن را از فهرست عمومی خارج می‌کند، نه اینکه سفارش یا محصولی را تغییر دهد.</AdminHelp><MagazineTab desk={desk} onDone={finish} /></> : null}
-          {tab === "media" ? <><AdminHelp title="کتابخانه رسانه" example="نام: olive-bottle-front؛ متن جایگزین: بطری روغن زیتون شاهو از نمای روبه‌رو؛ نشانی: https://example.com/olive.webp">رسانه‌ها تصاویر قابل استفاده در بنرها و محتوا هستند. نشانی باید مستقیم، عمومی و HTTPS باشد؛ متن جایگزین برای دسترس‌پذیری تصویر است. حذف/بازنشستگی رسانه‌ای که هنوز در بنر یا محتوای فعال استفاده می‌شود ممکن است تصویر آن بخش را از دسترس خارج کند؛ پیش از آن محل‌های استفاده را بررسی کنید.</AdminHelp><MediaTab desk={desk} onDone={finish} /></> : null}
+          {tab === "media" ? <><AdminHelp title="کتابخانه رسانه" example="نام: olive-bottle-front؛ متن جایگزین: بطری روغن زیتون شاهو از نمای روبه‌رو؛ نشانی: https://example.com/olive.webp">رسانه‌ها تصاویر قابل استفاده در بنرها و محتوا هستند. نشانی خارجی باید مستقیم، عمومی و HTTPS باشد؛ متن جایگزین برای دسترس‌پذیری تصویر است. در صورت پیکربندی فضای ذخیره‌سازی پایدار، فرم بارگذاری فایل نیز نمایش داده می‌شود. پیش از کنارگذاشتن رسانه، محل‌های استفاده آن را بررسی کنید.</AdminHelp><MediaTab desk={desk} onDone={finish} /></> : null}
         </div>
       ) : null}
     </div>
@@ -890,6 +891,34 @@ function MediaTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [registering, setRegistering] = useState(false);
   const [retiring, setRetiring] = useState<string | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadAlt, setUploadAlt] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadInputKey, setUploadInputKey] = useState(0);
+
+  async function upload() {
+    if (uploading) return;
+    const invalid = validateUploadFile(uploadFile);
+    if (invalid) { setMessage({ text: invalid, error: true }); return; }
+    if (!uploadFile) return;
+    setUploading(true);
+    setMessage(null);
+    try {
+      const form = new FormData();
+      form.append("file", uploadFile);
+      form.append("alt", uploadAlt);
+      const result = await uploadMedia((url, init) => fetch(url, init as RequestInit), form);
+      if (!result.ok) { setMessage({ text: result.message, error: true }); return; }
+      setUploadFile(null);
+      setUploadAlt("");
+      setUploadInputKey((value) => value + 1);
+      await onDone({ ok: true });
+    } catch {
+      setMessage({ text: "بارگذاری انجام نشد؛ اتصال را بررسی کنید و دوباره تلاش کنید.", error: true });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function register() {
     if (registering) return;
@@ -925,6 +954,17 @@ function MediaTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
 
   return (
     <div className="space-y-3">
+      {desk.uploadEnabled ? (
+        <form className={`${panelClass} space-y-3 p-4`} onSubmit={(event) => { event.preventDefault(); void upload(); }}>
+          <h2 className="font-bold text-forest">بارگذاری تصویر در کتابخانه</h2>
+          <p className="text-xs leading-6 text-muted">فقط JPEG، PNG یا GIF سالم تا ۴ مگابایت پذیرفته می‌شود. تصویر در سرور ذخیره و پس از ثبت در بنرها و محتوای سایت قابل انتخاب است.</p>
+          <input key={uploadInputKey} className={fieldClass} type="file" accept="image/jpeg,image/png,image/gif" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} aria-label="انتخاب فایل تصویر" />
+          <input className={fieldClass} value={uploadAlt} onChange={(event) => setUploadAlt(event.target.value)} maxLength={120} aria-label="متن جایگزین تصویر" placeholder="متن جایگزین تصویر (اختیاری)" />
+          <button type="submit" className={buttonPrimary} disabled={uploading}>{uploading ? "در حال بارگذاری..." : "بارگذاری تصویر"}</button>
+        </form>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">بارگذاری مستقیم فایل در این محیط غیرفعال است؛ برای جلوگیری از ذخیره روی دیسک موقت، ابتدا فضای ذخیره‌سازی پایدار را پیکربندی کنید. فعلاً می‌توانید نشانی عمومی HTTPS را ثبت کنید.</p>
+      )}
       {message ? (
         <p className="text-sm font-bold text-forest" role={message.error ? "alert" : "status"}>
           {message.text}

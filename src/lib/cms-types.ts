@@ -84,7 +84,7 @@ export type CmsMedia = {
 };
 
 export type CmsDesk = {
-  uploadEnabled: false;
+  uploadEnabled: boolean;
   brandName: string;
   tagline: string;
   copyright: string;

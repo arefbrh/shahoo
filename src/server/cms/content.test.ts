@@ -312,7 +312,9 @@ test("content writes require the content permission at the server function", () 
   assert.match(source, /requireAdmin\("content\.write"\)/);
   assert.doesNotMatch(source, /STORAGE_|ZARINPAL|passwordHash/);
   const mediaDesk = readFileSync(join(root, "src/components/site/content-desk.tsx"), "utf8");
-  assert.doesNotMatch(mediaDesk, /type="file"|uploadMedia\(|بارگذاری تصویر/);
+  assert.match(mediaDesk, /desk\.uploadEnabled/);
+  assert.match(mediaDesk, /type="file"/);
+  assert.match(mediaDesk, /uploadMedia\(/);
   assert.match(mediaDesk, /ثبت نشانی تصویر HTTPS/);
   const storefront = readFileSync(join(root, "src/server/storefront/api.ts"), "utf8");
   assert.match(storefront, /article\.status !== "published"/);
