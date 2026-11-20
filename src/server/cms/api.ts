@@ -5,6 +5,7 @@ import { requireAdmin } from "../auth/guard";
 import {
   applyArticleRetire,
   applyArticleSave,
+  applyBrandSettings,
   applyBannerOrder,
   applyBannerSave,
   applyNavOrder,
@@ -94,6 +95,18 @@ export const saveSiteCopyFn = createServerFn({ method: "POST" })
     z.object({ storyTitle: z.string().max(120), storyAbout: z.string().max(2000), storyPhilosophy: z.string().max(2000), promo: z.string().max(200) }).parse(input),
   )
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applySiteCopy(db, actorId, data)));
+
+export const saveBrandSettingsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z.object({
+      brandName: z.string().max(80),
+      tagline: z.string().max(180),
+      copyright: z.string().max(180),
+      headerLogo: z.string().max(500),
+      footerLogo: z.string().max(500),
+    }).parse(input),
+  )
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyBrandSettings(db, actorId, data)));
 
 export const saveStoreProfileFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
