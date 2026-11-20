@@ -4,18 +4,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AdminSession } from "@/lib/session-types";
 import { logoutAdminFn } from "@/server/auth/api";
 
-const LINKS: Array<{ href: string; label: string; allow: (permissions: string[]) => boolean }> = [
-  { href: "/admin", label: "نمای کلی", allow: () => true },
-  { href: "/admin/orders", label: "سفارش‌ها", allow: (permissions) => permissions.includes("orders.read") },
-  { href: "/admin/customers", label: "مشتریان", allow: (permissions) => permissions.includes("customers.read") },
-  { href: "/admin/catalog", label: "کاتالوگ", allow: (permissions) => permissions.includes("catalog.read") },
-  { href: "/admin/content", label: "محتوا و برند", allow: (permissions) => permissions.includes("content.write") },
-  { href: "/admin/inventory", label: "موجودی", allow: (permissions) => permissions.includes("inventory.read") || permissions.includes("inventory.write") },
-  { href: "/admin/offers", label: "تخفیف و ارسال", allow: (permissions) => permissions.includes("settings.read") || permissions.includes("settings.write") },
-  { href: "/admin/support", label: "پشتیبانی", allow: (permissions) => permissions.includes("customers.read") || permissions.includes("support.write") },
-  { href: "/admin/reviews", label: "نظرها", allow: (permissions) => permissions.includes("catalog.read") },
-  { href: "/admin/reports", label: "گزارش‌ها", allow: (permissions) => permissions.includes("reports.read") },
-  { href: "/admin/staff", label: "مدیران", allow: (permissions) => permissions.includes("admins.read") || permissions.includes("admins.write") },
+const LINKS: Array<{ href: string; label: string; group: string; allow: (permissions: string[]) => boolean }> = [
+  { href: "/admin", label: "نمای کلی", group: "مدیریت روزانه", allow: () => true },
+  { href: "/admin/orders", label: "سفارش‌ها", group: "مدیریت روزانه", allow: (permissions) => permissions.includes("orders.read") },
+  { href: "/admin/customers", label: "مشتریان", group: "مدیریت روزانه", allow: (permissions) => permissions.includes("customers.read") },
+  { href: "/admin/catalog", label: "کاتالوگ", group: "کالا و فروش", allow: (permissions) => permissions.includes("catalog.read") },
+  { href: "/admin/content", label: "محتوا و برند", group: "سایت و محتوا", allow: (permissions) => permissions.includes("content.write") },
+  { href: "/admin/inventory", label: "موجودی", group: "کالا و فروش", allow: (permissions) => permissions.includes("inventory.read") || permissions.includes("inventory.write") },
+  { href: "/admin/offers", label: "تخفیف و ارسال", group: "کالا و فروش", allow: (permissions) => permissions.includes("settings.read") || permissions.includes("settings.write") },
+  { href: "/admin/support", label: "پشتیبانی", group: "مدیریت روزانه", allow: (permissions) => permissions.includes("customers.read") || permissions.includes("support.write") },
+  { href: "/admin/reviews", label: "نظرها", group: "کالا و فروش", allow: (permissions) => permissions.includes("catalog.read") },
+  { href: "/admin/reports", label: "گزارش‌ها", group: "کنترل و دسترسی", allow: (permissions) => permissions.includes("reports.read") },
+  { href: "/admin/staff", label: "مدیران", group: "کنترل و دسترسی", allow: (permissions) => permissions.includes("admins.read") || permissions.includes("admins.write") },
 ];
 
 export function AdminDenied({ message }: { message: string }) {
