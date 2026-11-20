@@ -373,6 +373,7 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
   const parseLogo = (value: string): string | null => {
     const local = value.trim();
     if (/^\/assets\/brand\/[A-Za-z0-9._/-]+\.(?:png|jpe?g|webp)$/i.test(local) && !local.includes("..")) return local;
+    if (/^\/media\/file\/[A-Za-z0-9_-]{8,80}$/.test(local)) return local;
     return parseExternalMediaUrl(local);
   };
   const headerLogo = parseLogo(input.headerLogo);
@@ -385,6 +386,13 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
     const profileRow = rows.find((row) => row.key === "store.profile");
     const logosRow = rows.find((row) => row.key === "brand.logos");
     if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
+    for (const logoUrl of [headerLogo, footerLogo]) {
+      if (logoUrl.startsWith("/media/file/")) {
+        const [asset] = await tx.select({ id: mediaAssets.id }).from(mediaAssets)
+          .where(and(eq(mediaAssets.publicUrl, logoUrl), isNull(mediaAssets.deletedAt))).limit(1);
+        if (!asset) deny("لوگوی انتخاب‌شده در کتابخانه رسانه موجود نیست یا کنار گذاشته شده است.");
+      }
+    }
     const profile = profileRow!.value && typeof profileRow!.value === "object" ? (profileRow!.value as Record<string, unknown>) : {};
     const logos = logosRow!.value && typeof logosRow!.value === "object" ? (logosRow!.value as Record<string, unknown>) : {};
     await tx.update(settings).set({ value: { ...profile, brandName, tagline, copyright }, updatedAt: new Date() }).where(eq(settings.key, "store.profile"));
