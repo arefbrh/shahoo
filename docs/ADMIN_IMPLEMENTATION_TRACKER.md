@@ -61,6 +61,7 @@ The admin platform must remain portable across:
 - [ ] Audit every public component for canonical settings consumption and consistent cache invalidation/revalidation.
 - [x] Add admin-only saved-content preview links for pages and articles (including drafts); unsaved changes preview in-editor. Saved preview is served through a noindex, permission-guarded route. Explicit publish/unpublish workflow remains to be completed.
 - [x] Add immutable page/article revision history, transactional restore, and audit events (migration 0017).
+- [x] Add explicit permission-guarded publish/unpublish actions for pages and articles, with validation and transactional audit events.
 
 ### Phase 3 — Media library
 - [x] Implement provider-neutral media storage interface and provider-qualified object keys.
