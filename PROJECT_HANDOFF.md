@@ -9,10 +9,9 @@
 ## 0. Latest verified repository maintenance
 
 - PR #2, `docs: add comprehensive SHAHOO project handoff`, was merged after its full GitHub Actions CI run completed successfully. Merge commit: `299b85a7aa1b76d05bd03594915b888d7d469ca9`. This was documentation-only; it did not change application code, migrations, database settings, or deploy Production.
-- A follow-up cleanup branch, `chore/repository-documentation-cleanup`, consolidates agent entry points and marks older batch/status documents as historical. It is not merged yet; see PR when created.
+- PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updates the agent entry point and marks superseded batch/status documents as historical. It remains open until its full CI run completes.
 - Current documentation entry point: [docs/README.md](docs/README.md). Start with this handoff and do not treat historical batch instructions as current authorization.
 
-**Last reconciled:** 2026-11-20  
 **Repository:** [arefbrh/shahoo](https://github.com/arefbrh/shahoo)  
 **Production branch:** `main`  
 **Primary stack:** React + TypeScript, TanStack Start, Vite, Nitro, Drizzle ORM, PostgreSQL/Neon in deployed environments, PGlite for local/test use, Vercel hosting.
@@ -325,7 +324,7 @@ Do not represent the project as fully tested, production-ready, or connected to 
 | `docs/TEST_REPORT_BATCH_09.md` | Earlier Batch 09 test snapshot; see latest corrective counts above |
 | `BATCH_09_COMPREHENSIVE_AUDIT.md` | Latest comprehensive PayPing/SMS audit and corrective-phase evidence |
 | `BATCH_09_REMEDIATION_REPORT.md` | Implementation history and limitations |
-| `REMAINING_ISSUES.md` | Historical issue register; some early sections predate Batch 09 completion. Use this handoff and latest audit addenda for current status. |
+| `REMAINING_ISSUES.md` | Current issue register; check each status and evidence boundary, alongside the latest comprehensive audit. |
 
 ## 10. Agent operating rules
 
