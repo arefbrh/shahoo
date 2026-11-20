@@ -506,6 +506,21 @@ export const shippingLogs = pgTable("shipping_logs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+
+export const orderFulfillmentWork = pgTable("order_fulfillment_work", {
+  id: text("id").primaryKey(),
+  orderId: text("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+  pickedItems: jsonb("picked_items").$type<Array<{ orderItemId: string; pickedQuantity: number }>>().notNull().default([]),
+  pickerName: text("picker_name").notNull().default(""),
+  checkerName: text("checker_name").notNull().default(""),
+  packageCount: integer("package_count").notNull().default(1),
+  weightGrams: integer("weight_grams"),
+  discrepancyNote: text("discrepancy_note").notNull().default(""),
+  updatedBy: text("updated_by").references(() => adminUsers.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const wishlists = pgTable("wishlists", {
   id: text("id").primaryKey(),
   customerId: text("customer_id")

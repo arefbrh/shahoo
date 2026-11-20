@@ -329,3 +329,11 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added a dedicated print action and print-target isolation so the warehouse slip prints without exposing/printing the customer invoice, and vice versa.
 - Package weights/dimensions, partial fulfilment, persistent picking progress and immutable shipment snapshots are not yet implemented; blank operational fields are intentionally manual and must not be mistaken for saved data.
 - CI validation is pending. No merge or deployment performed.
+
+
+## 21. Persistent picking and packing work — implementation added (2026-11-20)
+
+- Added migration `0018_order_fulfillment_work.sql` and typed table `order_fulfillment_work`, one row per order, storing per-line picked quantities, picker/checker names, package count, optional weight in grams, discrepancy notes, updater and timestamps.
+- Added admin-only read and write server functions. Read requires `orders.read`; write requires `orders.write`. Writes lock the order row, validate that every submitted line belongs to the order, reject duplicate/unknown line IDs and prevent picked quantities exceeding the ordered quantity.
+- Writes use an order-level upsert and append an audit event. No customer-facing route exposes this internal record.
+- Migration and CI must be verified before merge or deployment. Production migration is not run here.
