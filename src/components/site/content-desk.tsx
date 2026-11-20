@@ -131,7 +131,8 @@ function HomeTab({
           onDone={onDone}
         />
       ))}
-      <p className="text-sm leading-7 text-muted">اسلایدها بنرهای تصویری صفحه اول هستند. ترتیب نمایش با دکمه‌های بالا و پایین تعیین می‌شود؛ تاریخ شروع و پایان برای زمان‌بندی اختیاری‌اند.</p>\n      {desk.banners.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز اسلایدی ثبت نشده است. از فرم «اسلاید تازه» پایین این قسمت برای ساخت اولین بنر استفاده کنید؛ تا وقتی رسانه‌ای انتخاب نکنید بنر بدون تصویر خواهد بود.</p> : null}
+      <p className="text-sm leading-7 text-muted">اسلایدها بنرهای تصویری صفحه اول هستند. ترتیب نمایش با دکمه‌های بالا و پایین تعیین می‌شود؛ تاریخ شروع و پایان برای زمان‌بندی اختیاری‌اند.</p>
+      {desk.banners.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز اسلایدی ثبت نشده است. از فرم «اسلاید تازه» پایین این قسمت برای ساخت اولین بنر استفاده کنید؛ تا وقتی رسانه‌ای انتخاب نکنید بنر بدون تصویر خواهد بود.</p> : null}
       {desk.banners.map((banner, index) => (
         <BannerForm
           key={banner.id}
@@ -510,7 +511,8 @@ function NavTab({
 }) {
   return (
     <>
-      {desk.menus.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">منویی برای ویرایش در پایگاه داده تعریف نشده است. این میز در حال حاضر منوهای موجود را ویرایش می‌کند و امکان ساخت گروه منوی تازه هنوز فراهم نیست.</p> : null}\n      {desk.menus.map((menu) => (
+      {desk.menus.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">منویی برای ویرایش در پایگاه داده تعریف نشده است. این میز در حال حاضر منوهای موجود را ویرایش می‌کند و امکان ساخت گروه منوی تازه هنوز فراهم نیست.</p> : null}
+      {desk.menus.map((menu) => (
         <section key={menu.key} className="space-y-3">
           <h2 className="font-bold text-forest">{menu.name}</h2><p className="text-xs leading-6 text-muted">این گروه از پیوندها در بخش «{menu.name}» سایت نمایش داده می‌شود. عنوان کوتاه و مقصد معتبر وارد کنید؛ برای تغییر ترتیب از دکمه‌های بالا/پایین استفاده کنید.</p>
           {menu.items.map((item, index) => (
@@ -599,7 +601,8 @@ function PagesTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
   return (
     <div className="space-y-3">
       <p className="text-sm leading-7 text-muted">نامک صفحه‌های متصل به مسیرهای فعلی تغییر نمی‌کند. صفحه تازه با مسیر /pages/{"{slug}"} ساخته می‌شود؛ صفحه منتشرنشده در سایت دیده نمی‌شود.</p>
-      {desk.pages.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز صفحه ثابتی ساخته نشده است. این وضعیت طبیعی است؛ برای شروع روی «صفحه تازه» بزنید و مثلاً صفحه درباره ما یا قوانین را بسازید.</p> : null}\n      <button type="button" className={pageId === "new" ? buttonPrimary : buttonGhost} onClick={() => setPageId("new")}>صفحه تازه</button>
+      {desk.pages.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز صفحه ثابتی ساخته نشده است. این وضعیت طبیعی است؛ برای شروع روی «صفحه تازه» بزنید و مثلاً صفحه درباره ما یا قوانین را بسازید.</p> : null}
+      <button type="button" className={pageId === "new" ? buttonPrimary : buttonGhost} onClick={() => setPageId("new")}>صفحه تازه</button>
       <select className={fieldClass} value={pageId} onChange={(event) => setPageId(event.target.value)} aria-label="انتخاب صفحه">
         {desk.pages.length === 0 ? <option value="">صفحه‌ای ثبت نشده است</option> : null}
         {desk.pages.map((item) => (
@@ -662,7 +665,8 @@ function MagazineTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResu
   const article = desk.articles.find((item) => item.id === articleId) ?? null;
   return (
     <div className="space-y-3">
-      {desk.articles.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز مقاله‌ای ثبت نشده است. برای ساخت اولین مطلب روی «مقاله تازه» بزنید؛ تا زمانی که وضعیت «منتشر شده» انتخاب نشود، مقاله عمومی نخواهد بود.</p> : null}\n      <input className={fieldClass} value={query} onChange={(event) => setQuery(event.target.value)} aria-label="جست‌وجوی مقاله" placeholder="جست‌وجو در عنوان یا نامک مقاله" />
+      {desk.articles.length === 0 ? <p className="rounded-2xl border border-dashed border-line p-4 text-sm leading-7 text-muted">هنوز مقاله‌ای ثبت نشده است. برای ساخت اولین مطلب روی «مقاله تازه» بزنید؛ تا زمانی که وضعیت «منتشر شده» انتخاب نشود، مقاله عمومی نخواهد بود.</p> : null}
+      <input className={fieldClass} value={query} onChange={(event) => setQuery(event.target.value)} aria-label="جست‌وجوی مقاله" placeholder="جست‌وجو در عنوان یا نامک مقاله" />
       {desk.articles.length === 100 ? <p className="text-xs text-muted">فقط ۱۰۰ مقاله تازه‌تر بارگذاری شده‌اند.</p> : null}
       <div className="flex flex-wrap gap-2">
         <button type="button" className={articleId === "new" ? buttonPrimary : buttonGhost} onClick={() => setArticleId("new")}>
