@@ -307,3 +307,14 @@ Owner requirement: expand order management beyond a basic status field into an e
 - UPU addressing guidance identifies postcode as a fundamental address element and directs users to country-specific designated-operator formats. Reference: https://www.upu.int/en/postal-solutions/programmes-services/addressing-solutions
 - Provisional SHAHOO label design can therefore include clear recipient/sender blocks, province/city, full address, postal code, contact phone, and a reserved tracking/barcode region populated only with a carrier-issued identifier. This is a proposed merchant layout, not a certified Iran Post label.
 - Before finalizing the carrier label, obtain written/official confirmation from Iran Post or the actual contracted carrier for domestic label stock size, printer format, barcode type and quiet zones, required fields, and whether the merchant may generate the label. Keep 100×150 mm and A4/A5 as configurable print presets only, not as claimed official standards.
+
+
+
+## 19. Approved SHAHOO invoice template — implementation started (2026-11-20)
+
+- Owner approved the final visual direction: use the official minimal SHAHOO logo (not the primary ornate mark), keep the invoice title separate from the logo, and use the corrected invoice issue-date placement.
+- Added an order-linked invoice view using the existing order-time snapshots for customer, address, SKU/variant, quantities, unit prices, totals and order creation date. Invoice number uses the immutable public order code; the issue date is the order's recorded creation date, not the current date.
+- The official minimal brand asset is served from `/assets/brand/shahoo-logo-minimal.png`.
+- Added an A4 browser-print layout with repeating table headings, non-splitting item rows and multi-page flow. Browser print can save the document as PDF. No artificial limit is imposed on item count; a 10-line order is supported by the dynamic table.
+- This first implementation does not yet claim PNG or XLSX export, immutable invoice-number snapshots beyond the existing order code, seller contact/address configuration, or final page-number support across all browsers. Those remain explicit follow-up tasks; do not represent the complete print/export center as finished yet.
+- Validation is pending CI on this commit. The work remains on the stacked PR #9 branch; no PR merge, Preview deployment, Production deployment, or Production data change was performed.
