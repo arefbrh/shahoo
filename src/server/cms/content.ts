@@ -734,6 +734,35 @@ export async function restoreContentRevision(db: Database, actorId: string, revi
   });
 }
 
+export async function applyPagePublication(db: Database, actorId: string, id: string, published: boolean): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, id)).for("update");
+    if (!row) deny("صفحه پیدا نشد.");
+    if (published && (!cleanInline(row.title, 2, 120) || !cleanBody(row.body, 2, 12000))) {
+      deny("برای انتشار صفحه، عنوان و متن معتبر لازم است.");
+    }
+    if (row.isPublished === published) return;
+    const snapshot = {
+      slug: row.slug,
+      title: row.title,
+      body: row.body,
+      seoTitle: row.seoTitle,
+      seoDescription: row.seoDescription,
+      isPublished: published,
+    };
+    await tx.update(sitePages).set({ isPublished: published, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+    await appendContentRevision(tx, actorId, "page", row.id, snapshot);
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: published ? "content.page_published" : "content.page_unpublished",
+      entityType: "site_page",
+      entityId: row.id,
+      metadata: { slug: row.slug },
+    });
+  });
+}
+
 export async function applyPageUpdate(db: Database, actorId: string, input: PageDraft): Promise<CmsResult> {
   const slug = parseSlug(input.slug);
   const title = cleanInline(input.title, 2, 120);
@@ -879,6 +908,50 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
       entityType: "article",
       entityId: row.id,
       metadata: { slug, status: input.status },
+    });
+  });
+}
+
+export async function applyArticlePublication(db: Database, actorId: string, id: string, published: boolean): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [row] = await tx.select().from(articles)
+      .where(and(eq(articles.id, id), isNull(articles.deletedAt)))
+      .for("update");
+    if (!row) deny("مقاله پیدا نشد.");
+    if (published && (cleanBody(row.excerpt, 2, 400) === null || cleanBody(row.content, 2, 20000) === null)) {
+      deny("برای انتشار مقاله، خلاصه و متن معتبر لازم است.");
+    }
+    if (row.status === (published ? "published" : "draft")) return;
+    const relatedRows = await tx.select({ productId: articleProducts.productId })
+      .from(articleProducts).where(eq(articleProducts.articleId, row.id));
+    const publishedAt = published ? row.publishedAt ?? new Date() : row.publishedAt;
+    await tx.update(articles).set({
+      status: published ? "published" : "draft",
+      publishedAt,
+      updatedAt: new Date(),
+    }).where(eq(articles.id, row.id));
+    await appendContentRevision(tx, actorId, "article", row.id, {
+      categoryId: row.categoryId,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      content: row.content,
+      authorName: row.authorName,
+      readMinutes: row.readMinutes,
+      coverMediaId: row.coverMediaId,
+      status: published ? "published" : "draft",
+      seoTitle: row.seoTitle,
+      seoDescription: row.seoDescription,
+      publishedAt: publishedAt?.toISOString() ?? null,
+      relatedProductIds: relatedRows.map((item) => item.productId),
+    });
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: published ? "content.article_published" : "content.article_unpublished",
+      entityType: "article",
+      entityId: row.id,
+      metadata: { slug: row.slug },
     });
   });
 }
