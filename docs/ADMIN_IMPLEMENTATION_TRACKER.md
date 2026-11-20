@@ -127,8 +127,9 @@ The admin platform must remain portable across:
 - No database schema/migration changes in Phase 1 so far.
 - No Neon data has been changed.
 - No Vercel Production environment variables or Production deployment have been changed.
-- Latest Preview deployment: `https://shahoo-oyfyjszzu-shahoo.vercel.app` (`dpl_BiZ6g9K3iZvhMf4hr37GLo1G8NmH`), READY for commit `e3953720c1c6a18914153ab01ea4d0141db9570c`.
-- CI run `44761442398`: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed; Project tests were still running at last check; private platform harness skipped. Re-poll before claiming complete.
+- Latest Preview deployment: `https://shahoo-j3j1ndmtu-shahoo.vercel.app` (`dpl_Hg83VWXQBrzkjMYiqtKr2ijmvjb6`), READY for docs-updated branch head `66b799933ef22ce1c455ab754ab4b9389a987267`. The immediately preceding code deployment for `e3953720c1c6a18914153ab01ea4d0141db9570c` also reached READY.
+- CI run `44761442398` applies to code head `e3953720c1c6a18914153ab01ea4d0141db9570c`: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed; Project tests remained in progress at last poll; private platform harness skipped. The later `66b7999` commit only updates documentation, and no separate CI run was returned for it.
+- Automated external inspection of the Preview `/admin` route was blocked by Vercel SSO protection. Owner browser smoke test remains pending; this is not represented as a passed E2E test. Re-poll before claiming complete.
 - Vercel environment metadata confirms a Preview `DATABASE_URL` and Preview `SEED_DEMO` variable are configured (values not read); Production `DATABASE_URL` is separately configured. No secrets were retrieved.
 - Read-only Neon Production check confirmed database `shahoo`, role `shahoo_app`, 52 public tables, and zero non-deleted categories/products/variants. No Production rows were modified.
 
