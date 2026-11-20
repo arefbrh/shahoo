@@ -68,6 +68,8 @@ jobs:
       - run: npm run db:migrate
       - name: Verify real PostgreSQL integration
         run: node scripts/test-postgres-smoke.mjs
+      - name: Verify multi-connection contention and backup/restore
+        run: node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/test-postgres-concurrency-backup.mjs
 
   payment-and-sms-mocks:
     name: Payment and SMS mocks

@@ -27,7 +27,7 @@ Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VER
 | Finding | Status | Evidence and remaining boundary | Release blocking |
 |---|---|---|---|
 | Internal payment and order lifecycle | NOT VERIFIED | `src/server/payments/service.ts`, `src/server/commerce/orders.ts`, and `src/server/commerce/fulfillment.ts` implement internal verification, replay and ledger transitions. Revision 02 reports PGlite coverage for replay, amount/currency, refunds, and order transitions. Checkout does not call a live gateway; internal ledger state is not bank settlement. | Yes for real-payment release; PostgreSQL transaction and duplicate-callback evidence also gate general release. |
-| Expiry, late payment and stock races | NOT VERIFIED | `holds.ts` conditionally releases unpaid held stock; `service.ts` attempts recovery for an expired order; Revision 02 reports PGlite tests for paid holds, duplicate release, insufficient stock and expiry/payment races. PGlite is not proof of independent-connection PostgreSQL locking. The deleted-variant validation is now covered by the focused correction, but real PostgreSQL race behavior remains unverified. | Yes: real PostgreSQL expiry/late-payment/race coverage and payment-reconciliation design remain required. |
+| Expiry, late payment and stock races | PARTIALLY VERIFIED | PR #6 CI run `44729304066` exercised actual `releaseExpiredHolds` and `captureVerifiedPayment` concurrently on disposable PostgreSQL 16 with synthetic fixtures and a local fake provider. Exactly one hold release/event/audit and one late-payment recovery/payment/stock decrement/paid event/audit were observed. Still open: insufficient-stock and unsellable-item rollback matrix, competing checkout during recovery, coupon restoration, provider callback/settlement races, and durable external-money reconciliation. | Yes for remaining failure modes and live-payment reconciliation. |
 | Guest stock reservations / lazy expiry | OPEN | Guest checkout can reserve for 24 hours without a dedicated checkout throttle; `releaseExpiredHolds` is invoked on cart/order reads and handles up to 40 per call rather than a durable expiry scheduler (`src/server/commerce/checkout.ts`, `holds.ts`, `cart.ts`, `orders.ts`). | Yes for an exposed production shop unless mitigated and explicitly risk-accepted by the owner. |
 | Charge succeeds but stock recovery fails | OPEN | `captureVerifiedPayment` verifies before the stock-recovery transaction; failure rolls back the internal payment/order update. The existing flow does not establish a durable reconciliation for external money already taken (`src/server/payments/service.ts`). | Yes before connecting a live gateway; design and test reconciliation, not just a provider adapter. |
 | Refund/paid-cancel ledger limits | OPEN | `src/server/commerce/fulfillment.ts` can record a refund with `refundOfPaymentId=null` when an order has no verified payment row; paid cancellation refuses ambiguous multiple verified payments. Refunds are internal ledger operations, not gateway transfers. Revision 01 identifies refund/reconciliation as still open. | Yes before live payments; for unpaid-only release, require explicit owner disposition and validation of legacy data. |
@@ -40,8 +40,8 @@ Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VER
 
 | Finding | Status | Evidence and required action | Release blocking |
 |---|---|---|---|
-| Real PostgreSQL fresh/upgrade and concurrency | BLOCKED BY ENVIRONMENT | Revision 02 did not execute fresh/upgrade migration, foreign-key, transaction, independent-connection inventory, quote, expiry, late-payment, duplicate-callback and order-state checks on real PostgreSQL. Its PGlite results do not prove PostgreSQL concurrency. Use an authorized disposable target-equivalent instance and record exact commands/results in final evidence. | Yes. |
-| PostgreSQL backup and restore | BLOCKED BY ENVIRONMENT | Revision 02 prepared but did not execute a `pg_dump`/`createdb`/`pg_restore`/`psql` restore check. Use the corrected current procedure and actual results in final release evidence; verify restored data, constraints and migration history without real customer data. | Yes. |
+| Real PostgreSQL fresh/upgrade and application concurrency | PARTIALLY VERIFIED | PR #6 CI run `44729304066` (PR head `4ab448b95a86e8f73f15dc2ed6edc2eaf0663349`) passed on disposable PostgreSQL 16: 15 root migrations, independent-client row-lock contention, actual `commitCheckout` two-cart race, concurrent actual `releaseExpiredHolds`, and concurrent actual `captureVerifiedPayment` with local fake provider for an expired order. One checkout, one expiry release and one payment capture were committed without oversell or duplicate stock/event/audit effects. Still open: full fresh/upgrade parity, rollback injection/failure matrix, quote, duplicate callback/settlement through callback route, order transitions/RBAC and multi-process seed. No Neon or Production DB was touched. | Yes for remaining untested scenarios. |
+| PostgreSQL backup and restore | PARTIALLY VERIFIED | PR #6 CI run `44729304066` passed PostgreSQL 16 custom-format `pg_dump`/`pg_restore` on a cloned synthetic CI database and compared migration count, synthetic row and public index count after restore. This does not cover production roles/globals, external media, host/secrets/network configuration, retention/encryption or a full production-like recovery exercise. | Yes for full disaster-recovery readiness. |
 | Four private platform/script tests | BLOCKED BY ENVIRONMENT | Revision 02 reported **212/216** script tests: four failures when private `.grok/skills/og/SKILL.md` and `.grok/skills/og/references/` are absent. Three are in `scripts/brand-check.test.mjs` (marker, prohibition, self-check); one is in `scripts/write-atomic.test.mjs` (documented handovers). Some brand assertions also inspect platform `AGENTS.md` content, whereas this archive uses a portable file; compatibility of `docs/archive/AGENTS.grok-platform-original.md` has not been verified. In an authorized isolated original-platform harness, provide its matching private OG skill/reference files and platform instructions, then run `node --test 'scripts/**/*.test.mjs'`; adding only the skill files does not guarantee a pass. Do not invent private files, replace this project's instructions, delete tests, or claim the full suite is green. Portable same-file brand/atomic tests and `scripts/frontend-source.test.mjs` cover parts of the tooling/UI separately; they do not certify the private documentation assertions. Consult final evidence for any 02.1 rerun. | Yes for the full configured test gate unless the owner expressly scopes/accepts this platform-only limitation. |
 | Browser E2E | NOT VERIFIED | Revision 02 reports only bounded homepage desktop/mobile smoke (system Chromium, 1280×800 and 390×844), not full click-through E2E; its Playwright-managed browser smoke script could not start its expected binary. Verify customer/admin flows and responsive views on the selected deployment; see final evidence for any 02.1 results. | Yes. |
 | Accessibility | NOT VERIFIED | Revision 02 did not execute a complete accessibility workflow. Earlier reports noted low gold-on-ivory contrast and unverified dialog/drawer focus behavior; they are leads, not current measured results. Test keyboard, focus, contrast, screen-reader and mobile behavior against the current deployed UI. | Yes. |
@@ -49,7 +49,7 @@ Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VER
 | Additional security/operations review | NOT VERIFIED | Historical reports note CSP `unsafe-inline`, admin MFA, broader CSRF/origin checks, database constraints, and media cleanup/sanitization limits. Do not assume these are remediated merely because documents changed. Review current code and host configuration; obtain explicit owner treatment of applicable risks. | Yes for release-critical security/operational gaps or until explicitly risk-accepted; prioritize per owner-approved threat model. |
 | SMS.ir, PayPing, live OTP/payment, shipping APIs, cloud storage and production hosting integration | DEFERRED TO BATCH 09 | No live provider or production hosting was connected in Revision 02 or authorized in 02.1. Separate owner review and explicit approval are required before starting Batch 09; do not confuse preparation with implementation. | These integrations block a release that promises them; they are not a reason to represent the current unpaid/disconnected functionality as live. |
 
-**Next authorized step:** finish 02.1 documentation/evidence reconciliation and deliver for owner review. Collect missing verification only on explicitly authorized disposable infrastructure. Do not start Batch 09, connect live services, or claim release approval.
+**Next authorized step:** review PR #6's completed PostgreSQL CI evidence and the remaining untested scenarios. Collect further verification only on explicitly authorized disposable infrastructure. Do not connect live services or claim release approval.
 
 ## Batch 09 review — 2026-11-19
 
@@ -71,3 +71,48 @@ Current SMS changes are server-side and use SMS.ir Verify parameter `Code`; merc
 ## Batch 09 final corrective disposition — 2026-11-20
 
 This section supersedes earlier historical statements that Batch 09 was unstarted or that the older OTP fallback policy remained unresolved. PayPing verification uncertainty is now durable and recoverable on the same owned attempt; confirmed rejection is terminal `failed`. The OTP policy is latest-issued-only with atomic invalidation of prior login challenges. Relevant lifecycle/provider/OTP tests pass. Remaining items are external: provider account/template/sandbox confirmation, PayPing amount-unit confirmation, real PostgreSQL multi-connection verification, deployment, and four absent private `.grok` script inputs. Final verdict: **READY WITH DOCUMENTED LIMITATIONS** for controlled provider sandbox configuration.
+
+
+## PR #6 PostgreSQL verification update — 2026-11-20
+
+PR #6 CI run [44724055534](https://github.com/arefbrh/shahoo/actions/runs/44724055534) completed successfully for head `8c5b12be4cad81a46f9c823ff38d42394016dfe3`. Quality, Project tests, PostgreSQL integration/migrations, Security, Migration inventory and Payment/SMS mock jobs all passed; the private platform harness was skipped because its opt-in repository variable was not enabled.
+
+The PostgreSQL job ran:
+- 15 root migrations against the ephemeral PostgreSQL 16 CI service.
+- Two independent PostgreSQL clients contending on one synthetic inventory row; row locking prevented overselling.
+- The actual SHAHOO `commitCheckout` function with two independent customer carts racing for two available units: exactly one order succeeded, one safely rejected, exactly two units were reserved, no oversell occurred, and the rejected cart line remained.
+- PostgreSQL 16 `pg_dump`/`pg_restore` into a separate scratch DB, comparing migration count, synthetic probe data and public index count.
+
+All fixtures and databases were synthetic/disposable. No Neon, Vercel environment, Production DB, payment gateway or SMS provider was touched. PR #6 remains open and unmerged. The evidence is deliberately scoped: payment/expiry/duplicate-callback/order-transition/seed races, full migration upgrade parity, full disaster recovery and private platform harness remain open.
+
+
+## PR #6 application expiry and payment capture verification — 2026-11-20
+
+CI run [44729304066](https://github.com/arefbrh/shahoo/actions/runs/44729304066) passed for PR head `4ab448b95a86e8f73f15dc2ed6edc2eaf0663349`. The disposable PostgreSQL 16 harness now invokes three actual application functions: `commitCheckout` under a two-cart stock race; two concurrent `releaseExpiredHolds` workers against one expired unpaid order; and two concurrent `captureVerifiedPayment` calls against that expired order using a local in-memory fake provider. Assertions confirmed exactly one checkout, one expiry release/event/audit, and one late-payment recovery/capture/payment/stock decrement/paid event/audit. The same run passed typecheck, lint, build, project tests, security, payment/SMS mocks, migrations and PostgreSQL dump/restore; private platform harness was skipped as not enabled.
+
+The fake provider does not make network calls and is not evidence of a live PayPing transaction. Remaining PostgreSQL work includes insufficient-stock/unsellable recovery rollback, competing checkout during recovery, coupon restoration, callback-route duplicate/settlement races, quote/order transition/RBAC, multi-process seed, full upgrade parity and production-like disaster recovery. PR #6 remains open and unmerged; no Neon, Vercel environment or Production DB was changed.
+
+
+---
+
+## PR #6 latest CI and commerce race evidence — 2026-11-20
+
+This addendum supersedes the earlier PR #6 entries above where they say the recovery rollback matrix, duplicate callback race, coupon restoration, or latest Project tests were still open/pending.
+
+Latest PR #6 head: `17c8e9dd38c7c6a792a39b2b430eb08cf715ab3d`. GitHub Actions run [44733552547](https://github.com/arefbrh/shahoo/actions/runs/44733552547) completed successfully:
+- Project tests — success.
+- PostgreSQL integration and migrations — success.
+- Payment and SMS mock tests — success.
+- Typecheck, lint and build — success.
+- Security checks — success.
+- Migration inventory — success.
+- Optional private platform harness — skipped (not enabled); do not count this as passed.
+
+Newly verified application test coverage:
+- Seven-case late-payment recovery rollback matrix: unpublished/deleted product, inactive/deleted variant, inactive/deleted category and insufficient stock all deny capture without changing order/inventory or writing payment, inventory-log or audit side effects.
+- Concurrent duplicate PayPing callback lifecycle: accepted responses, settled attempt, paid/verified order, exactly one payment row and one verified-payment log.
+- Concurrent expiry/coupon restoration: exactly one expiry release/event/inventory log and coupon usage restored once.
+
+These are synthetic CI tests with a local/mock provider, not live payment or SMS transactions. PostgreSQL tests run against disposable CI PostgreSQL 16, not Neon or Production. PR #6 remains open and unmerged.
+
+Still open: callback HTTP route end-to-end integration; checkout competing with late-payment recovery; quote/order transition/RBAC; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, media, secrets, host/network configuration, encryption and retention. Live provider setup, separate Production Neon database and Production release gates remain outstanding.

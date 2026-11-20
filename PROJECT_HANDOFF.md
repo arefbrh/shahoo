@@ -397,3 +397,20 @@ This addendum supersedes earlier statements in this file where live GitHub or Ne
 4. Obtain owner-controlled confirmation of the exposed OAuth credential rotation/revocation.
 5. Provision a separate Neon Production database only after explicit owner approval, then configure Vercel Production separately.
 6. Complete browser E2E, accessibility, admin/customer journey checks and provider sandbox checklists before any public launch.
+
+## PR #6 latest concurrency and recovery verification — 2026-11-20
+
+This dated addendum supersedes earlier PR #6 status summaries above where they describe narrower test coverage or an in-progress CI run. Latest PR head: `17c8e9dd38c7c6a792a39b2b430eb08cf715ab3d`. GitHub Actions run [44733552547](https://github.com/arefbrh/shahoo/actions/runs/44733552547) completed successfully for that head:
+
+- Project test suite: success.
+- PostgreSQL integration/migrations: success, including the independent-client contention and PG16 backup/restore harness.
+- Payment/SMS mock lifecycle tests: success, including concurrent duplicate PayPing callback handling.
+- Quality (typecheck, lint, build): success.
+- Security checks and migration inventory: success.
+- Optional private platform harness: skipped because its opt-in repository variable is not enabled; this is not a passing result for that private harness.
+
+The latest application test additions cover (1) a seven-condition late-payment recovery rollback matrix for unpublished/deleted products, inactive/deleted variants/categories and insufficient stock, asserting no payment/inventory/audit side effects; (2) two concurrent duplicate PayPing callbacks, asserting settled order/payment state and exactly one payment row and verified-payment log; and (3) two concurrent expiry workers restoring coupon usage exactly once while releasing the stock hold once.
+
+All provider interactions in these tests are mocked/local; no live PayPing or SMS.ir request was made. PostgreSQL CI uses ephemeral PostgreSQL 16 and synthetic fixtures. No Neon database, Vercel setting, Production environment or customer data was touched. PR #6 remains open and unmerged. This CI success does not approve Production launch.
+
+Remaining coverage includes callback HTTP route integration beyond the lifecycle mock, checkout racing late-payment recovery, quote/order transition/RBAC tests, multi-process seed initialization, full fresh/upgrade migration parity and rollback injection, and production-like disaster recovery including roles/globals, media, secrets, host/network configuration, encryption and retention.
