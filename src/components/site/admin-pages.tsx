@@ -14,6 +14,7 @@ import { adjustInventoryFn } from "@/server/catalog/api";
 import { setAdminAccessFn, setCustomerStatusFn } from "@/server/admin/api";
 import { OrderDetail } from "./order-view";
 import { OrderPackingSlip } from "./order-packing-slip";
+import { ShippingSenderSettings } from "./shipping-sender-settings";
 import { buttonGhost, buttonPrimary, fieldClass, panelClass } from "./ui";
 import { AdminHelp } from "./admin-help";
 import type { OrderView } from "@/lib/commerce-types";
@@ -122,7 +123,7 @@ export function AdminOrderPage({ order }: { order: OrderView | null }) {
       <a href="/admin/orders" className="text-sm font-bold text-gold">
         بازگشت به فهرست
       </a>
-      {order ? <OrderPackingSlip order={order} /> : null}
+      {order ? <><ShippingSenderSettings /><OrderPackingSlip order={order} /></> : null}
       <OrderDetail order={order} />
     </div>
   );

@@ -340,3 +340,12 @@ Owner requirement: expand order management beyond a basic status field into an e
 
 
 - The packing slip UI now loads the saved work record, allows per-line partial picked quantities, and persists operator names, package count, weight and discrepancy notes through an explicit save action.
+
+
+## 22. Sender profile and immutable shipment address snapshots — implementation added (2026-11-20)
+
+- Added a centralized sender profile in the settings store (name, phone, province, city, address, postal code), editable by staff with `orders.write` and readable by staff with `orders.read`.
+- Sender profile updates are audited. No sender details are prefilled with invented business data.
+- Added sender and recipient JSON snapshots to shipping log records. When a shipment is recorded, both sender profile and the order's recipient/address are copied into that shipment log, so later profile or order edits do not rewrite the historic shipment addresses.
+- Shipment recording now refuses to proceed until required sender name, phone, city and address are configured.
+- Added migration `0019_shipping_address_snapshots.sql`. No production migration or deployment performed; CI pending.

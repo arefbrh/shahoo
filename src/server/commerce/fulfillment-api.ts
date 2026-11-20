@@ -5,7 +5,7 @@ import { manualNextStatuses } from "@/lib/order-flow";
 import { requireAdmin } from "../auth/guard";
 import { writeAudit } from "../auth/audit";
 import { eq } from "drizzle-orm";
-import { orders, orderItems, orderFulfillmentWork } from "../db/schema";
+import { orders, orderItems, orderFulfillmentWork, settings } from "../db/schema";
 
 export const moveOrderFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ publicCode: z.string().min(4).max(32), next: z.string().min(3).max(40), reason: z.string().trim().min(2).max(400) }).parse(input))
@@ -118,4 +118,45 @@ export const saveOrderPackingWorkFn = createServerFn({ method: "POST" })
       });
       return { ok: true as const, message: "اطلاعات بسته‌بندی ذخیره شد." };
     });
+  });
+
+
+const senderProfileSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  phone: z.string().trim().min(5).max(40),
+  province: z.string().trim().min(2).max(80),
+  city: z.string().trim().min(2).max(80),
+  address: z.string().trim().min(5).max(500),
+  postalCode: z.string().trim().max(20),
+});
+
+export const getShippingSenderProfileFn = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { db } = await requireAdmin("orders.read");
+    const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shipping.sender_profile")).limit(1);
+    const value = row?.value;
+    if (!value || typeof value !== "object") return { name: "", phone: "", province: "", city: "", address: "", postalCode: "" };
+    const data = value as Record<string, unknown>;
+    return {
+      name: typeof data.name === "string" ? data.name : "",
+      phone: typeof data.phone === "string" ? data.phone : "",
+      province: typeof data.province === "string" ? data.province : "",
+      city: typeof data.city === "string" ? data.city : "",
+      address: typeof data.address === "string" ? data.address : "",
+      postalCode: typeof data.postalCode === "string" ? data.postalCode : "",
+    };
+  });
+
+export const saveShippingSenderProfileFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => senderProfileSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { db, admin } = await requireAdmin("orders.write");
+    await db.insert(settings).values({ key: "shipping.sender_profile", value: data, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: settings.key, set: { value: data, updatedAt: new Date() } });
+    await writeAudit(db, {
+      actorType: "admin", actorId: admin.id, action: "shipping.sender_profile.update",
+      entityType: "setting", entityId: "shipping.sender_profile",
+      metadata: { city: data.city, province: data.province, postalCode: data.postalCode, phonePresent: Boolean(data.phone) },
+    });
+    return { ok: true as const, message: "مشخصات فرستنده ذخیره شد." };
   });

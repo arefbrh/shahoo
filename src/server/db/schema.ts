@@ -502,6 +502,8 @@ export const shippingLogs = pgTable("shipping_logs", {
   note: text("note").notNull().default(""),
   carrier: text("carrier").notNull().default(""),
   handedOffAt: timestamp("handed_off_at", { withTimezone: true }),
+  senderSnapshot: jsonb("sender_snapshot").$type<Record<string, string> | null>(),
+  recipientSnapshot: jsonb("recipient_snapshot").$type<Record<string, string> | null>(),
   actor: text("actor").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

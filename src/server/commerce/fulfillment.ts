@@ -6,7 +6,7 @@ import { writeAudit } from "../auth/audit";
 import { requireAdmin, requireCustomer, SessionError } from "../auth/guard";
 import { maskMobile } from "../auth/mobile";
 import type { AppDatabase } from "../db/client";
-import { inventory, inventoryLogs, orderEvents, orderItems, orders, paymentLogs, payments, returnEvents, returnRequests, shippingLogs } from "../db/schema";
+import { inventory, inventoryLogs, orderEvents, orderItems, orders, paymentLogs, payments, returnEvents, returnRequests, shippingLogs, settings } from "../db/schema";
 import { recordNotice } from "../notify/events";
 import { orderStatusLabel } from "./pricing";
 import { releaseHeldStock } from "./release-hold";
@@ -152,6 +152,23 @@ export async function recordShipment(
     if (!["ready_to_ship", "shipped", "delivered"].includes(order.status)) {
       return { ok: false as const, message: "سفارش هنوز آماده ثبت ارسال نیست." };
     }
+    const [senderSetting] = await tx.select({ value: settings.value }).from(settings).where(eq(settings.key, "shipping.sender_profile")).limit(1);
+    const rawSender = senderSetting?.value && typeof senderSetting.value === "object" ? senderSetting.value as Record<string, unknown> : {};
+    const senderSnapshot = {
+      name: typeof rawSender.name === "string" ? rawSender.name : "",
+      phone: typeof rawSender.phone === "string" ? rawSender.phone : "",
+      province: typeof rawSender.province === "string" ? rawSender.province : "",
+      city: typeof rawSender.city === "string" ? rawSender.city : "",
+      address: typeof rawSender.address === "string" ? rawSender.address : "",
+      postalCode: typeof rawSender.postalCode === "string" ? rawSender.postalCode : "",
+    };
+    const recipientSnapshot = {
+      name: order.fullName, phone: order.mobile, province: order.province, city: order.city,
+      address: order.addressLine, postalCode: order.postalCode, plaque: order.plaque, unit: order.unit,
+    };
+    if (!senderSnapshot.name || !senderSnapshot.phone || !senderSnapshot.address || !senderSnapshot.city) {
+      return { ok: false as const, message: "ابتدا مشخصات کامل فرستنده را در تنظیمات ارسال ثبت کنید." };
+    }
     await tx.insert(shippingLogs).values({
       id: `shp-${crypto.randomUUID()}`,
       orderId: order.id,
@@ -160,6 +177,8 @@ export async function recordShipment(
       note: note || "",
       carrier,
       handedOffAt: handed,
+      senderSnapshot,
+      recipientSnapshot,
       actor: "admin",
     });
     await tx.update(orders).set({
