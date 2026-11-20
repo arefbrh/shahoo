@@ -13,6 +13,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "../src/server/db/schema.ts";
+import { commitCheckout } from "../src/server/commerce/checkout.ts";
 
 const execFileAsync = promisify(execFile);
 const rawUrl = process.env.DATABASE_URL?.trim();
@@ -58,6 +61,60 @@ async function main() {
   first = new pg.Client({ connectionString: sourceUrl.toString(), connectionTimeoutMillis: 10_000 });
   second = new pg.Client({ connectionString: sourceUrl.toString(), connectionTimeoutMillis: 10_000 });
   await Promise.all([first.connect(), second.connect()]);
+  // Exercise the real application checkout transaction on this isolated clone.
+  const appPool = new pg.Pool({ connectionString: sourceUrl.toString(), max: 4 });
+  try {
+    const appDb = drizzle(appPool, { schema });
+    await appPool.query(`
+      INSERT INTO product_categories (id, slug, name, short_name, is_active)
+        VALUES ('ci-cat', 'ci-natural', 'Natural', 'Natural', true);
+      INSERT INTO products (id, category_id, slug, sku, name, status)
+        VALUES ('ci-prod', 'ci-cat', 'ci-oil', 'CI-PROD', 'CI Oil', 'published');
+      INSERT INTO product_variants (id, product_id, sku, label, price_irr, status)
+        VALUES ('ci-var', 'ci-prod', 'CI-VAR', 'Bottle', 100000, 'active');
+      INSERT INTO inventory (variant_id, on_hand, reserved, low_stock_threshold)
+        VALUES ('ci-var', 3, 0, 1);
+      INSERT INTO shipping_methods (id, key, title, price_irr, is_active)
+        VALUES ('ci-ship', 'ci-post', 'CI Post', 0, true);
+      INSERT INTO customers (id, mobile, full_name, status)
+        VALUES ('ci-customer-a', '09120000001', 'CI Customer A', 'active'),
+               ('ci-customer-b', '09120000002', 'CI Customer B', 'active');
+      INSERT INTO carts (id, customer_id) VALUES ('ci-cart-a', 'ci-customer-a'), ('ci-cart-b', 'ci-customer-b');
+      INSERT INTO cart_items (id, cart_id, variant_id, quantity)
+        VALUES ('ci-line-a', 'ci-cart-a', 'ci-var', 2),
+               ('ci-line-b', 'ci-cart-b', 'ci-var', 2);
+    `);
+    const common = {
+      fullName: 'CI Buyer', mobile: '09120000001', province: 'تهران', city: 'تهران',
+      addressLine: 'CI Test Address', postalCode: '1234567890', plaque: '1', unit: '1',
+      customerNote: '', shippingMethodId: 'ci-ship', couponCode: '', addressId: null,
+    };
+    const outcomes = await Promise.all([
+      commitCheckout(appDb, { ...common, idempotencyKey: 'ci-checkout-a' },
+        { id: 'ci-cart-a', customerId: 'ci-customer-a', buyerKey: 'c:ci-customer-a' },
+        { id: 'ci-customer-a', fullName: 'CI Customer A', mobile: '09120000001' }),
+      commitCheckout(appDb, { ...common, idempotencyKey: 'ci-checkout-b', mobile: '09120000002' },
+        { id: 'ci-cart-b', customerId: 'ci-customer-b', buyerKey: 'c:ci-customer-b' },
+        { id: 'ci-customer-b', fullName: 'CI Customer B', mobile: '09120000002' }),
+    ]);
+    if (outcomes.filter((x) => x.ok).length !== 1 || outcomes.filter((x) => !x.ok).length !== 1) {
+      throw new Error('Application checkout race did not produce exactly one success and one safe rejection: ' + JSON.stringify(outcomes));
+    }
+    const appState = await appPool.query(`
+      SELECT (SELECT count(*)::int FROM orders WHERE idempotency_key IN ('ci-checkout-a','ci-checkout-b')) AS orders,
+             (SELECT reserved FROM inventory WHERE variant_id='ci-var') AS reserved,
+             (SELECT count(*)::int FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE idempotency_key IN ('ci-checkout-a','ci-checkout-b'))) AS order_items,
+             (SELECT count(*)::int FROM cart_items WHERE cart_id IN ('ci-cart-a','ci-cart-b')) AS remaining_lines
+    `);
+    const state = appState.rows[0];
+    if (state.orders !== 1 || state.reserved !== 2 || state.order_items !== 1 || state.remaining_lines !== 1) {
+      throw new Error('Application checkout race left inconsistent state: ' + JSON.stringify(state));
+    }
+    console.log('[postgres-app-checkout] PASS — real commitCheckout with two independent customer carts competing for two units: one order committed, one rejected, stock reservation remained exactly 2, no oversell');
+  } finally {
+    await appPool.end();
+  }
+
   await first.query("CREATE TABLE shahoo_ci_inventory_probe (id integer PRIMARY KEY, available integer NOT NULL CHECK (available >= 0))");
   await first.query("INSERT INTO shahoo_ci_inventory_probe (id, available) VALUES (1, 1)");
 
