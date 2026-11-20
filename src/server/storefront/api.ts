@@ -284,7 +284,11 @@ export const getHome = createServerFn({ method: "GET" }).handler(async (): Promi
   const parsedStory = storySchema.parse(settingMap(settingRows).get("store.story"));
   const story = storyIsConfigured(parsedStory) ? parsedStory : { title: "", about: "", philosophy: "" };
   const bannerMedia = new Map(mediaRows.filter((row) => !row.deletedAt).map((row) => [row.id, { url: row.publicUrl, alt: row.alt }]));
+  const carouselRaw = settingMap(settingRows).get("home.carousel");
+  const carouselConfig = carouselRaw && typeof carouselRaw === "object" ? (carouselRaw as Record<string, unknown>) : {};
+  const carouselInterval = typeof carouselConfig.intervalMs === "number" ? carouselConfig.intervalMs : 6500;
   return {
+    carousel: { autoPlay: carouselConfig.autoPlay !== false, intervalMs: Math.min(15000, Math.max(3000, carouselInterval)) },
     banners: bannerRows.filter((row) => bannerIsVisible(row.startsAt, row.endsAt, Date.now())).map((row) => toBanner(row, bannerMedia)),
     sections: sectionRows.map(toSection),
     categories: categoryRows.map(toCategory),
