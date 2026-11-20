@@ -97,14 +97,22 @@ async function main() {
   }
   await sourcePool.end(); sourcePool = undefined;
 
-  await execFileAsync("pg_dump", [
-    "--format=custom", "--no-owner", "--no-acl", "--file", dumpPath, "--dbname", sourceDb,
+  await execFileAsync("docker", [
+    "run", "--rm", "--network", "host",
+    "-e", "PGHOST", "-e", "PGPORT", "-e", "PGUSER", "-e", "PGPASSWORD", "-e", "PGDATABASE",
+    "-v", workDir + ":/backup", "postgres:16",
+    "pg_dump", "--format=custom", "--no-owner", "--no-acl",
+    "--file", "/backup/shahoo-ci.dump", "--dbname", sourceDb,
   ], { env: clientEnv(sourceDb), timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
 
   await admin.query("CREATE DATABASE " + quoteIdent(restoreDb) + " TEMPLATE template0");
   createdRestore = true;
-  await execFileAsync("pg_restore", [
-    "--exit-on-error", "--no-owner", "--no-acl", "--dbname", restoreDb, dumpPath,
+  await execFileAsync("docker", [
+    "run", "--rm", "--network", "host",
+    "-e", "PGHOST", "-e", "PGPORT", "-e", "PGUSER", "-e", "PGPASSWORD", "-e", "PGDATABASE",
+    "-v", workDir + ":/backup", "postgres:16",
+    "pg_restore", "--exit-on-error", "--no-owner", "--no-acl",
+    "--dbname", restoreDb, "/backup/shahoo-ci.dump",
   ], { env: clientEnv(restoreDb), timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
 
   restorePool = new pg.Pool({ connectionString: restoreUrl.toString(), max: 1 });
