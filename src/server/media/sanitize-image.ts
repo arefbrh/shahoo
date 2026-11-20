@@ -283,7 +283,7 @@ function gifLzwOk(minCodeSize: number, data: Uint8Array, expectedPixels: number)
     decodedPixels += entry.length;
     if (decodedPixels > expectedPixels) return false;
     if (previous && next < 4096) {
-      dict[next] = { first: previous.first, length: previous.length + entry.length };
+      dict[next] = { first: previous.first, length: previous.length + 1 };
       next += 1;
       if (next === 1 << codeSize && codeSize < 12) codeSize += 1;
     }
