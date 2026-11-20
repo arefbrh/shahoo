@@ -199,3 +199,11 @@ Before handing this work to another agent:
 - No storage credentials were configured, no bucket was created, no Vercel environment variables were changed, and no Production data or deployment was touched. S3 uploads remain unavailable until an operator provisions a bucket and adds Preview-only credentials.
 - CI for the previous upload UI commit `1f4c4ef12bffec1555e1c9cfc6b076158696406d` passed. The S3 adapter changes in the following commit require a fresh CI run; do not claim them verified until all required jobs pass.
 - Next: validate S3 signing/path behavior with focused tests and CI, configure a dedicated Preview bucket only with owner-approved credentials, then smoke-test upload/read/delete and image display before considering Production.
+
+
+### S3 media lifecycle hardening
+
+- Added provider-aware media retirement and retry cleanup: a `local:` asset is removed only by the local adapter and an `s3:` asset only by the matching S3 adapter.
+- Cleanup failures create diagnostics; retries leave provider-mismatched items pending rather than marking them skipped or deleting from the wrong bucket.
+- Added mocked tests for signed S3 PUT/GET/DELETE, endpoint path prefixes, unsafe names, fail-closed production configuration, provider-qualified keys and local traversal protection. Registered the test in `scripts/run-tests.mjs`.
+- These additions are awaiting CI on the latest branch head; do not consider the adapter validated until the new suite passes.

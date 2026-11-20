@@ -33,7 +33,7 @@ import {
 } from "../../lib/cms-rules.ts";
 import { parseProfileContact } from "../../lib/public-profile.ts";
 import { writeAudit } from "../auth/audit.ts";
-import { localObjectName, openStorage } from "../media/disk.ts";
+import { objectNameForStorageKey, openStorage } from "../media/disk.ts";
 import { lockLiveMediaAsset, mediaInUse, removeFileOrRecord, retryPendingMediaCleanup } from "../media/lock.ts";
 import * as schema from "../db/schema.ts";
 import {
