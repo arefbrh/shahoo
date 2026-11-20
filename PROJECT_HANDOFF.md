@@ -4,6 +4,14 @@
 >
 > **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but live provider activation, Production database setup, PostgreSQL multi-connection verification, and final release checks are still outstanding.
 
+**Last reconciled:** 2026-11-20 (repository documentation consolidation)
+
+## 0. Latest verified repository maintenance
+
+- PR #2, `docs: add comprehensive SHAHOO project handoff`, was merged after its full GitHub Actions CI run completed successfully. Merge commit: `299b85a7aa1b76d05bd03594915b888d7d469ca9`. This was documentation-only; it did not change application code, migrations, database settings, or deploy Production.
+- A follow-up cleanup branch, `chore/repository-documentation-cleanup`, consolidates agent entry points and marks older batch/status documents as historical. It is not merged yet; see PR when created.
+- Current documentation entry point: [docs/README.md](docs/README.md). Start with this handoff and do not treat historical batch instructions as current authorization.
+
 **Last reconciled:** 2026-11-20  
 **Repository:** [arefbrh/shahoo](https://github.com/arefbrh/shahoo)  
 **Production branch:** `main`  
