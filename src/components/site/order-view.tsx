@@ -6,6 +6,7 @@ import { cancelUnpaidOrderFn } from "@/server/offers/api";
 import { retryPayPingSettlementForAdminFn, retryPayPingVerificationForAdminFn } from "@/server/payments/api";
 import { buttonGhost, buttonPrimary, pageKicker, pageTitle, panelClass } from "./ui";
 import { OrderActions } from "./order-actions";
+import { OrderInvoice } from "./order-invoice";
 
 export function OrderDetail({ order }: { order: OrderView | null }) {
   if (!order) {
@@ -91,6 +92,7 @@ export function OrderDetail({ order }: { order: OrderView | null }) {
           ))}
         </ul>
       </section>
+      <OrderInvoice order={order} />
     </div>
   );
 }
