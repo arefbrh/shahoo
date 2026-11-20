@@ -244,3 +244,14 @@ fi
 ```
 
 Stopping the named `--rm` container discards its tmpfs databases; no `dropdb` against an unspecified server is needed. If setup or an intermediate step failed, explicitly perform the same reviewed cleanup, including any stopped container and private files. Preserve no actual secrets. Reassess the release gate only after the real PostgreSQL app harness, backup/restore, browser/accessibility, private platform and selected-host checks have evidence and the owner approves the next action.
+
+
+---
+
+## CI execution addendum — isolated SQL contention and backup/restore
+
+The CI PostgreSQL job now includes `scripts/test-postgres-concurrency-backup.mjs` after the normal migrations and smoke test. It is deliberately restricted to a loopback PostgreSQL host and the disposable CI database named `shahoo_test`; it refuses a remote hostname or any other database name.
+
+The test clones the freshly migrated CI database into uniquely named scratch databases, opens two independent PostgreSQL clients, and coordinates a row-lock contention test against one synthetic inventory unit. The first transaction reserves the unit; the second waits for the row lock, observes zero remaining units and must not decrement below zero. It then uses PostgreSQL 16 `pg_dump` and `pg_restore` to restore the scratch database into a separate empty database and verifies migration records, the synthetic row, and indexes. Both scratch databases and the temporary dump directory are cleaned up in the CI job.
+
+**Evidence boundary:** this is a real-PostgreSQL multi-connection SQL/locking test plus a native database dump/restore round trip. It does **not** call SHAHOO's application checkout/payment functions, does not test the payment gateway or SMS provider, and does not establish a production disaster-recovery procedure. The application-level multi-connection harness described in section 5 remains a separate outstanding task. CI's PostgreSQL service is disposable and contains only the migration schema and synthetic probe data; no Neon staging or production database is used.
