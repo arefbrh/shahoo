@@ -5,8 +5,10 @@ import { FLAG_LABELS, PRODUCT_FLAGS, SECTION_LABELS, isProductSection, isPublicH
 import type { CmsArticle, CmsBanner, CmsDesk, CmsMenu, CmsPage, CmsResult, CmsSection, SectionFlag } from "@/lib/cms-types";
 import {
   getCmsDesk,
+  getContentHistoryFn,
   registerMediaFn,
   retireArticleFn,
+  restoreContentRevisionFn,
   retireMediaFn,
   saveArticleFn,
   saveBannerFn,
@@ -729,7 +731,63 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
       <button type="submit" className={buttonPrimary}>
         ذخیره صفحه
       </button>
+      {page ? <ContentHistory entityType="page" entityId={page.id} onDone={onDone} /> : null}
     </form>
+  );
+}
+
+function ContentHistory({
+  entityType,
+  entityId,
+  onDone,
+}: {
+  entityType: "page" | "article";
+  entityId: string;
+  onDone: (result: CmsResult) => Promise<void>;
+}) {
+  const [items, setItems] = useState<Array<{ id: string; version: number; createdAt: string; title: string; status: string }> | null>(null);
+  const [busyId, setBusyId] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    void getContentHistoryFn({ data: { entityType, entityId } })
+      .then((result) => { if (active) setItems(result); })
+      .catch(() => { if (active) setError("تاریخچه نسخه‌ها بارگذاری نشد."); });
+    return () => { active = false; };
+  }, [entityType, entityId]);
+  return (
+    <section className="space-y-2 rounded-2xl border border-line p-3">
+      <div>
+        <h3 className="text-sm font-bold text-forest">تاریخچه و بازگردانی</h3>
+        <p className="mt-1 text-xs leading-6 text-muted">هر بار ذخیره یا انتشار، یک نسخه مستقل ثبت می‌شود. بازگردانی، نسخه تازه‌ای می‌سازد و نسخه‌های قبلی را حذف نمی‌کند.</p>
+      </div>
+      {error ? <p className="text-xs text-red-700" role="alert">{error}</p> : null}
+      {items === null && !error ? <p className="text-xs text-muted">در حال خواندن تاریخچه...</p> : null}
+      {items?.length === 0 ? <p className="text-xs text-muted">هنوز نسخه‌ای ثبت نشده است. پس از ذخیره بعدی، تاریخچه اینجا نمایش داده می‌شود.</p> : null}
+      {items?.map((item) => (
+        <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-forest">نسخه {item.version} · {item.title}</p>
+            <p className="text-xs text-muted">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.createdAt))} · {item.status === "published" ? "منتشرشده" : "پیش‌نویس"}</p>
+          </div>
+          <button
+            type="button"
+            className={buttonGhost}
+            disabled={busyId !== ""}
+            onClick={() => {
+              setBusyId(item.id);
+              setError("");
+              void restoreContentRevisionFn({ data: { revisionId: item.id } })
+                .then(onDone)
+                .catch(() => setError("بازگردانی انجام نشد."))
+                .finally(() => setBusyId(""));
+            }}
+          >
+            {busyId === item.id ? "در حال بازگردانی..." : "بازگردانی این نسخه"}
+          </button>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -867,6 +925,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           </button>
         ) : null}
       </div>
+      {article ? <ContentHistory entityType="article" entityId={article.id} onDone={onDone} /> : null}
     </form>
   );
 }
