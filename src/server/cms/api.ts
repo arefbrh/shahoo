@@ -6,6 +6,7 @@ import {
   applyArticleRetire,
   applyArticleSave,
   applyBrandSettings,
+  applyCarouselSettings,
   applyBannerOrder,
   applyBannerSave,
   applyNavOrder,
@@ -95,6 +96,10 @@ export const saveSiteCopyFn = createServerFn({ method: "POST" })
     z.object({ storyTitle: z.string().max(120), storyAbout: z.string().max(2000), storyPhilosophy: z.string().max(2000), promo: z.string().max(200) }).parse(input),
   )
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applySiteCopy(db, actorId, data)));
+
+export const saveCarouselSettingsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ autoPlay: z.boolean(), intervalMs: z.number().int().min(3000).max(15000) }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyCarouselSettings(db, actorId, data)));
 
 export const saveBrandSettingsFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
