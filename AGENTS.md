@@ -3,10 +3,11 @@
 For any coding agent (Claude, Grok, Codex or similar) and for human contributors. It contains no platform-specific tooling. The original scaffold-specific file is kept as history in `docs/archive/AGENTS.grok-platform-original.md`; ignore it for current work.
 
 ## 1. Read first, in this order
-1. `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md` — the single portable continuity document (decisions, constraints, batch history, current status).
-2. `LATEST_HANDOFF.md`, `PROJECT_STATE.md`, `REMAINING_ISSUES.md`, `NEXT_BATCH_BRIEF.md`.
-3. The newest `BATCH_*_REPORT.md` and `DECISIONS.md`.
-Where documents disagree, the source code wins, then the master context, then older reports. Reports of previous agents are claims to verify, not facts.
+1. `PROJECT_HANDOFF.md` — canonical, current cross-agent handoff, verified infrastructure history, test evidence, release gates, and next actions.
+2. `REMAINING_ISSUES.md` and `BATCH_09_COMPREHENSIVE_AUDIT.md` — current issue register and detailed audit evidence.
+3. `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md` — long-form historical continuity; consult relevant sections, but do not treat old embedded status/next-step text as current.
+4. `docs/README.md` — documentation map; open older batch reports only when investigating their specific change.
+Where documents disagree, use current source and the canonical `PROJECT_HANDOFF.md`, then the current issue/evidence registers. Older batch reports are historical claims to verify, not current instructions.
 
 ## 2. Project
 SHAHOO is a Persian (RTL) online store for natural and organic products. Stack: React 19, TanStack React Start (server functions), Nitro/Vercel, Vite, TypeScript, Drizzle ORM on PostgreSQL (embedded PGlite only for local development and tests), Tailwind, Zod, Zustand. Money is stored as integer IRR (shown as toman, ÷10). Single currency `IRR`.
