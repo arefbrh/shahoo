@@ -4,12 +4,12 @@
 >
 > **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but live provider activation, Production database setup, PostgreSQL multi-connection verification, and final release checks are still outstanding.
 
-**Last reconciled:** 2026-11-20 (repository documentation consolidation)
+**Last reconciled:** 2026-11-20 (post-PR #3 merge reconciliation)
 
 ## 0. Latest verified repository maintenance
 
 - PR #2, `docs: add comprehensive SHAHOO project handoff`, was merged after its full GitHub Actions CI run completed successfully. Merge commit: `299b85a7aa1b76d05bd03594915b888d7d469ca9`. This was documentation-only; it did not change application code, migrations, database settings, or deploy Production.
-- PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updates the agent entry point and marks superseded batch/status documents as historical. It remains open until its full CI run completes.
+- PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updated the agent entry point and marked superseded batch/status documents as historical. Its CI run `44713902624` completed successfully for head `a0516f65a2474a1e8cb9b60b3981f31493184401`; it was squash-merged into `main` as `ab5d3617f62b7156b2a90504d86f2e4d9409e2d3`. Documentation-only; no application source, dependencies, migrations, database data, secrets, or deployment settings changed.
 - Current documentation entry point: [docs/README.md](docs/README.md). Start with this handoff and do not treat historical batch instructions as current authorization.
 
 **Repository:** [arefbrh/shahoo](https://github.com/arefbrh/shahoo)  
@@ -29,7 +29,7 @@
 | Neon Preview database | Connected by user | `DATABASE_URL` set for **Preview only**; never copy its value into chat, source, logs, or docs |
 | Preview demo catalog | Working | `SEED_DEMO=1` is configured for Preview only; never enable it in Production |
 | Manual storefront smoke test | Passed by owner | Product detail, add-to-cart, cart quantity and price were checked by the owner and reported working |
-| PR #1 | Open, Draft, not merged | [Fix Vercel runtime loading of PGlite adapter](https://github.com/arefbrh/shahoo/pull/1); review before merge |
+| PR #1 | Open, Draft, not merged; current GitHub metadata reports mergeable=false against its old base | [Fix Vercel runtime loading of PGlite adapter](https://github.com/arefbrh/shahoo/pull/1); reconcile/rebase against current `main`, rerun CI, and review before any merge |
 | Production database | Not provisioned/verified | Create a separate Neon Production database and configure Vercel Production `DATABASE_URL` before any Production deploy |
 | Production deployment | Not verified / not approved | Do not merge or promote blindly; see release gates below |
 | PayPing / SMS.ir | Source integration exists; disabled pending controlled account verification | No live credentials, sandbox transaction, real SMS, or real payment was tested |
@@ -53,7 +53,7 @@ The owner wants the assistant/agent to do the implementation work directly where
 - Production branch: `main`
 - Existing PR #1: `fix/vercel-pglite-runtime-import` → `main`
 - PR #1 head at last verification: `2082b8eed9759a60126c81b3fb2b0482792367f6`
-- PR #1 is Draft, open, mergeable at last check, and **not merged**.
+- PR #1 is Draft, open, and **not merged**. Current metadata reports `mergeable=false`; its base SHA predates the merged documentation PRs. Reconcile it against current `main` and rerun CI before considering merge.
 - PR #1 changes:
   - `src/server/db/client.ts`: dynamically load Drizzle's PGlite adapter only on the PGlite path.
   - `vite.config.ts`: externalize `drizzle-orm/pglite` and `@electric-sql/pglite` for Nitro tracing.
@@ -121,7 +121,7 @@ This section records completed work without claiming live integration.
 - Corrected malformed connection hostname after `ENOTFOUND base`.
 - Isolated the PGlite Drizzle adapter from the PostgreSQL runtime path using dynamic import and Nitro externalization in PR #1.
 - Added Preview-only demo seed gate so the Vercel Preview can display sample products while Production remains protected.
-- PR #1 CI and Preview deployment passed for the recorded head commit; merge remains pending.
+- PR #1 CI and Preview deployment passed for the recorded head commit; the PR has not been revalidated against the current `main` after subsequent merges, and its current mergeability is false. Rebase/update and rerun checks before considering merge.
 
 ### Seed safety and Production guards
 
