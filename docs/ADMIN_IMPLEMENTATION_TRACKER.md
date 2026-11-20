@@ -143,3 +143,13 @@ Before handing this work to another agent:
 5. Keep Production untouched and keep demo seed disabled there.
 6. Do not merge PRs or promote Production without the owner's explicit instruction.
 7. Update this tracker with completed tasks, exact evidence, remaining blockers, and the next command/action.
+
+
+## 8. Staging admin access bootstrap (2026-11-20)
+
+- Root cause of the reported Preview login failure: Production and Preview use different Neon databases. The Production `admin_users` table had one active owner account and audit logs showed two successful Production logins. The staging `admin_users` table was empty.
+- Added sensitive Vercel **Preview-only** environment variables `SHAHOO_ADMIN_EMAIL`, `SHAHOO_ADMIN_PASSWORD_HASH`, and `SHAHOO_ADMIN_NAME`. No Production environment variable was changed.
+- New Preview deployment: `https://shahoo-47810kea7-shahoo.vercel.app`, deployment `dpl_EqqjPtkXRD8yVN4krmf9n8Pa34jo`, READY, branch `feat/admin-catalog-ux-phase1`, commit `0e0e5079672423c2945186ba61daf3fbda3c2316`.
+- The admin account is created lazily by `ensureAdminFromEnv` on the first request to `/admin`; therefore open the Preview `/admin` route once before login. Verify the staging `admin_users` row after that request.
+- A unique staging-only password was generated and provided to the owner in the conversation. Do not store it in this repository.
+- Production account and database were not modified. Production login credentials remain separate.
