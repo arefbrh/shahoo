@@ -289,6 +289,7 @@ function Field({
   ltr = false,
   type = "text",
   disabled = false,
+  hint,
 }: {
   label: string;
   value: string;
@@ -296,6 +297,7 @@ function Field({
   ltr?: boolean;
   type?: string;
   disabled?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="block text-sm font-bold text-forest">
@@ -308,6 +310,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         className={`${fieldClass} mt-2 ${ltr ? "text-left" : ""}`}
       />
+      {hint ? <span className="mt-1 block text-xs font-normal leading-5 text-muted">{hint}</span> : null}
     </label>
   );
 }
