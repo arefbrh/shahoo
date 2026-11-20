@@ -1,0 +1,56 @@
+# Batch 04 implementation and delivery report
+
+**Status:** The original Batch 04 implementation was delivered for review and is now amended by the Production homepage initialization correction. The current deliverable is `SHAHOO-v1.0.0-batch04-correction.zip`; see `BATCH_04_CORRECTION_REPORT.md`. No publication, live provider connection, or next batch was started. The accepted input baseline was `SHAHOO-v1.0.0-batch03-correction.zip`; it was adopted as-is without a separate full Batch 03 re-verification. This report reflects the original Batch 04 scope and is not certification of the whole application.
+
+## Scope delivered
+
+- **Header cart drawer:** Added an accessible modal drawer using the project’s existing Radix dialog and server-backed cart APIs. It presents item details, images, variants, pricing/quantity controls, totals, empty/loading/error/retry handling and route links. The original cart page remains. A common client write guard prevents local overlapping actions; persisted tab intent and explicit recovery protect uncertain writes. Server pricing remains authoritative.
+- **Checkout consistency:** Because the new drawer is available while checkout is open, the checkout now detects a changed reviewed cart under the server cart lock and refuses an order based on stale lines/prices. It binds the reviewed request to the current owner and hides retained account/address details while session identity is being checked, or after a detected account change until full reload. This does not add payment processing.
+- **Homepage and CMS:** Preserved section ordering, product selection and editable content. Suppressed the removed legacy featured section without deleting its record or hiding unrelated featured sections. Added `migrations/0009_batch_04_home_copy.sql`, which updates only recognized old, untouched seed copy. Existing audited/custom editor copy is deliberately preserved. Homepage banner image alternative text is carried from stored CMS media where available.
+- **Hero and interactions:** Added a controlled carousel with exactly three grouped bottom indicators; next/previous navigation reaches every active CMS banner. Automatic movement yields to user interaction and reduced-motion settings. Only the active and next slide images are eligible to load. Existing SHAHOO brand marks and palette are preserved; gold hover/touch/focus emphasis is applied to selected interactive cards and controls.
+- **Batch 09 preparation:** Added `BATCH_09_INTEGRATION_PREPARATION.md` with source-traced checkout/order/payment/SMS boundaries, environment conventions, proposed callback flow, security/reconciliation risks and merchant-panel prerequisites. This is planning only. No gateway/SMS calls, credentials, payment-success fabrication, new dependencies or speculative schema were added. A conditionally enabled SMS.ir adapter was present in the accepted baseline; it was not newly added or enabled by this batch.
+- **Continuity:** Updated `PROJECT_STATE.md`, `LATEST_HANDOFF.md`, `REMAINING_ISSUES.md`, `DECISIONS.md`, `CHANGELOG.md`, `NEXT_BATCH_BRIEF.md`, `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md`, `TEST_REPORT.md`, `FILE_INVENTORY.md` and `TODO.md`. Batch 05–08 remain for later owner-approved work; Batch 09 follows Batch 08. Previous history is retained and Batch 04 stops for owner review.
+- **Page route manifest:** Added `public/manus-routes.json` for the 36 current source page routes. API, asset-serving and system routes are excluded. The JSON is checked against the source route set as part of packaging; no development server was started.
+
+## Main source changes
+
+Changed existing: `src/components/site/{shell,home-view,cart-client,cart-view,product-view,checkout-view,content-desk}.tsx|.ts`; `src/server/{storefront/api.ts,commerce/{api,cart,checkout}.ts,db/{seed.ts,baseline-public.test.ts}}`; `src/lib/{cms-rules.ts,cms-rules.test.ts,cart-ui-rules.ts,cart-ui-rules.test.ts,commerce-types.ts,store-types.ts}`; `scripts/frontend-source.test.mjs`; `package.json`; and the continuity documents named above.
+
+Added: `src/components/site/cart-drawer.tsx`, `cart-intents.ts`, `cart-intent-notices.tsx`, `cart-intents.test.ts`, `cart-wiring.test.mjs`; `src/lib/cart-concurrency.ts`, `cart-concurrency.test.ts`, `checkout-cart-safety.ts`, `checkout-cart-safety.test.ts`, `home-carousel.ts`, `home-carousel.test.ts`; `migrations/0009_batch_04_home_copy.sql`; `BATCH_04_REPORT.md`; `BATCH_09_INTEGRATION_PREPARATION.md`; `TODO.md`; and platform project metadata `app.config.ts` pointing to the already supplied SHAHOO logo. No existing baseline files were deleted.
+
+## Verification record
+
+**EXECUTED — PASS (focused, source-level):** `node --experimental-strip-types --test src/lib/cart-ui-rules.test.ts src/lib/cart-concurrency.test.ts src/lib/cms-rules.test.ts src/lib/checkout-cart-safety.test.ts src/lib/home-carousel.test.ts src/components/site/cart-intents.test.ts` — **34/34 passed**. Includes same-owner reads, changed/guest owner detection, background and intervening-cart invalidation, and compatibility of legacy calls without an owner expectation.
+
+**EXECUTED — PASS (focused, source-level):** `node --test scripts/frontend-source.test.mjs src/components/site/cart-wiring.test.mjs` — **15/15 passed**. The first run of `node --test scripts/frontend-source.test.mjs` was **EXECUTED — FAIL**: one older source assertion expected `CART_UPDATE_FAILED` in the cart component. Inspection confirmed the UI intentionally uses `CART_SET_UNCERTAIN` for persisted recovery; the assertion was updated to that current behavior and the rerun above passed. This is a corrected stale test expectation, not evidence of a product runtime failure.
+
+**EXECUTED — PASS (syntax only):** TypeScript's `transpileModule` syntax-only parser processed all **30 changed `.ts`/`.tsx` files with zero syntax diagnostics**. This does not check types, imports or application behavior.
+
+**EXECUTED — FAIL (initial archive assertion):** The packaging script expected 408 files after the changelog edit, but `CHANGELOG.md` was an existing baseline file; this counting assumption was incorrect. No file content was lost. The assertion was corrected to the actual inventory count and the ZIP was recreated and checked again.
+
+**EXECUTED — PASS (static package checks):** The 36-entry page route manifest matched every current source page route after excluding API, media-file and system routes. The one ZIP was read back, all **407** file paths matched the eligible project files, CRC verification passed, and excluded artifacts were absent.
+
+**EXECUTED — FAIL (Git whitespace check):** `git diff --cached --check` found trailing spaces and extra blank lines in previously supplied documentation and unchanged source files, plus historical lines retained in the master handoff. These files were compared with the accepted extracted baseline; unrelated inherited formatting was preserved rather than broadly rewritten. This check does not indicate a typecheck or runtime failure.
+
+**STATIC REVIEW ONLY:** A high-confidence private-key/token pattern scan found no credential patterns in the project files scanned. This is not a substitute for a full secret audit.
+
+**NOT EXECUTED — ENVIRONMENT LIMITATION (deferred to Batch 08):** Full TypeScript typecheck, ESLint, complete `npm test` suite, production build, database or migration execution (including PGlite), real PostgreSQL multi-connection tests, browser/E2E, responsive desktop/mobile, screen-reader/keyboard acceptance, real cart/checkout end-to-end or cross-tab behavior, and integrated CMS/carousel verification. Project dependencies were not installed; host diagnostics reported missing modules/types and therefore establish neither a clean nor a failing semantic typecheck. These checks are also outside this batch's approved verification scope. No production database, payment provider, SMS provider, credentials or real customer data were used.
+
+## Owner/editor review and known limitations
+
+- **Historical at original Batch 04 delivery; resolved by correction:** a new production foundation could contain no homepage section records. Migration `0010_batch_04_home_sections.sql` now provisions the three missing structural sections. The CMS still edits but does not create sections, and Production still requires its guarded migration command.
+- The safe copy migration skips recognized content that has any prior audit entry because old audit data is not field-specific. If an editor changed only one field, untouched fields will also be preserved rather than overwritten. Review the three approved title/description pairs in the CMS.
+- Cart intent persistence and write serialization are per browser tab. A lost-response product add can still commit after the user confirms an uncertain operation; exact once-only adds need server-side idempotency/versioning. Quantity expectation checks have an ABA limitation, and old callers may omit expectations. Storage failures intentionally block changes rather than discard intent. These must be exercised and resolved before production use.
+- Checkout reviewed-cart expectations cover cart identity, lines, quantity and unit price under lock, and checkout owner binding, but real PostgreSQL concurrency remains unverified. Shipping/coupon are server-recalculated, not bound to the quote; investigate uncertain prior-order responses in Batch 08.
+- When there are over three banners, the three indicators show a group and prev/next reaches all banners. Uneven slide copy lengths and fading transitions need viewport review. When desktop/mobile image alternatives differ, desktop alternative text is used; review CMS alt text.
+- `BATCH_09_INTEGRATION_PREPARATION.md` identifies source-level findings only; no provider documentation or merchant-panel settings were verified.
+
+**Original Batch 04 delivery:** `SHAHOO-v1.0.0-batch04.zip` was the first source package. It is superseded for current review by the correction archive. Wait for explicit owner approval before Batch 05 or any later scope.
+
+## Batch 04 Production homepage correction addendum (2026-11-19)
+
+The production-seed gap described in the original Batch 04 findings is resolved in source by migration `0010_batch_04_home_sections.sql`. Its insert-only backfill checks existing `section_type` values, retains canonical fresh-install IDs, appends only missing rows after existing order, and never updates existing CMS rows. The public homepage remains CMS/database-driven and shows a Persian empty-product state; no fake product associations are introduced. See `BATCH_04_CORRECTION_REPORT.md` for root cause, migration/production behavior, CMS review, exact test commands, explicit Batch 08 deferrals and residual risks.
+
+Correction checks actually executed: PGlite seed-safety/migration file 3/3, static frontend source file 10/10, CMS/homepage rules file 9/9, and a migration-planner ordering assertion passed. These are focused source/in-memory checks only. Real PostgreSQL, Production migration, typecheck, lint, full suite, build, browser and responsive/accessibility verification remain deferred to Batch 08.
+
+The original archive and its Batch 04 test counts above are historical. The correction ZIP contains the complete source plus the new migration and report; see `FILE_INVENTORY.md` for its final count and checksum.

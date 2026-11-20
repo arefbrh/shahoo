@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "@fontsource/vazirmatn/400.css";
+@import "@fontsource/vazirmatn/500.css";
+@import "@fontsource/vazirmatn/700.css";
+@import "@fontsource/cinzel/500.css";
+@import "@fontsource/cinzel/600.css";
+
+@theme {
+  --color-forest: #173d28;
+  --color-deep: #1a3522;
+  --color-gold: #b69755;
+  --color-gold-soft: #e5c985;
+  --color-cream: #f7efdf;
+  --color-ivory: #fff9ee;
+  --color-ink: #29291f;
+  --color-paper: #fffdf8;
+  --color-line: #e6d8be;
+  --color-muted: #6d6758;
+  --font-sans: "Vazirmatn", "Segoe UI", tahoma, sans-serif;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --radius-card: 1.75rem;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background: var(--color-ivory);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-gold-soft);
+    color: var(--color-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+}
