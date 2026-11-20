@@ -26,6 +26,7 @@ import {
   adminRoles,
   adminUserRoles,
   adminUsers,
+  adminSessions,
   auditLogs,
   coupons,
   customerAddresses,
@@ -104,20 +105,20 @@ function rangeStart(range: DashboardRange, now: Date): Date | null {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-async function ledgerNote(db: AppDatabase): Promise<string> {
+async function ledgerNote(db: AppDatabase, start?: Date | null): Promise<string> {
   const [verified] = await db
     .select({
       n: count(),
       total: sql<string | number>`coalesce(sum(${payments.amountIrr}), 0)`,
     })
     .from(payments)
-    .where(eq(payments.status, "verified"));
+    .where(start ? and(eq(payments.status, "verified"), gte(payments.createdAt, start)) : eq(payments.status, "verified"));
   const [refunded] = await db
     .select({
       total: sql<string | number>`coalesce(sum(${payments.amountIrr}), 0)`,
     })
     .from(payments)
-    .where(inArray(payments.status, ["refund_recorded", "partial_refund_recorded"]));
+    .where(start ? and(inArray(payments.status, ["refund_recorded", "partial_refund_recorded"]), gte(payments.createdAt, start)) : inArray(payments.status, ["refund_recorded", "partial_refund_recorded"]));
   if (num(verified?.n) === 0) {
     return "درآمد تأییدشده: صفر. هیچ پرداخت بررسی‌شده‌ای ثبت نشده و مبلغ سفارش‌های باز درآمد حساب نمی‌شود.";
   }
@@ -552,9 +553,11 @@ export async function loadInventoryDesk(input: { q: string; categoryId: string; 
   }
 }
 
-export async function loadReports(): Promise<ReportsData | DeskDenied> {
+export async function loadReports(rangeInput = "30"): Promise<ReportsData | DeskDenied> {
   try {
     const { db } = await requireAdmin("reports.read");
+    const range: DashboardRange = rangeInput === "today" || rangeInput === "7" || rangeInput === "all" ? rangeInput : "30";
+    const start = rangeStart(range, new Date());
     const stock = await db
       .select({
         onHand: sql<number>`coalesce(sum(${inventory.onHand}), 0)`,
@@ -582,9 +585,10 @@ export async function loadReports(): Promise<ReportsData | DeskDenied> {
       .where(sql`${inventory.onHand} - ${inventory.reserved} <= ${inventory.lowStockThreshold}`)
       .orderBy(asc(products.name))
       .limit(30);
-    const grouped = await db.select({ status: orders.status, n: count() }).from(orders).groupBy(orders.status);
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const [registered] = await db.select({ n: count() }).from(customers).where(and(isNull(customers.deletedAt), gte(customers.createdAt, since)));
+    const grouped = await db.select({ status: orders.status, n: count() }).from(orders)
+      .where(start ? gte(orders.createdAt, start) : undefined).groupBy(orders.status);
+    const customerWhere = start ? and(isNull(customers.deletedAt), gte(customers.createdAt, start)) : isNull(customers.deletedAt);
+    const [registered] = await db.select({ n: count() }).from(customers).where(customerWhere);
     const [allCustomers] = await db.select({ n: count() }).from(customers).where(isNull(customers.deletedAt));
     const genderRows = await db.select({ value: customers.gender, n: count() }).from(customers).where(isNull(customers.deletedAt)).groupBy(customers.gender);
     const ageRows = await db.select({ value: customers.ageGroup, n: count() }).from(customers).where(isNull(customers.deletedAt)).groupBy(customers.ageGroup);
@@ -592,12 +596,14 @@ export async function loadReports(): Promise<ReportsData | DeskDenied> {
     const shipping = await db
       .select({ title: orders.shippingTitle, n: count() })
       .from(orders)
+      .where(start ? gte(orders.createdAt, start) : undefined)
       .groupBy(orders.shippingTitle)
       .orderBy(desc(count()));
     const onHand = num(stock[0]?.onHand);
     const reserved = num(stock[0]?.reserved);
     return {
       denied: false,
+      range,
       inventory: [
         { label: "موجودی فیزیکی", value: String(onHand) },
         { label: "رزرو پرداخت‌نشده", value: String(reserved) },
@@ -620,7 +626,7 @@ export async function loadReports(): Promise<ReportsData | DeskDenied> {
       orderStatus: grouped.map((row) => ({ label: orderStatusLabel(row.status), value: String(num(row.n)) })),
       registrations: [
         { label: "مشتری فعال در پرونده", value: String(num(allCustomers?.n)) },
-        { label: "ثبت‌نام ۳۰ روز اخیر", value: String(num(registered?.n)) },
+        { label: range === "all" ? "ثبت‌نام کل" : "ثبت‌نام در بازه انتخاب‌شده", value: String(num(registered?.n)) },
       ],
       demographics: {
         gender: demographicDistribution(genderRows.filter((row): row is { value: string; n: number } => row.value !== null).map((row) => ({ value: row.value, count: num(row.n) })), num(allCustomers?.n), "gender"),
@@ -631,7 +637,7 @@ export async function loadReports(): Promise<ReportsData | DeskDenied> {
         value: row.usageLimit === null ? `${row.usedCount} استفاده` : `${row.usedCount} از ${row.usageLimit}`,
       })),
       shipping: shipping.map((row) => ({ label: row.title || "بدون عنوان", value: String(num(row.n)) })),
-      revenueNote: await ledgerNote(db),
+      revenueNote: await ledgerNote(db, start),
     };
   } catch (error) {
     return denied(error);
@@ -680,6 +686,30 @@ export async function loadStaff(): Promise<StaffDesk | DeskDenied> {
     };
   } catch (error) {
     return denied(error);
+  }
+}
+
+export async function revokeAdminSessions(userId: string): Promise<{ ok: true; revoked: number } | { ok: false; message: string }> {
+  try {
+    const { db, admin } = await requireAdmin("admins.write");
+    if (!/^[A-Za-z0-9_-]{4,80}$/.test(userId)) return { ok: false, message: "شناسه مدیر معتبر نیست." };
+    if (userId === admin.id) return { ok: false, message: "برای حفظ دسترسی، نشست حساب فعلی از این بخش باطل نمی‌شود." };
+    return await db.transaction(async (tx) => {
+      const [user] = await tx.select({ id: adminUsers.id }).from(adminUsers)
+        .where(and(eq(adminUsers.id, userId), isNull(adminUsers.deletedAt))).for("update").limit(1);
+      if (!user) return { ok: false as const, message: "مدیر پیدا نشد." };
+      const revoked = await tx.update(adminSessions).set({ revokedAt: new Date() })
+        .where(and(eq(adminSessions.adminUserId, userId), isNull(adminSessions.revokedAt)))
+        .returning({ id: adminSessions.id });
+      await writeAudit(tx, {
+        actorType: "admin", actorId: admin.id, action: "admin.sessions_revoked",
+        entityType: "admin_user", entityId: userId, metadata: { revokedCount: revoked.length },
+      });
+      return { ok: true as const, revoked: revoked.length };
+    });
+  } catch (error) {
+    if (error instanceof SessionError) return { ok: false, message: error.message };
+    throw error;
   }
 }
 

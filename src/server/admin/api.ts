@@ -9,6 +9,7 @@ import {
   loadReports,
   loadStaff,
   setAdminAccess,
+  revokeAdminSessions,
   setCustomerStatus,
 } from "./desk";
 
@@ -53,7 +54,9 @@ export const getInventoryDeskFn = createServerFn({ method: "GET" })
   .validator((input: unknown) => z.object({ q: z.string().max(60).default(""), categoryId: z.string().max(80).default(""), stock: z.enum(["", "low", "out"]).default(""), page: z.number().int().min(1).max(500).default(1), logPage: z.number().int().min(1).max(500).default(1) }).parse(input ?? {}))
   .handler(async ({ data }) => loadInventoryDesk(data));
 
-export const getReportsFn = createServerFn({ method: "GET" }).handler(async () => loadReports());
+export const getReportsFn = createServerFn({ method: "GET" })
+  .validator((input: unknown) => z.object({ range: z.enum(["today", "7", "30", "all"]).default("30") }).parse(input ?? {}))
+  .handler(async ({ data }) => loadReports(data.range));
 
 export const getStaffFn = createServerFn({ method: "GET" }).handler(async () => loadStaff());
 
@@ -68,3 +71,7 @@ export const setAdminAccessFn = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => setAdminAccess(data));
+
+export const revokeAdminSessionsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ id: z.string().min(4).max(80) }).parse(input))
+  .handler(async ({ data }) => revokeAdminSessions(data.id));

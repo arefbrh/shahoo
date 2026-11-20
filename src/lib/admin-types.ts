@@ -141,6 +141,7 @@ export type ReportRow = { label: string; value: string };
 export type DemographicReport = { answered: number; missing: number; categories: ReportRow[] };
 export type ReportsData = {
   denied: false;
+  range: DashboardRange;
   inventory: ReportRow[];
   lowStock: InventoryRow[];
   orderStatus: ReportRow[];

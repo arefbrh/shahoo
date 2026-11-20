@@ -31,7 +31,7 @@ import {
   productVariants,
   products,
 } from "../db/schema.ts";
-import { loadAdminOrders, loadCustomer, loadCustomers, loadInventoryDesk, setCustomerStatus } from "./desk.ts";
+import { loadAdminOrders, loadCustomer, loadCustomers, loadInventoryDesk, loadReports, revokeAdminSessions, setCustomerStatus } from "./desk.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const tokens = {
@@ -348,4 +348,37 @@ test("inventory desk and adjustments enforce permissions, stock bounds, snapshot
   const [afterRace] = await db.select().from(inventory).where(eq(inventory.variantId, variantId));
   assert.equal(afterRace?.onHand, 6);
   assert.equal(afterRace?.reserved, 3);
+});
+
+
+test("reports honor the selected date range while inventory remains a current-state snapshot", async () => {
+  const all = await inRequest(() => loadReports("all"), tokens.superAdmin);
+  assert.equal(all.denied, false);
+  if (all.denied) return;
+  assert.equal(all.range, "all");
+  assert.ok(all.orderStatus.some((row) => row.value === "25"));
+  const today = await inRequest(() => loadReports("today"), tokens.superAdmin);
+  assert.equal(today.denied, false);
+  if (!today.denied) {
+    assert.equal(today.range, "today");
+    assert.equal(today.orderStatus.reduce((sum, row) => sum + Number(row.value), 0), 0);
+    assert.ok(today.inventory.some((row) => row.label === "موجودی فیزیکی"));
+  }
+  const deniedReport = await inRequest(() => loadReports("all"), tokens.support);
+  assert.equal(deniedReport.denied, true);
+});
+
+test("admin session revocation requires admins.write, revokes every active session and records an audit", async () => {
+  const denied = await inRequest(() => revokeAdminSessions("admin-support-test"), tokens.support);
+  assert.equal(denied.ok, false);
+  const own = await inRequest(() => revokeAdminSessions("admin-super-test"), tokens.superAdmin);
+  assert.equal(own.ok, false);
+  const revoked = await inRequest(() => revokeAdminSessions("admin-support-test"), tokens.superAdmin);
+  assert.equal(revoked.ok, true);
+  if (revoked.ok) assert.equal(revoked.revoked, 1);
+  const [session] = await db.select().from(adminSessions).where(eq(adminSessions.id, "session-admin-support-test"));
+  assert.ok(session?.revokedAt);
+  const [audit] = await db.select().from(auditLogs).where(eq(auditLogs.action, "admin.sessions_revoked"));
+  assert.equal(audit?.actorId, "admin-super-test");
+  assert.deepEqual(audit?.metadata, { revokedCount: 1 });
 });

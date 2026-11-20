@@ -11,7 +11,7 @@ import type {
   StaffDesk,
 } from "@/lib/admin-types";
 import { adjustInventoryFn } from "@/server/catalog/api";
-import { setAdminAccessFn, setCustomerStatusFn } from "@/server/admin/api";
+import { revokeAdminSessionsFn, setAdminAccessFn, setCustomerStatusFn } from "@/server/admin/api";
 import { OrderDetail } from "./order-view";
 import { OrderPackingSlip } from "./order-packing-slip";
 import { ShippingSenderSettings } from "./shipping-sender-settings";
@@ -226,7 +226,29 @@ export function ReportsView({ data }: { data: ReportsData | DeskDenied | null })
   return (
     <div>
       <h1 className="text-3xl font-bold text-forest">گزارش‌ها</h1>
-      <AdminHelp title="گزارش‌ها">این صفحه خلاصه‌های عملیاتی موجود مانند وضعیت سفارش، ثبت‌نام مشتری، موجودی، کدهای تخفیف و روش‌های ارسال را نشان می‌دهد. برای رسیدگی به یک رکورد خاص از صفحه مربوط به خودش استفاده کنید. تعریف درآمد و محدودیت داده‌های پرداخت در یادداشت زیر آمده است.</AdminHelp>
+      <AdminHelp title="گزارش‌ها">این صفحه خلاصه‌های عملیاتی موجود مانند وضعیت سفارش، ثبت‌نام مشتری، موجودی، کدهای تخفیف و روش‌های ارسال را نشان می‌دهد. برای رسیدگی به یک رکورد خاص از صفحه مربوط به خودش استفاده کنید. موجودی و ترکیب جمعیتی نمای کلی فعلی‌اند؛ سفارش‌ها، روش ارسال و دفتر پرداخت با بازه انتخابی فیلتر می‌شوند.</AdminHelp>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {([["today", "امروز"], ["7", "۷ روز اخیر"], ["30", "۳۰ روز اخیر"], ["all", "همه زمان‌ها"]] as const).map(([range, label]) => (
+          <a key={range} href={`/admin/reports?range=${range}`} className={data.range === range ? buttonPrimary : buttonGhost}>{label}</a>
+        ))}
+        <button type="button" className={buttonGhost} onClick={() => {
+          const rows: string[][] = [["بخش", "عنوان", "مقدار"]];
+          const append = (section: string, items: readonly { label: string; value: string }[]) => {
+            for (const item of items) rows.push([section, item.label, item.value]);
+          };
+          append("موجودی", data.inventory);
+          append("وضعیت سفارش", data.orderStatus);
+          append("مشتریان", data.registrations);
+          append("کد تخفیف", data.coupons);
+          append("روش ارسال", data.shipping);
+          append("جنسیت", data.demographics.gender.categories);
+          append("گروه سنی", data.demographics.ageGroup.categories);
+          rows.push(["یادداشت دفتر پرداخت", "", data.revenueNote]);
+          const csv = "\uFEFF" + rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+          const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+          const link = document.createElement("a"); link.href = url; link.download = `shahoo-reports-${data.range}.csv`; link.click(); URL.revokeObjectURL(url);
+        }}>خروجی CSV</button>
+      </div>
       <p className="mt-3 rounded-3xl bg-cream p-4 text-sm leading-8">{data.revenueNote}</p>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {blocks.map(([title, rows]) => (
@@ -321,6 +343,19 @@ function StaffCard({
       setPending(false);
     }
   }
+  async function revokeSessions() {
+    if (!window.confirm("تمام نشست‌های فعال این مدیر باطل شوند؟")) return;
+    setPending(true);
+    setMessage("");
+    try {
+      const result = await revokeAdminSessionsFn({ data: { id: row.id } });
+      setMessage(result.ok ? `${toPersianNum(result.revoked)} نشست باطل شد.` : result.message);
+    } catch {
+      setMessage("ابطال نشست‌ها انجام نشد.");
+    } finally {
+      setPending(false);
+    }
+  }
   return (
     <li className={`${panelClass} p-4 text-sm`}>
       <p className="font-bold text-forest">
@@ -356,6 +391,9 @@ function StaffCard({
           <button type="button" className={buttonPrimary} disabled={pending} onClick={() => void save()}>
             ذخیره نقش
           </button>
+          {!row.self ? <button type="button" className={buttonGhost} disabled={pending} onClick={() => void revokeSessions()}>
+            ابطال همه نشست‌های فعال این مدیر
+          </button> : null}
         </div>
       ) : (
         <p className="mt-2">{row.roles.join("، ") || "بدون نقش"}</p>
