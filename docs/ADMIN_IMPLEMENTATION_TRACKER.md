@@ -349,3 +349,6 @@ Owner requirement: expand order management beyond a basic status field into an e
 - Added sender and recipient JSON snapshots to shipping log records. When a shipment is recorded, both sender profile and the order's recipient/address are copied into that shipment log, so later profile or order edits do not rewrite the historic shipment addresses.
 - Shipment recording now refuses to proceed until required sender name, phone, city and address are configured.
 - Added migration `0019_shipping_address_snapshots.sql`. No production migration or deployment performed; CI pending.
+
+
+- Added an admin shipping-label desk with shipment history selection and reprint from immutable sender/recipient snapshots. Print presets: 100×150 mm and A4; these are SHAHOO browser-print layouts only, not certified carrier labels. Tracking/barcode area remains blank unless a real carrier-provided tracking/barcode value exists.

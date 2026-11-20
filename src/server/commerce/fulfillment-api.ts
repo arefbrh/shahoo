@@ -5,7 +5,7 @@ import { manualNextStatuses } from "@/lib/order-flow";
 import { requireAdmin } from "../auth/guard";
 import { writeAudit } from "../auth/audit";
 import { eq } from "drizzle-orm";
-import { orders, orderItems, orderFulfillmentWork, settings } from "../db/schema";
+import { orders, orderItems, orderFulfillmentWork, settings, shippingLogs } from "../db/schema";
 
 export const moveOrderFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ publicCode: z.string().min(4).max(32), next: z.string().min(3).max(40), reason: z.string().trim().min(2).max(400) }).parse(input))
@@ -159,4 +159,24 @@ export const saveShippingSenderProfileFn = createServerFn({ method: "POST" })
       metadata: { city: data.city, province: data.province, postalCode: data.postalCode, phonePresent: Boolean(data.phone) },
     });
     return { ok: true as const, message: "مشخصات فرستنده ذخیره شد." };
+  });
+
+
+export const getOrderShippingLabelsFn = createServerFn({ method: "GET" })
+  .validator((input: unknown) => z.object({ publicCode: z.string().min(4).max(32) }).parse(input))
+  .handler(async ({ data }) => {
+    const { db } = await requireAdmin("orders.read");
+    const [order] = await db.select({ id: orders.id }).from(orders).where(eq(orders.publicCode, data.publicCode)).limit(1);
+    if (!order) return [];
+    const rows = await db.select({
+      id: shippingLogs.id, carrier: shippingLogs.carrier, trackingCode: shippingLogs.trackingCode,
+      status: shippingLogs.status, handedOffAt: shippingLogs.handedOffAt, note: shippingLogs.note,
+      senderSnapshot: shippingLogs.senderSnapshot, recipientSnapshot: shippingLogs.recipientSnapshot,
+      createdAt: shippingLogs.createdAt,
+    }).from(shippingLogs).where(eq(shippingLogs.orderId, order.id)).orderBy(desc(shippingLogs.createdAt)).limit(20);
+    return rows.map((row) => ({
+      ...row,
+      handedOffAt: row.handedOffAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    }));
   });
