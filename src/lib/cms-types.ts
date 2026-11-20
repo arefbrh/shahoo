@@ -85,6 +85,10 @@ export type CmsMedia = {
 
 export type CmsDesk = {
   uploadEnabled: false;
+  brandName: string;
+  tagline: string;
+  copyright: string;
+  logos: { header: string; footer: string };
   storyTitle: string;
   storyAbout: string;
   storyPhilosophy: string;
@@ -176,4 +180,12 @@ export type ProfileDraft = {
   address: string;
   instagram: string;
   telegram: string;
+};
+
+export type BrandSettingsDraft = {
+  brandName: string;
+  tagline: string;
+  copyright: string;
+  headerLogo: string;
+  footerLogo: string;
 };
