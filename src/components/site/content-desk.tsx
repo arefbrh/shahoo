@@ -731,6 +731,7 @@ function PageForm({ page, onDone }: { page: CmsPage | null; onDone: (result: Cms
       <button type="submit" className={buttonPrimary}>
         ذخیره صفحه
       </button>
+      {page ? <a href={`/admin/content-preview/page/${encodeURIComponent(page.slug)}`} target="_blank" rel="noreferrer" className={buttonGhost}>پیش‌نمایش نسخه ذخیره‌شده</a> : null}
       {page ? <ContentHistory entityType="page" entityId={page.id} onDone={onDone} /> : null}
     </form>
   );
@@ -925,6 +926,7 @@ function ArticleForm({ desk, article, onDone }: { desk: CmsDesk; article: CmsArt
           </button>
         ) : null}
       </div>
+      {article ? <a href={`/admin/content-preview/article/${encodeURIComponent(article.slug)}`} target="_blank" rel="noreferrer" className={buttonGhost}>پیش‌نمایش نسخه ذخیره‌شده</a> : null}
       {article ? <ContentHistory entityType="article" entityId={article.id} onDone={onDone} /> : null}
     </form>
   );
