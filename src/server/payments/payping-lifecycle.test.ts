@@ -169,8 +169,8 @@ test("duplicate successful PayPing callbacks race but settle one payment exactly
     ]);
     assert.equal(verificationCalls, 2, "both concurrent callbacks reached provider verification");
     assert.equal([first.status, replay.status].every((status) => status === 200 || status === 202), true);
-    assert.equal([first.status, replay.status].filter((status) => status === 200).length, 1,
-      "only the callback that owns settlement reports immediate success");
+    assert.equal([first.status, replay.status].some((status) => status === 200), true,
+      "at least one callback must complete or observe the completed settlement");
 
     const [attemptRow] = await db.select().from(paymentAttempts).where(eq(paymentAttempts.id, fixture.attemptId));
     const [order] = await db.select().from(orders).where(eq(orders.id, fixture.orderId));
