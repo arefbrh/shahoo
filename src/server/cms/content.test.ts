@@ -57,6 +57,7 @@ async function database() {
   await db.insert(settings).values([
     { key: "store.story", value: { title: "قدیم", about: "متن معرفی قبلی برای آزمون.", philosophy: "فلسفه قبلی آزمون است." } },
     { key: "header.promo", value: { text: "نوار قبلی" } },
+    { key: "store.profile", value: { brandName: "شاهو", tagline: "", copyright: "" } },
     { key: "brand.logos", value: { header: "/assets/brand/shahoo-logo-minimal.png", footer: "/assets/brand/shahoo-logo-primary.png" } },
   ]);
   await db.insert(mediaAssets).values({
