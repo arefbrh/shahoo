@@ -110,6 +110,52 @@ async function lockTable(tx: Database, table: "homepage_sections" | "banners"): 
   else await tx.execute(sql`select id from banners for update`);
 }
 
+export type CmsContentPreview =
+  | { kind: "page"; title: string; body: string; slug: string; status: "draft" | "published"; seoTitle: string; seoDescription: string }
+  | { kind: "article"; title: string; body: string; slug: string; status: "draft" | "published"; excerpt: string; authorName: string; readMinutes: number; categoryName: string; coverUrl: string | null; coverAlt: string };
+
+export async function loadContentPreview(db: Database, entityType: "page" | "article", entityId: string): Promise<CmsContentPreview | null> {
+  if (entityType === "page") {
+    const [page] = await db.select().from(sitePages).where(eq(sitePages.id, entityId)).limit(1);
+    if (!page) return null;
+    return {
+      kind: "page",
+      title: page.title,
+      body: page.body,
+      slug: page.slug,
+      status: page.isPublished ? "published" : "draft",
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+    };
+  }
+  const [article] = await db.select().from(articles)
+    .where(and(eq(articles.id, entityId), isNull(articles.deletedAt)))
+    .limit(1);
+  if (!article) return null;
+  const [category] = article.categoryId
+    ? await db.select({ name: articleCategories.name }).from(articleCategories).where(eq(articleCategories.id, article.categoryId)).limit(1)
+    : [];
+  const [cover] = article.coverMediaId
+    ? await db.select({ publicUrl: mediaAssets.publicUrl, alt: mediaAssets.alt })
+      .from(mediaAssets)
+      .where(and(eq(mediaAssets.id, article.coverMediaId), isNull(mediaAssets.deletedAt)))
+      .limit(1)
+    : [];
+  return {
+    kind: "article",
+    title: article.title,
+    body: article.content,
+    slug: article.slug,
+    status: article.status === "published" ? "published" : "draft",
+    excerpt: article.excerpt,
+    authorName: article.authorName,
+    readMinutes: article.readMinutes,
+    categoryName: category?.name ?? "",
+    coverUrl: cover?.publicUrl ?? null,
+    coverAlt: cover?.alt ?? "",
+  };
+}
+
 export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const [sectionRows, bannerRows, menuRows, itemRows, pageRows, articleRows, categoryRows, productRows, mediaRows, settingRows, links] =
     await Promise.all([
