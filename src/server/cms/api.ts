@@ -7,6 +7,7 @@ import {
   applyArticleSave,
   applyBrandSettings,
   applyCarouselSettings,
+  applyStoreLayout,
   applyBannerOrder,
   applyBannerSave,
   applyNavOrder,
@@ -100,6 +101,15 @@ export const saveSiteCopyFn = createServerFn({ method: "POST" })
 export const saveCarouselSettingsFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ autoPlay: z.boolean(), intervalMs: z.number().int().min(3000).max(15000) }).parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyCarouselSettings(db, actorId, data)));
+
+export const saveStoreLayoutFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({
+    stickyHeader: z.boolean(),
+    headerLogoHeight: z.number().int().min(40).max(80),
+    footerLogoHeight: z.number().int().min(64).max(144),
+    footerAlignment: z.enum(["start", "center"]),
+  }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyStoreLayout(db, actorId, data)));
 
 export const saveBrandSettingsFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
