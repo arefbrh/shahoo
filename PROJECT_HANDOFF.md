@@ -414,3 +414,17 @@ The latest application test additions cover (1) a seven-condition late-payment r
 All provider interactions in these tests are mocked/local; no live PayPing or SMS.ir request was made. PostgreSQL CI uses ephemeral PostgreSQL 16 and synthetic fixtures. No Neon database, Vercel setting, Production environment or customer data was touched. PR #6 remains open and unmerged. This CI success does not approve Production launch.
 
 Remaining coverage includes callback HTTP route integration beyond the lifecycle mock, checkout racing late-payment recovery, quote/order transition/RBAC tests, multi-process seed initialization, full fresh/upgrade migration parity and rollback injection, and production-like disaster recovery including roles/globals, media, secrets, host/network configuration, encryption and retention.
+
+## Post-merge reconciliation — 2026-11-20
+
+PR #5 merged by squash as 3c481a3e72dcfb6f65e46bc4dc23ef05c3d0024c. PR #6 merged by squash as e190a57b6a7dd68c4e17da67968bbc7bed23bb5d. Current main at merge: e190a57b6a7dd68c4e17da67968bbc7bed23bb5d.
+
+Full enabled CI passed on PR #6 code head d81447976ea758c47dd9be6829f309dbea85b18d in run 44735960032. After synchronizing with PR #5, run 44739934934 passed PostgreSQL integration/deep checks, quality, security, payment/SMS mocks and migration inventory; Project tests were still in progress at merge time. Do not describe that post-sync run as fully green until Project tests finish.
+
+PostgreSQL logs confirmed checkout contention without oversell, concurrent cancellation with one transition/stock release/event/audit/notification, one-time expired-hold release, one-time verified payment capture, and PG16 dump/restore preserving 15 migrations plus synthetic schema/index/data probes. The private platform harness was skipped, not passed.
+
+No Neon, Vercel environment, live PayPing/SMS provider or Production data was touched. Production release remains blocked: separate Neon Production DB and Vercel Production variables are not verified; live payment/SMS setup and real order E2E remain outstanding. Keep SEED_DEMO=1 Preview-only.
+
+PR #1 remains open and Draft. Its earlier ahead/behind snapshot is stale after these merges; at latest check it was not merge-ready against updated main. Reconcile/rebase PR #1, rerun CI and Preview smoke tests, and review before considering merge.
+
+Remaining coverage: PayPing callback HTTP route E2E, checkout racing late-payment recovery, quote/order transition and RBAC matrices, multi-process seed initialization, full fresh/upgrade migration parity and rollback injection, and production-like disaster recovery (roles/globals, media, secrets, host/network, encryption and retention).

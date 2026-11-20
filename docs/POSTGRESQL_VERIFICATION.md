@@ -272,3 +272,13 @@ Additional application-level coverage in this head:
 - Concurrent coupon restoration during expiry: two expiry workers compete on one expired unpaid order; assertions require exactly one release, coupon usage restored to zero once, stock reservation released once and one expiry event/inventory log.
 
 These tests use synthetic fixtures and local/mock provider behavior; they are not live PayPing/SMS.ir tests. PostgreSQL integration and dump/restore continue to run only on disposable GitHub Actions PostgreSQL 16 infrastructure. This evidence does not cover the callback HTTP route end-to-end, checkout competing with late-payment recovery, full migration upgrade/rollback parity, or production-like disaster recovery (roles/globals, external media, secrets, host/network configuration, encryption and retention). No Neon or Production database was accessed.
+
+## Merge record and current evidence boundary — 2026-11-20
+
+PR #6 merged into main by squash commit e190a57b6a7dd68c4e17da67968bbc7bed23bb5d; PR #5 documentation reconciliation merged as 3c481a3e72dcfb6f65e46bc4dc23ef05c3d0024c.
+
+Full enabled CI passed for PR #6 code head d81447976ea758c47dd9be6829f309dbea85b18d in run 44735960032. The post-sync run 44739934934 passed PostgreSQL integration/deep checks, quality, security, payment/SMS mocks and migration inventory; Project tests were still running at merge time. Verify its final result before describing that run as fully green.
+
+The PostgreSQL log for the synchronized head records checkout contention without oversell; concurrent cancellation with one transition, one stock release, one event, one audit and one notification; one-time expiry release and verified payment capture; and PG16 dump/restore preserving 15 migrations plus synthetic schema/index/data probes.
+
+All tests use disposable GitHub Actions PostgreSQL and synthetic data. Provider behavior is mocked/local. This does not prove live PayPing/SMS, Production Neon configuration, browser E2E, callback HTTP route integration, full migration rollback/upgrade parity or production-like disaster recovery.

@@ -116,3 +116,13 @@ Newly verified application test coverage:
 These are synthetic CI tests with a local/mock provider, not live payment or SMS transactions. PostgreSQL tests run against disposable CI PostgreSQL 16, not Neon or Production. PR #6 remains open and unmerged.
 
 Still open: callback HTTP route end-to-end integration; checkout competing with late-payment recovery; quote/order transition/RBAC; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, media, secrets, host/network configuration, encryption and retention. Live provider setup, separate Production Neon database and Production release gates remain outstanding.
+
+## Post-merge status — 2026-11-20
+
+PR #5 merged as 3c481a3e72dcfb6f65e46bc4dc23ef05c3d0024c. PR #6 merged as e190a57b6a7dd68c4e17da67968bbc7bed23bb5d. These merge records supersede earlier open/unmerged statements.
+
+Full enabled CI passed on PR #6 code head d81447976ea758c47dd9be6829f309dbea85b18d in run 44735960032. Post-sync run 44739934934 passed PostgreSQL integration/deep concurrency/backup-restore, quality, security, payment/SMS mocks and migration inventory; Project tests were still in progress at merge time. Do not count it fully green until that job completes.
+
+Verified PostgreSQL coverage includes checkout oversell prevention, concurrent cancellation single-transition semantics, one-time expiry release, one-time verified payment capture, and PG16 backup/restore with 15 migrations plus synthetic data/index verification. These tests used disposable CI infrastructure only.
+
+Still open: PayPing callback HTTP route E2E; checkout racing late-payment recovery; quote/order transition and admin RBAC matrices; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, external media, secrets, host/network, encryption and retention. Separate Neon Production DB, Production Vercel environment, live payment/SMS providers and real order E2E remain release blockers. PR #1 remains open/Draft and must be reconciled with current main and retested before consideration.
