@@ -17,6 +17,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../src/server/db/schema.ts";
 import { commitCheckout } from "../src/server/commerce/checkout.ts";
 import { releaseExpiredHolds } from "../src/server/commerce/holds.ts";
+import { captureVerifiedPayment } from "../src/server/payments/service.ts";
 
 const execFileAsync = promisify(execFile);
 const rawUrl = process.env.DATABASE_URL?.trim();
@@ -141,6 +142,43 @@ async function main() {
         released.expired_events !== 1 || released.release_audits !== 1) {
       throw new Error('Expired-hold release left inconsistent state: ' + JSON.stringify(released));
     }
+    const localVerifiedProvider = {
+      key: 'payping',
+      configured: () => true,
+      async createIntent(input) { return { authority: 'ci-local-' + input.idempotencyKey }; },
+      async verify(input) { return { ok: true, referenceId: 'ci-local-reference-' + input.authority }; },
+    };
+    const paymentResults = await Promise.all([
+      captureVerifiedPayment(appDb, {
+        orderId: checkoutOrderId, idempotencyKey: 'ci-payment-capture-once',
+        token: 'ci-local-token', provider: localVerifiedProvider,
+      }),
+      captureVerifiedPayment(appDb, {
+        orderId: checkoutOrderId, idempotencyKey: 'ci-payment-capture-once',
+        token: 'ci-local-token', provider: localVerifiedProvider,
+      }),
+    ]);
+    if (paymentResults.filter((x) => x.ok).length !== 1) {
+      throw new Error('Concurrent payment capture did not produce exactly one success: ' + JSON.stringify(paymentResults));
+    }
+    const capturedState = await appPool.query(
+      `SELECT o.status, o.payment_status, o.stock_state, i.on_hand, i.reserved,
+              (SELECT count(*)::int FROM payments p WHERE p.order_id = o.id AND p.status = 'verified') AS verified_payments,
+              (SELECT count(*)::int FROM payment_logs pl JOIN payments p ON p.id = pl.payment_id WHERE p.order_id = o.id AND pl.event = 'verified') AS verified_logs,
+              (SELECT count(*)::int FROM order_events e WHERE e.order_id = o.id AND e.status = 'paid') AS paid_events,
+              (SELECT count(*)::int FROM audit_logs a WHERE a.entity_id = o.id AND a.action = 'payment.verified') AS payment_audits
+       FROM orders o JOIN order_items oi ON oi.order_id = o.id
+       JOIN inventory i ON i.variant_id = oi.variant_id WHERE o.id = $1`,
+      [checkoutOrderId],
+    );
+    const captured = capturedState.rows[0];
+    if (!captured || captured.status !== 'paid' || captured.payment_status !== 'verified' ||
+        captured.stock_state !== 'captured' || captured.on_hand !== 1 || captured.reserved !== 0 ||
+        captured.verified_payments !== 1 || captured.verified_logs !== 1 ||
+        captured.paid_events !== 1 || captured.payment_audits !== 1) {
+      throw new Error('Concurrent payment capture left inconsistent state: ' + JSON.stringify(captured));
+    }
+    console.log('[postgres-app-payment-capture] PASS — two concurrent verified captures for an expired order recovered stock and committed one payment, one stock decrement, one paid event and one audit');
     console.log('[postgres-app-hold-release] PASS — two concurrent workers released one expired unpaid order exactly once; reserved stock, order event and audit stayed consistent');
     console.log('[postgres-app-checkout] PASS — real commitCheckout with two independent customer carts competing for two units: one order committed, one rejected, stock reservation remained exactly 2, no oversell');
   } finally {
