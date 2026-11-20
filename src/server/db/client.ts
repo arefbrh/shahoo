@@ -1,5 +1,5 @@
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
-import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglite";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { dbSource, getPgPool, getPglite, getSql } from "@/lib/db";
 import * as schema from "./schema";
 
@@ -27,7 +27,13 @@ export async function getDb(): Promise<AppDatabase> {
     return globalRef.__shahooDrizzle__;
   }
 
-  const client = await getPglite();
+  // Load the PGlite Drizzle adapter only on the embedded-DB path. Static imports
+  // pulled this adapter into Neon/Vercel server bundles, where its PGlite
+  // runtime dependency was not present in the traced function output.
+  const [{ drizzle: drizzlePglite }, client] = await Promise.all([
+    import("drizzle-orm/pglite"),
+    getPglite(),
+  ]);
   globalRef.__shahooDrizzle__ = drizzlePglite(client, { schema });
   return globalRef.__shahooDrizzle__;
 }
