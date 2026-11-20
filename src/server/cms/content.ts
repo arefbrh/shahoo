@@ -5,6 +5,7 @@ import { tehranDayKey } from "../../lib/tehran-time.ts";
 import type {
   ArticleDraft,
   BannerDraft,
+  BrandSettingsDraft,
   CmsDesk,
   CmsResult,
   CopyDraft,
@@ -126,6 +127,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const story = (settingsMap.get("store.story") ?? {}) as { title?: string; about?: string; philosophy?: string };
   const promo = (settingsMap.get("header.promo") ?? {}) as { text?: string };
   const profile = (settingsMap.get("store.profile") ?? {}) as {
+    brandName?: string;
+    tagline?: string;
+    copyright?: string;
     phone?: string;
     whatsapp?: string;
     email?: string;
@@ -156,6 +160,17 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
     }));
   return {
     uploadEnabled: false,
+    brandName: profile.brandName ?? "",
+    tagline: profile.tagline ?? "",
+    copyright: profile.copyright ?? "",
+    logos: (() => {
+      const value = settingsMap.get("brand.logos");
+      const logos = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      return {
+        header: typeof logos.header === "string" ? logos.header : "",
+        footer: typeof logos.footer === "string" ? logos.footer : "",
+      };
+    })(),
     storyTitle: story.title ?? "",
     storyAbout: story.about ?? "",
     storyPhilosophy: story.philosophy ?? "",
@@ -256,6 +271,42 @@ export async function applySiteCopy(db: Database, actorId: string, input: CopyDr
       action: "content.copy_updated",
       entityType: "settings",
       entityId: "store.story",
+    });
+  });
+}
+
+export async function applyBrandSettings(db: Database, actorId: string, input: BrandSettingsDraft): Promise<CmsResult> {
+  const brandName = cleanInline(input.brandName, 2, 80);
+  const tagline = cleanInline(input.tagline, 0, 180);
+  const copyright = cleanInline(input.copyright, 0, 180);
+  const parseLogo = (value: string): string | null => {
+    const local = value.trim();
+    if (/^\/assets\/brand\/[A-Za-z0-9._/-]+\.(?:png|jpe?g|webp)$/i.test(local) && !local.includes("..")) return local;
+    return parseExternalMediaUrl(local);
+  };
+  const headerLogo = parseLogo(input.headerLogo);
+  const footerLogo = parseLogo(input.footerLogo);
+  if (!brandName || tagline === null || copyright === null || !headerLogo || !footerLogo) {
+    return { ok: false, message: "نام برند، شعار، کپی‌رایت یا نشانی لوگو معتبر نیست. لوگو باید PNG، JPG یا WebP از مسیر رسانه برند یا HTTPS باشد." };
+  }
+  return transactionResult(db, async (tx, deny) => {
+    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos")));
+    const profileRow = rows.find((row) => row.key === "store.profile");
+    const logosRow = rows.find((row) => row.key === "brand.logos");
+    if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
+    const profile = profileRow.value && typeof profileRow.value === "object" ? (profileRow.value as Record<string, unknown>) : {};
+    const logos = logosRow.value && typeof logosRow.value === "object" ? (logosRow.value as Record<string, unknown>) : {};
+    await tx.update(settings).set({ value: { ...profile, brandName, tagline, copyright }, updatedAt: new Date() }).where(eq(settings.key, "store.profile"));
+    await tx.update(settings).set({
+      value: { ...logos, header: headerLogo, footer: footerLogo, headerPng: headerLogo, footerPng: footerLogo },
+      updatedAt: new Date(),
+    }).where(eq(settings.key, "brand.logos"));
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.brand_settings_updated",
+      entityType: "settings",
+      entityId: "brand.logos",
     });
   });
 }
