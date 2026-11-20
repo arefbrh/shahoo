@@ -66,7 +66,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrate
-      - run: npm run test:project
+      - name: Verify real PostgreSQL integration
+        run: node scripts/test-postgres-smoke.mjs
 
   payment-and-sms-mocks:
     name: Payment and SMS mocks
@@ -90,7 +91,39 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - run: npm run check:auth
+      - name: Start dev server and verify resolved auth configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev > "$RUNNER_TEMP/shahoo-vite.log" 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 60); do
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/shahoo-vite.log"
+              echo "Vite dev server exited before becoming ready."
+              exit 1
+            fi
+            if node --input-type=module -e 'const r = await fetch("http://127.0.0.1:8080/__app-env").catch(() => null); if (r?.ok) process.exit(0); process.exit(1);'; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat "$RUNNER_TEMP/shahoo-vite.log"
+            echo "Vite dev server did not expose /__app-env within 60 seconds."
+            exit 1
+          fi
+
+          npm run check:auth -- --dev-url http://127.0.0.1:8080
       - run: npm audit --omit=dev --audit-level=high
       - name: Check for committed secret-like files
         shell: bash
