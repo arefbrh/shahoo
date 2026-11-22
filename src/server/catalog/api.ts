@@ -63,13 +63,42 @@ const categorySchema = z.object({
 
 export const getAdminCatalog = createServerFn({ method: "GET" }).handler(async (): Promise<AdminCatalog> => loadAdminCatalog());
 
+function parseAdminInput<T>(schema: z.ZodType<T>, input: unknown, labels: Record<string, string>): T {
+  const parsed = schema.safeParse(input);
+  if (parsed.success) return parsed.data;
+  const issue = parsed.error.issues[0];
+  const field = labels[String(issue?.path[0] ?? "")] ?? "اطلاعات فرم";
+  const guidance = issue?.code === "too_small"
+    ? "این فیلد اجباری است یا کوتاه‌تر از حد مجاز وارد شده است."
+    : issue?.code === "too_big"
+      ? "طول مقدار واردشده بیش از حد مجاز است."
+      : "مقدار واردشده معتبر نیست؛ قالب آن را بررسی کنید.";
+  throw new Error(`${field}: ${guidance}`);
+}
+
+async function runCatalogMutation(operation: () => Promise<CatalogResult>): Promise<CatalogResult> {
+  try {
+    return await operation();
+  } catch (error) {
+    const reference = crypto.randomUUID().slice(0, 8);
+    console.error(`[admin.catalog:${reference}] mutation failed`, error);
+    return { ok: false, message: `ذخیره انجام نشد؛ خطای فنی ثبت شد. کد پیگیری: ${reference}` };
+  }
+}
+
 export const saveCategoryFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => categorySchema.parse(input))
-  .handler(async ({ data }): Promise<CatalogResult> => saveCategory(data));
+  .validator((input: unknown) => parseAdminInput(categorySchema, input, {
+    name: "نام دسته", shortName: "نام کوتاه", slug: "شناسه انگلیسی",
+    sortOrder: "ترتیب نمایش", iconType: "نشان دسته",
+  }))
+  .handler(async ({ data }): Promise<CatalogResult> => runCatalogMutation(() => saveCategory(data)));
 
 export const saveProductFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => productSchema.parse(input))
-  .handler(async ({ data }): Promise<CatalogResult> => saveProduct(data));
+  .validator((input: unknown) => parseAdminInput(productSchema, input, {
+    categoryId: "دسته محصول", name: "نام محصول", slug: "شناسه انگلیسی",
+    sku: "کد محصول", variants: "بسته‌ها", imageUrl: "نشانی تصویر",
+  }))
+  .handler(async ({ data }): Promise<CatalogResult> => runCatalogMutation(() => saveProduct(data)));
 
 export const adjustInventoryFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
