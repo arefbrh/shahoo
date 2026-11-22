@@ -27,8 +27,11 @@ export type BrandLogos = {
   footerPng: string;
 };
 
+export type StoreLayoutSettings = { stickyHeader: boolean; headerLogoHeight: number; footerLogoHeight: number; footerAlignment: "start" | "center" };
+
 export type ShellData = {
   profile: StoreProfile;
+  layout: StoreLayoutSettings;
   logos: BrandLogos;
   promo: string;
   nav: NavLink[];
@@ -151,6 +154,7 @@ export type SitePage = {
 
 export type HomeData = {
   banners: BannerSlide[];
+  carousel: { autoPlay: boolean; intervalMs: number };
   sections: HomeSection[];
   categories: CategoryCard[];
   products: ProductCard[];

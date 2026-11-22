@@ -89,7 +89,7 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
       {shell.promo ? (
         <div className="bg-deep px-4 py-2 text-center text-xs font-medium text-gold-soft">{shell.promo}</div>
       ) : null}
-      <header className="sticky top-0 z-30 border-b border-gold/50 bg-ivory/95 backdrop-blur">
+      <header className={`${shell.layout.stickyHeader ? "sticky top-0" : "relative"} z-30 border-b border-gold/50 bg-ivory/95 backdrop-blur`}>
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3">
           <button
             type="button"
@@ -103,8 +103,8 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
           <Link to="/" className="shrink-0">
             <img
               src={shell.logos.header}
-              alt="شاهو | SHAHOO"
-              className="h-12 w-auto max-w-28 object-contain sm:h-14 sm:max-w-36"
+              alt={shell.profile.brandName || "شاهو | SHAHOO"}
+              style={{ height: shell.layout.headerLogoHeight }} className="w-auto max-h-20 max-w-28 object-contain sm:max-w-36"
             />
           </Link>
           <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="منوی اصلی">
@@ -176,9 +176,9 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
         {children}
       </main>
       <footer className="mt-16 border-t-4 border-gold bg-deep text-ivory">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.2fr_1fr_1fr]">
+        <div className={`mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.2fr_1fr_1fr] ${shell.layout.footerAlignment === "center" ? "text-center justify-items-center" : "text-start"}`}>
           <div>
-            <img src={shell.logos.footer} alt="شاهو | SHAHOO" className="h-28 w-auto max-w-48 object-contain" />
+            <img src={shell.logos.footer} alt={shell.profile.brandName || "شاهو | SHAHOO"} style={{ height: shell.layout.footerLogoHeight }} className="w-auto max-h-36 max-w-48 object-contain" />
             {shell.profile.tagline.trim() ? (
               <p className="mt-4 max-w-sm text-sm leading-7 text-gold-soft">{shell.profile.tagline}</p>
             ) : null}

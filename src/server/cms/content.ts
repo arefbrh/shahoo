@@ -5,6 +5,7 @@ import { tehranDayKey } from "../../lib/tehran-time.ts";
 import type {
   ArticleDraft,
   BannerDraft,
+  BrandSettingsDraft,
   CmsDesk,
   CmsResult,
   CopyDraft,
@@ -13,6 +14,7 @@ import type {
   ProfileDraft,
   SectionConfigDraft,
   SectionDraft,
+  StoreLayoutDraft,
 } from "../../lib/cms-types.ts";
 import {
   cleanBody,
@@ -31,13 +33,14 @@ import {
 } from "../../lib/cms-rules.ts";
 import { parseProfileContact } from "../../lib/public-profile.ts";
 import { writeAudit } from "../auth/audit.ts";
-import { localObjectName } from "../media/disk.ts";
+import { objectNameForStorageKey, openStorage } from "../media/disk.ts";
 import { lockLiveMediaAsset, mediaInUse, removeFileOrRecord, retryPendingMediaCleanup } from "../media/lock.ts";
 import * as schema from "../db/schema.ts";
 import {
   articleCategories,
   articleProducts,
   articles,
+  contentRevisions,
   banners,
   homepageSections,
   mediaAssets,
@@ -107,6 +110,52 @@ async function lockTable(tx: Database, table: "homepage_sections" | "banners"): 
   else await tx.execute(sql`select id from banners for update`);
 }
 
+export type CmsContentPreview =
+  | { kind: "page"; title: string; body: string; slug: string; status: "draft" | "published"; seoTitle: string; seoDescription: string }
+  | { kind: "article"; title: string; body: string; slug: string; status: "draft" | "published"; excerpt: string; authorName: string; readMinutes: number; categoryName: string; coverUrl: string | null; coverAlt: string };
+
+export async function loadContentPreview(db: Database, entityType: "page" | "article", entityId: string): Promise<CmsContentPreview | null> {
+  if (entityType === "page") {
+    const [page] = await db.select().from(sitePages).where(eq(sitePages.id, entityId)).limit(1);
+    if (!page) return null;
+    return {
+      kind: "page",
+      title: page.title,
+      body: page.body,
+      slug: page.slug,
+      status: page.isPublished ? "published" : "draft",
+      seoTitle: page.seoTitle,
+      seoDescription: page.seoDescription,
+    };
+  }
+  const [article] = await db.select().from(articles)
+    .where(and(eq(articles.id, entityId), isNull(articles.deletedAt)))
+    .limit(1);
+  if (!article) return null;
+  const [category] = article.categoryId
+    ? await db.select({ name: articleCategories.name }).from(articleCategories).where(eq(articleCategories.id, article.categoryId)).limit(1)
+    : [];
+  const [cover] = article.coverMediaId
+    ? await db.select({ publicUrl: mediaAssets.publicUrl, alt: mediaAssets.alt })
+      .from(mediaAssets)
+      .where(and(eq(mediaAssets.id, article.coverMediaId), isNull(mediaAssets.deletedAt)))
+      .limit(1)
+    : [];
+  return {
+    kind: "article",
+    title: article.title,
+    body: article.content,
+    slug: article.slug,
+    status: article.status === "published" ? "published" : "draft",
+    excerpt: article.excerpt,
+    authorName: article.authorName,
+    readMinutes: article.readMinutes,
+    categoryName: category?.name ?? "",
+    coverUrl: cover?.publicUrl ?? null,
+    coverAlt: cover?.alt ?? "",
+  };
+}
+
 export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const [sectionRows, bannerRows, menuRows, itemRows, pageRows, articleRows, categoryRows, productRows, mediaRows, settingRows, links] =
     await Promise.all([
@@ -126,6 +175,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const story = (settingsMap.get("store.story") ?? {}) as { title?: string; about?: string; philosophy?: string };
   const promo = (settingsMap.get("header.promo") ?? {}) as { text?: string };
   const profile = (settingsMap.get("store.profile") ?? {}) as {
+    brandName?: string;
+    tagline?: string;
+    copyright?: string;
     phone?: string;
     whatsapp?: string;
     email?: string;
@@ -155,7 +207,35 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
         })),
     }));
   return {
-    uploadEnabled: false,
+    uploadEnabled: openStorage() !== null,
+    brandName: profile.brandName ?? "",
+    tagline: profile.tagline ?? "",
+    copyright: profile.copyright ?? "",
+    logos: (() => {
+      const value = settingsMap.get("brand.logos");
+      const logos = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      return {
+        header: typeof logos.header === "string" ? logos.header : "",
+        footer: typeof logos.footer === "string" ? logos.footer : "",
+      };
+    })(),
+    layout: (() => {
+      const value = settingsMap.get("store.layout");
+      const config = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      const clamp = (n: unknown, fallback: number, min: number, max: number) => typeof n === "number" && Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+      return {
+        stickyHeader: config.stickyHeader !== false,
+        headerLogoHeight: clamp(config.headerLogoHeight, 56, 40, 80),
+        footerLogoHeight: clamp(config.footerLogoHeight, 112, 64, 144),
+        footerAlignment: config.footerAlignment === "center" ? "center" as const : "start" as const,
+      };
+    })(),
+    carousel: (() => {
+      const value = settingsMap.get("home.carousel");
+      const config = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      const interval = typeof config.intervalMs === "number" ? config.intervalMs : 6500;
+      return { autoPlay: config.autoPlay !== false, intervalMs: Math.min(15000, Math.max(3000, interval)) };
+    })(),
     storyTitle: story.title ?? "",
     storyAbout: story.about ?? "",
     storyPhilosophy: story.philosophy ?? "",
@@ -256,6 +336,78 @@ export async function applySiteCopy(db: Database, actorId: string, input: CopyDr
       action: "content.copy_updated",
       entityType: "settings",
       entityId: "store.story",
+    });
+  });
+}
+
+export async function applyCarouselSettings(db: Database, actorId: string, input: { autoPlay: boolean; intervalMs: number }): Promise<CmsResult> {
+  if (!Number.isInteger(input.intervalMs) || input.intervalMs < 3000 || input.intervalMs > 15000) {
+    return { ok: false, message: "فاصله نمایش باید بین ۳۰۰۰ تا ۱۵۰۰۰ میلی‌ثانیه باشد." };
+  }
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "home.carousel")).for("update");
+    const value = { autoPlay: input.autoPlay, intervalMs: input.intervalMs };
+    if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "home.carousel"));
+    else await tx.insert(settings).values({ key: "home.carousel", value, updatedAt: new Date() });
+    await writeAudit(tx, { actorType: "admin", actorId, action: "content.carousel_settings_updated", entityType: "settings", entityId: "home.carousel" });
+  });
+}
+
+export async function applyStoreLayout(db: Database, actorId: string, input: StoreLayoutDraft): Promise<CmsResult> {
+  if (typeof input.stickyHeader !== "boolean" || !Number.isInteger(input.headerLogoHeight) || input.headerLogoHeight < 40 || input.headerLogoHeight > 80 || !Number.isInteger(input.footerLogoHeight) || input.footerLogoHeight < 64 || input.footerLogoHeight > 144 || !["start", "center"].includes(input.footerAlignment)) {
+    return { ok: false, message: "تنظیمات چیدمان معتبر نیست؛ اندازه لوگوی هدر باید ۴۰ تا ۸۰ و فوتر ۶۴ تا ۱۴۴ پیکسل باشد." };
+  }
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.layout")).for("update");
+    const value = { ...input };
+    if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "store.layout"));
+    else await tx.insert(settings).values({ key: "store.layout", value, updatedAt: new Date() });
+    await writeAudit(tx, { actorType: "admin", actorId, action: "store.layout_updated", entityType: "settings", entityId: "store.layout" });
+  });
+}
+
+export async function applyBrandSettings(db: Database, actorId: string, input: BrandSettingsDraft): Promise<CmsResult> {
+  const brandName = cleanInline(input.brandName, 2, 80);
+  const tagline = cleanInline(input.tagline, 0, 180);
+  const copyright = cleanInline(input.copyright, 0, 180);
+  const parseLogo = (value: string): string | null => {
+    const local = value.trim();
+    if (/^\/assets\/brand\/[A-Za-z0-9._/-]+\.(?:png|jpe?g|webp)$/i.test(local) && !local.includes("..")) return local;
+    if (/^\/media\/file\/[A-Za-z0-9_-]{8,80}$/.test(local)) return local;
+    return parseExternalMediaUrl(local);
+  };
+  const headerLogo = parseLogo(input.headerLogo);
+  const footerLogo = parseLogo(input.footerLogo);
+  if (!brandName || tagline === null || copyright === null || !headerLogo || !footerLogo) {
+    return { ok: false, message: "نام برند، شعار، کپی‌رایت یا نشانی لوگو معتبر نیست. لوگو باید PNG، JPG یا WebP از مسیر رسانه برند یا HTTPS باشد." };
+  }
+  return transactionResult(db, async (tx, deny) => {
+    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos")));
+    const profileRow = rows.find((row) => row.key === "store.profile");
+    const logosRow = rows.find((row) => row.key === "brand.logos");
+    if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
+    for (const logoUrl of [headerLogo, footerLogo]) {
+      if (logoUrl.startsWith("/media/file/")) {
+        const [asset] = await tx.select({ id: mediaAssets.id, mimeType: mediaAssets.mimeType }).from(mediaAssets)
+          .where(and(eq(mediaAssets.publicUrl, logoUrl), isNull(mediaAssets.deletedAt))).limit(1);
+        if (!asset || !["image/png", "image/jpeg", "image/webp"].includes(asset.mimeType)) {
+          deny("لوگوی انتخاب‌شده باید رسانه فعال PNG، JPG یا WebP در کتابخانه باشد.");
+        }
+      }
+    }
+    const profile = profileRow!.value && typeof profileRow!.value === "object" ? (profileRow!.value as Record<string, unknown>) : {};
+    const logos = logosRow!.value && typeof logosRow!.value === "object" ? (logosRow!.value as Record<string, unknown>) : {};
+    await tx.update(settings).set({ value: { ...profile, brandName, tagline, copyright }, updatedAt: new Date() }).where(eq(settings.key, "store.profile"));
+    await tx.update(settings).set({
+      value: { ...logos, header: headerLogo, footer: footerLogo, headerPng: headerLogo, footerPng: footerLogo },
+      updatedAt: new Date(),
+    }).where(eq(settings.key, "brand.logos"));
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.brand_settings_updated",
+      entityType: "settings",
+      entityId: "brand.logos",
     });
   });
 }
@@ -531,6 +683,142 @@ export async function applyNavOrder(db: Database, actorId: string, menuKey: stri
   });
 }
 
+type ContentEntityType = "page" | "article";
+
+async function appendContentRevision(
+  tx: Database,
+  actorId: string,
+  entityType: ContentEntityType,
+  entityId: string,
+  snapshot: Record<string, unknown>,
+): Promise<void> {
+  const [latest] = await tx
+    .select({ version: contentRevisions.version })
+    .from(contentRevisions)
+    .where(and(eq(contentRevisions.entityType, entityType), eq(contentRevisions.entityId, entityId)))
+    .orderBy(desc(contentRevisions.version))
+    .limit(1);
+  await tx.insert(contentRevisions).values({
+    id: `rev-${crypto.randomUUID()}`,
+    entityType,
+    entityId,
+    version: (latest?.version ?? 0) + 1,
+    snapshot,
+    actorId,
+  });
+}
+
+export async function loadContentHistory(
+  db: Database,
+  entityType: ContentEntityType,
+  entityId: string,
+): Promise<Array<{ id: string; version: number; createdAt: string; title: string; status: string }>> {
+  const rows = await db
+    .select()
+    .from(contentRevisions)
+    .where(and(eq(contentRevisions.entityType, entityType), eq(contentRevisions.entityId, entityId)))
+    .orderBy(desc(contentRevisions.version))
+    .limit(30);
+  return rows.map((row) => ({
+    id: row.id,
+    version: row.version,
+    createdAt: row.createdAt.toISOString(),
+    title: typeof row.snapshot.title === "string" ? row.snapshot.title : "نسخه محتوا",
+    status: entityType === "page"
+      ? (row.snapshot.isPublished === true ? "published" : "draft")
+      : (row.snapshot.status === "published" ? "published" : "draft"),
+  }));
+}
+
+export async function restoreContentRevision(db: Database, actorId: string, revisionId: string): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [revision] = await tx.select().from(contentRevisions).where(eq(contentRevisions.id, revisionId));
+    if (!revision) deny("نسخه موردنظر پیدا نشد.");
+    const snapshot = revision.snapshot;
+    const snapshotText = (key: string): string => typeof snapshot[key] === "string" ? snapshot[key] as string : "";
+    if (revision.entityType === "page") {
+      const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, revision.entityId)).for("update");
+      if (!row) deny("صفحه‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
+      const title = cleanInline(snapshotText("title"), 2, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const body = cleanBody(snapshotText("body"), 2, 12000) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const isPublished = typeof snapshot.isPublished === "boolean" ? snapshot.isPublished : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const next = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished };
+      await tx.update(sitePages).set({ ...next, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+      await appendContentRevision(tx, actorId, "page", row.id, next);
+      await writeAudit(tx, { actorType: "admin", actorId, action: "content.page_revision_restored", entityType: "site_page", entityId: row.id, metadata: { revisionId, slug: row.slug } });
+      return;
+    }
+    if (revision.entityType === "article") {
+      const [row] = await tx.select().from(articles).where(and(eq(articles.id, revision.entityId), isNull(articles.deletedAt))).for("update");
+      if (!row) deny("مقاله‌ای که این نسخه به آن تعلق دارد پیدا نشد.");
+      const categoryId = snapshotText("categoryId");
+      const [category] = await tx.select({ id: articleCategories.id }).from(articleCategories).where(eq(articleCategories.id, categoryId));
+      if (!category) deny("دسته این نسخه دیگر وجود ندارد.");
+      const title = cleanInline(snapshotText("title"), 2, 140) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const excerpt = cleanBody(snapshotText("excerpt"), 0, 400) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const content = cleanBody(snapshotText("content"), 0, 20000) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const authorName = cleanInline(snapshotText("authorName"), 2, 80) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoTitle = cleanInline(snapshotText("seoTitle"), 0, 120) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const seoDescription = cleanInline(snapshotText("seoDescription"), 0, 240) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const readMinutes = typeof snapshot.readMinutes === "number" && Number.isInteger(snapshot.readMinutes) && snapshot.readMinutes >= 1 && snapshot.readMinutes <= 60
+        ? snapshot.readMinutes : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const status = snapshot.status === "draft" || snapshot.status === "published" ? snapshot.status : deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const slug = parseSlug(snapshotText("slug")) ?? deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      const coverMediaId = typeof snapshot.coverMediaId === "string" ? snapshot.coverMediaId : null;
+      const relatedProductIds = Array.isArray(snapshot.relatedProductIds) && snapshot.relatedProductIds.every((id: unknown): id is string => typeof id === "string")
+        ? snapshot.relatedProductIds : [];
+      if (status === "published" && (excerpt.length < 2 || content.length < 2)) deny("اطلاعات این نسخه معتبر نیست و قابل بازگردانی نیست.");
+      await assertCover(tx, coverMediaId, deny);
+      const next = {
+        categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes,
+        coverMediaId, status, seoTitle: seoTitle || title, seoDescription: seoDescription || excerpt,
+        publishedAt: status === "published" ? row.publishedAt ?? new Date() : row.publishedAt,
+        updatedAt: new Date(),
+      };
+      await tx.update(articles).set(next).where(eq(articles.id, row.id));
+      await replaceRelated(tx, row.id, relatedProductIds, deny);
+      await appendContentRevision(tx, actorId, "article", row.id, {
+        ...next,
+        relatedProductIds: [...new Set(relatedProductIds)],
+      });
+      await writeAudit(tx, { actorType: "admin", actorId, action: "content.article_revision_restored", entityType: "article", entityId: row.id, metadata: { revisionId, slug } });
+      return;
+    }
+    deny("نوع محتوای این نسخه پشتیبانی نمی‌شود.");
+  });
+}
+
+export async function applyPagePublication(db: Database, actorId: string, id: string, published: boolean): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, id)).for("update");
+    if (!row) deny("صفحه پیدا نشد.");
+    if (published && (!cleanInline(row.title, 2, 120) || !cleanBody(row.body, 2, 12000))) {
+      deny("برای انتشار صفحه، عنوان و متن معتبر لازم است.");
+    }
+    if (row.isPublished === published) return;
+    const snapshot = {
+      slug: row.slug,
+      title: row.title,
+      body: row.body,
+      seoTitle: row.seoTitle,
+      seoDescription: row.seoDescription,
+      isPublished: published,
+    };
+    await tx.update(sitePages).set({ isPublished: published, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+    await appendContentRevision(tx, actorId, "page", row.id, snapshot);
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: published ? "content.page_published" : "content.page_unpublished",
+      entityType: "site_page",
+      entityId: row.id,
+      metadata: { slug: row.slug },
+    });
+  });
+}
+
 export async function applyPageUpdate(db: Database, actorId: string, input: PageDraft): Promise<CmsResult> {
   const slug = parseSlug(input.slug);
   const title = cleanInline(input.title, 2, 120);
@@ -541,26 +829,18 @@ export async function applyPageUpdate(db: Database, actorId: string, input: Page
   return transactionResult(db, async (tx, deny) => {
     if (!input.id) {
       const id = `page-${crypto.randomUUID()}`;
-      await tx.insert(sitePages).values({
-        id,
-        slug,
-        title,
-        body,
-        seoTitle: seoTitle || title,
-        seoDescription,
-        isPublished: input.isPublished,
-        updatedAt: new Date(),
-      });
+      const snapshot = { slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished };
+      await tx.insert(sitePages).values({ id, ...snapshot, updatedAt: new Date() });
+      await appendContentRevision(tx, actorId, "page", id, snapshot);
       await writeAudit(tx, { actorType: "admin", actorId, action: "content.page_created", entityType: "site_page", entityId: id, metadata: { slug, published: input.isPublished } });
       return;
     }
     const [row] = await tx.select().from(sitePages).where(eq(sitePages.id, input.id)).for("update");
     if (!row) deny("صفحه پیدا نشد.");
     if (row.slug !== slug) deny("شناسه صفحه‌های موجود با مسیرهای سایت پیوند دارد و قابل تغییر نیست.");
-    await tx
-      .update(sitePages)
-      .set({ title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished, updatedAt: new Date() })
-      .where(eq(sitePages.id, row.id));
+    const snapshot = { slug: row.slug, title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished };
+    await tx.update(sitePages).set({ title, body, seoTitle: seoTitle || title, seoDescription, isPublished: input.isPublished, updatedAt: new Date() }).where(eq(sitePages.id, row.id));
+    await appendContentRevision(tx, actorId, "page", row.id, snapshot);
     await writeAudit(tx, {
       actorType: "admin",
       actorId,
@@ -634,6 +914,12 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
         publishedAt: input.status === "published" ? new Date() : null,
       });
       await replaceRelated(tx, id, input.relatedProductIds, deny);
+      await appendContentRevision(tx, actorId, "article", id, {
+        categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes: input.readMinutes,
+        coverMediaId: input.coverMediaId, status: input.status, seoTitle, seoDescription,
+        publishedAt: input.status === "published" ? new Date().toISOString() : null,
+        relatedProductIds: [...new Set(input.relatedProductIds)],
+      });
       await writeAudit(tx, {
         actorType: "admin",
         actorId,
@@ -665,6 +951,12 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
       })
       .where(eq(articles.id, row.id));
     await replaceRelated(tx, row.id, input.relatedProductIds, deny);
+    await appendContentRevision(tx, actorId, "article", row.id, {
+      categoryId: category.id, slug, title, excerpt, content, authorName, readMinutes: input.readMinutes,
+      coverMediaId: input.coverMediaId, status: input.status, seoTitle, seoDescription,
+      publishedAt: input.status === "published" ? (row.publishedAt ?? new Date()).toISOString() : row.publishedAt?.toISOString() ?? null,
+      relatedProductIds: [...new Set(input.relatedProductIds)],
+    });
     await writeAudit(tx, {
       actorType: "admin",
       actorId,
@@ -672,6 +964,50 @@ export async function applyArticleSave(db: Database, actorId: string, input: Art
       entityType: "article",
       entityId: row.id,
       metadata: { slug, status: input.status },
+    });
+  });
+}
+
+export async function applyArticlePublication(db: Database, actorId: string, id: string, published: boolean): Promise<CmsResult> {
+  return transactionResult(db, async (tx, deny) => {
+    const [row] = await tx.select().from(articles)
+      .where(and(eq(articles.id, id), isNull(articles.deletedAt)))
+      .for("update");
+    if (!row) deny("مقاله پیدا نشد.");
+    if (published && (cleanBody(row.excerpt, 2, 400) === null || cleanBody(row.content, 2, 20000) === null)) {
+      deny("برای انتشار مقاله، خلاصه و متن معتبر لازم است.");
+    }
+    if (row.status === (published ? "published" : "draft")) return;
+    const relatedRows = await tx.select({ productId: articleProducts.productId })
+      .from(articleProducts).where(eq(articleProducts.articleId, row.id));
+    const publishedAt = published ? row.publishedAt ?? new Date() : row.publishedAt;
+    await tx.update(articles).set({
+      status: published ? "published" : "draft",
+      publishedAt,
+      updatedAt: new Date(),
+    }).where(eq(articles.id, row.id));
+    await appendContentRevision(tx, actorId, "article", row.id, {
+      categoryId: row.categoryId,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      content: row.content,
+      authorName: row.authorName,
+      readMinutes: row.readMinutes,
+      coverMediaId: row.coverMediaId,
+      status: published ? "published" : "draft",
+      seoTitle: row.seoTitle,
+      seoDescription: row.seoDescription,
+      publishedAt: publishedAt?.toISOString() ?? null,
+      relatedProductIds: relatedRows.map((item) => item.productId),
+    });
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: published ? "content.article_published" : "content.article_unpublished",
+      entityType: "article",
+      entityId: row.id,
+      metadata: { slug: row.slug },
     });
   });
 }
@@ -714,6 +1050,7 @@ export async function registerExternalMedia(db: Database, actorId: string, input
 
 export async function retireMedia(db: Database, actorId: string, id: string): Promise<CmsResult> {
   let removeName: string | null = null;
+  let removeStorageKey: string | null = null;
   const result = await transactionResult(db, async (tx, deny) => {
     const row = await lockLiveMediaAsset(tx, id);
     if (!row) deny("رسانه پیدا نشد.");
@@ -721,12 +1058,19 @@ export async function retireMedia(db: Database, actorId: string, id: string): Pr
     if (await mediaInUse(tx, row.id)) deny("این رسانه هنوز به بنر، مقاله یا تصویر محصول وصل است.");
     await tx.update(mediaAssets).set({ deletedAt: new Date() }).where(eq(mediaAssets.id, row.id));
     await writeAudit(tx, { actorType: "admin", actorId, action: "content.media_retired", entityType: "media_asset", entityId: row.id });
-    removeName = localObjectName(row.storageKey);
+    removeName = objectNameForStorageKey(row.storageKey);
+    removeStorageKey = row.storageKey;
   });
-  if (!result.ok || !removeName) return result;
+  if (!result.ok) return result;
+  const storage = openStorage();
+  // Only delete through the adapter that owns this exact provider-qualified key.
+  if (removeName && storage?.storageKey(removeName) === removeStorageKey) {
+    await removeFileOrRecord(db, id, removeName, storage);
+  } else if (removeName) {
+    await removeFileOrRecord(db, id, removeName, null);
+  }
   // Earlier failed file cleanups are retried here (each re-verifies under the asset lock); never blocks the result.
-  await retryPendingMediaCleanup(db).catch(() => undefined);
-  await removeFileOrRecord(db, id, removeName);
+  await retryPendingMediaCleanup(db, storage).catch(() => undefined);
   return result;
 }
 

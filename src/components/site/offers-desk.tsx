@@ -4,6 +4,7 @@ import { parseWhole } from "@/lib/catalog-rules";
 import { toPersianNum } from "@/lib/format";
 import { getOfferDesk, saveCouponFn, saveShippingFn } from "@/server/offers/api";
 import { buttonGhost, buttonPrimary, fieldClass, panelClass } from "./ui";
+import { AdminHelp } from "./admin-help";
 
 export function OffersDesk({ canWrite = true }: { canWrite?: boolean }) {
   const [desk, setDesk] = useState<OfferDesk | null>(null);
@@ -21,7 +22,7 @@ export function OffersDesk({ canWrite = true }: { canWrite?: boolean }) {
 
   return (
     <section className="mt-10">
-      <h2 className="text-lg font-bold text-forest">تخفیف و ارسال</h2>
+      <h2 className="text-lg font-bold text-forest">تخفیف و ارسال</h2><AdminHelp title="تخفیف و ارسال" example="کد NOWRUZ با نوع درصد، مقدار ۱۰، حداقل سبد ۵۰۰۰۰۰ و سقف استفاده ۱۰۰ یعنی ۱۰٪ تخفیف برای سبدهای واجد شرایط، تا سقف تعداد استفاده ثبت‌شده.">کدهای تخفیف و روش‌های ارسال روی محاسبه سفارش‌های جدید اثر دارند؛ سفارش‌های قبلی با مبلغ زمان ثبت خود باقی می‌مانند. پس از تغییر، یک سبد آزمایشی در Preview بررسی کنید. این تنظیمات به‌تنهایی اتصال واقعی به شرکت حمل یا درگاه پرداخت ایجاد نمی‌کنند.</AdminHelp>
       <p className="mt-1 text-sm leading-7 text-muted">
         کد و هزینه ارسال از اینجا عوض می‌شود. هیچ درگاهی صدا زده نمی‌شود و سفارش پرداخت‌شده ساخته نمی‌شود.
       </p>
@@ -122,9 +123,9 @@ function CouponEditor({
 
   return (
     <div className={`${panelClass} mt-4 space-y-3 p-4`}>
-      <h3 className="font-bold text-forest">{editing ? "ویرایش کد" : "کد تازه"}</h3>
+      <h3 className="font-bold text-forest">{editing ? "ویرایش کد" : "کد تازه"}</h3><p className="text-xs leading-6 text-muted">کد را کوتاه و بدون فاصله بنویسید؛ نوع درصدی یا مبلغ ثابت را انتخاب کنید. حداقل سبد و بازه زمانی اختیاری‌اند؛ سقف استفاده خالی یعنی محدودیت تعداد تعریف نشده است.</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="کد" value={code} ltr onChange={setCode} />
+        <Field label="کد" value={code} ltr onChange={setCode} hint="کدی که مشتری در سبد وارد می‌کند؛ بدون فاصله. نمونه: NOWRUZ10." />
         <Field label="توضیح" value={description} onChange={setDescription} />
         <label className="text-sm font-bold text-forest">
           نوع
@@ -134,11 +135,11 @@ function CouponEditor({
           </select>
         </label>
         {mode === "percent" ? (
-          <Field label="درصد" value={percent} ltr onChange={setPercent} />
+          <Field label="درصد" value={percent} ltr onChange={setPercent} hint="عدد درصد تخفیف؛ نمونه ۱۰ یعنی ده درصد." />
         ) : (
-          <Field label="مبلغ تومان" value={amount} ltr onChange={setAmount} />
+          <Field label="مبلغ تومان" value={amount} ltr onChange={setAmount} hint="مبلغ ثابت تخفیف به تومان؛ فقط عدد وارد کنید." />
         )}
-        <Field label="حداقل سبد، تومان" value={minimum} ltr onChange={setMinimum} />
+        <Field label="حداقل سبد، تومان" value={minimum} ltr onChange={setMinimum} hint="کمترین مبلغ سبد برای فعال‌شدن کد؛ صفر یا خالی یعنی حداقل ندارد." />
         <Field label="سقف استفاده، خالی یعنی نامحدود" value={limit} ltr onChange={setLimit} />
         <Field label="شروع" value={startsOn} ltr onChange={setStartsOn} type="date" />
         <Field label="پایان" value={endsOn} ltr onChange={setEndsOn} type="date" />
@@ -239,13 +240,13 @@ function ShippingEditor({
   return (
     <div className={`${panelClass} mt-4 space-y-3 p-4`}>
       <h3 className="font-bold text-forest">{editing ? "ویرایش ارسال" : "روش ارسال تازه"}</h3>
-      <p className="text-xs leading-6 text-muted">اتصال به پست یا تیپاکس ساخته نمی‌شود. قیمت برای سفارش بعدی است.</p>
+      <p className="text-xs leading-6 text-muted">این فرم فقط گزینه و هزینه‌ای را که مشتری هنگام تسویه می‌بیند تنظیم می‌کند؛ اتصال یا برچسب خودکار پست/تیپاکس ایجاد نمی‌شود. «رایگان از» حداقل مبلغ سبد برای صفرشدن هزینه این روش است. مثال: هزینه ۶۰۰۰۰ تومان و رایگان از ۱۰۰۰۰۰۰ تومان.</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="عنوان" value={title} onChange={setTitle} />
-        <Field label="شناسه انگلیسی" value={key} ltr onChange={setKey} disabled={Boolean(editing)} />
+        <Field label="عنوان" value={title} onChange={setTitle} hint="نام قابل مشاهده برای مشتری؛ نمونه: ارسال با پست پیشتاز." />
+        <Field label="شناسه انگلیسی" value={key} ltr onChange={setKey} disabled={Boolean(editing)} hint="شناسه داخلی یکتا؛ فقط حروف کوچک انگلیسی و خط تیره، نمونه: post-express. پس از ساخت قابل تغییر نیست." />
         <Field label="توضیح" value={description} onChange={setDescription} />
-        <Field label="هزینه، تومان" value={price} ltr onChange={setPrice} />
-        <Field label="رایگان از، تومان" value={freeOver} ltr onChange={setFreeOver} />
+        <Field label="هزینه، تومان" value={price} ltr onChange={setPrice} hint="هزینه‌ای که به سفارش افزوده می‌شود؛ فقط عدد تومان." />
+        <Field label="رایگان از، تومان" value={freeOver} ltr onChange={setFreeOver} hint="از این مبلغ سبد به بالا هزینه این روش صفر می‌شود؛ خالی یعنی ارسال رایگان خودکار نداریم." />
         <Field label="ترتیب" value={sortOrder} ltr onChange={setSortOrder} />
       </div>
       <label className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-forest">
@@ -288,6 +289,7 @@ function Field({
   ltr = false,
   type = "text",
   disabled = false,
+  hint,
 }: {
   label: string;
   value: string;
@@ -295,6 +297,7 @@ function Field({
   ltr?: boolean;
   type?: string;
   disabled?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="block text-sm font-bold text-forest">
@@ -307,6 +310,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         className={`${fieldClass} mt-2 ${ltr ? "text-left" : ""}`}
       />
+      {hint ? <span className="mt-1 block text-xs font-normal leading-5 text-muted">{hint}</span> : null}
     </label>
   );
 }

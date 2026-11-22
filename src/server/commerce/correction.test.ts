@@ -418,7 +418,7 @@ test("media: failed filesystem deletion is recorded and a retry removes the file
   await withStorage(async (dir) => {
     const { db } = await open();
     const disk = await mediaFixture(db, dir);
-    const broken: ObjectStorage = { put: disk.put.bind(disk), read: disk.read.bind(disk), remove: async () => { throw new Error("EIO"); } };
+    const broken: ObjectStorage = { put: disk.put.bind(disk), read: disk.read.bind(disk), remove: async () => { throw new Error("EIO"); }, storageKey: disk.storageKey.bind(disk) };
     await db.update(schema.mediaAssets).set({ deletedAt: new Date() }).where(eq(schema.mediaAssets.id, "med-unused"));
     assert.equal(await removeFileOrRecord(db, "med-unused", "med-unused01.jpg", broken), false);
     assert.equal((await db.select().from(opsDiagnostics).where(eq(opsDiagnostics.kind, "media.file_cleanup"))).length, 1);
@@ -434,7 +434,7 @@ test("media: retry never removes a file whose asset is live or referenced", asyn
   await withStorage(async (dir) => {
     const { db } = await open();
     const disk = await mediaFixture(db, dir);
-    const broken: ObjectStorage = { put: disk.put.bind(disk), read: disk.read.bind(disk), remove: async () => { throw new Error("EIO"); } };
+    const broken: ObjectStorage = { put: disk.put.bind(disk), read: disk.read.bind(disk), remove: async () => { throw new Error("EIO"); }, storageKey: disk.storageKey.bind(disk) };
     await removeFileOrRecord(db, "med-other", "med-other01.jpg", broken); // asset still live
     assert.deepEqual(await retryPendingMediaCleanup(db, disk), { removed: 0, skipped: 1, failed: 0 });
     assert.ok(await disk.read("med-other01.jpg"));

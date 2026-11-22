@@ -4,18 +4,25 @@ import test from "node:test";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "../db/schema.ts";
-import { auditLogs, articleCategories, articles, banners, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
+import { auditLogs, articleCategories, articles, banners, contentRevisions, homepageSections, mediaAssets, navigationItems, navigationMenus, productCategories, productImages, products, settings, sitePages } from "../db/schema.ts";
 import {
+  applyArticlePublication,
+  applyBrandSettings,
   applyArticleSave,
   applyBannerSave,
   applyNavSave,
+  applyPagePublication,
   applyPageUpdate,
+  loadContentHistory,
+  loadContentPreview,
+  restoreContentRevision,
   applySectionOrder,
   applySectionUpdate,
   applySiteCopy,
+  applyStoreLayout,
   registerExternalMedia,
   retireMedia,
 } from "./content.ts";
@@ -27,6 +34,7 @@ async function database() {
   const pg = new PGlite();
   await pg.waitReady;
   await pg.exec(readFileSync(join(root, "migrations/0002_shahoo_foundation.sql"), "utf8"));
+  await pg.exec(readFileSync(join(root, "migrations/0017_content_revisions.sql"), "utf8"));
   const db = drizzle(pg, { schema });
   await db.insert(homepageSections).values([
     { id: "sec-a", sectionType: "hero", title: "خانه", sortOrder: 1, isActive: true },
@@ -49,6 +57,7 @@ async function database() {
   await db.insert(settings).values([
     { key: "store.story", value: { title: "قدیم", about: "متن معرفی قبلی برای آزمون.", philosophy: "فلسفه قبلی آزمون است." } },
     { key: "header.promo", value: { text: "نوار قبلی" } },
+    { key: "store.profile", value: { brandName: "شاهو", tagline: "", copyright: "" } },
     { key: "brand.logos", value: { header: "/assets/brand/shahoo-logo-minimal.png", footer: "/assets/brand/shahoo-logo-primary.png" } },
   ]);
   await db.insert(mediaAssets).values({
@@ -61,6 +70,57 @@ async function database() {
   });
   return db;
 }
+
+test("pages and articles keep immutable revisions and can restore a previous version", async () => {
+  const db = await database();
+  const pageCreated = await applyPageUpdate(db, "admin-a", {
+    slug: "about-us", title: "درباره ما", body: "متن نسخه اول صفحه.",
+    seoTitle: "", seoDescription: "", isPublished: false,
+  });
+  assert.equal(pageCreated.ok, true);
+  const [page] = await db.select().from(sitePages).where(eq(sitePages.slug, "about-us"));
+  assert.ok(page);
+  const pageUpdated = await applyPageUpdate(db, "admin-a", {
+    id: page!.id, slug: "about-us", title: "درباره شاهو", body: "متن نسخه دوم صفحه.",
+    seoTitle: "", seoDescription: "", isPublished: true,
+  });
+  assert.equal(pageUpdated.ok, true);
+  const pageHistory = await loadContentHistory(db, "page", page!.id);
+  assert.deepEqual(pageHistory.map((item) => item.version), [2, 1]);
+  const restoredPage = await restoreContentRevision(db, "admin-a", (await db.select().from(contentRevisions).where(eq(contentRevisions.entityId, page!.id)).orderBy(asc(contentRevisions.version)).limit(1))[0]!.id);
+  assert.equal(restoredPage.ok, true);
+  const [pageAfterRestore] = await db.select().from(sitePages).where(eq(sitePages.id, page!.id));
+  assert.equal(pageAfterRestore?.title, "درباره ما");
+  assert.equal(pageAfterRestore?.isPublished, false);
+  assert.equal((await loadContentHistory(db, "page", page!.id)).length, 3);
+
+  const articleCreated = await applyArticleSave(db, "admin-a", {
+    slug: "olive-guide", title: "راهنمای روغن", excerpt: "خلاصه مقاله",
+    seoTitle: "", seoDescription: "", content: "متن نسخه اول مقاله.",
+    authorName: "کارگاه شاهو", readMinutes: 3, status: "draft",
+    categoryId: "oils-journal", coverMediaId: null, relatedProductIds: [],
+  });
+  assert.equal(articleCreated.ok, true);
+  const [article] = await db.select().from(articles).where(eq(articles.slug, "olive-guide"));
+  assert.ok(article);
+  const articleUpdated = await applyArticleSave(db, "admin-a", {
+    id: article!.id, slug: "olive-guide", title: "راهنمای کامل روغن", excerpt: "خلاصه به‌روز",
+    seoTitle: "", seoDescription: "", content: "متن نسخه دوم مقاله.",
+    authorName: "کارگاه شاهو", readMinutes: 4, status: "published",
+    categoryId: "oils-journal", coverMediaId: null, relatedProductIds: [],
+  });
+  assert.equal(articleUpdated.ok, true);
+  const articleHistory = await loadContentHistory(db, "article", article!.id);
+  assert.deepEqual(articleHistory.map((item) => item.version), [2, 1]);
+  const oldArticleRevision = (await db.select().from(contentRevisions).where(eq(contentRevisions.entityId, article!.id)).orderBy(asc(contentRevisions.version)).limit(1))[0]!;
+  const restoredArticle = await restoreContentRevision(db, "admin-a", oldArticleRevision.id);
+  assert.equal(restoredArticle.ok, true);
+  const [articleAfterRestore] = await db.select().from(articles).where(eq(articles.id, article!.id));
+  assert.equal(articleAfterRestore?.title, "راهنمای روغن");
+  assert.equal(articleAfterRestore?.status, "draft");
+  assert.equal((await loadContentHistory(db, "article", article!.id)).length, 3);
+  assert.equal((await db.select().from(auditLogs)).filter((row) => row.action.endsWith("_revision_restored")).length, 2);
+});
 
 test("reordering sections is audited and a partial list is refused", async () => {
   const db = await database();
@@ -122,6 +182,61 @@ test("https media can be registered and retired, but a brand file and a linked f
   await db.update(banners).set({ desktopMediaId: null }).where(eq(banners.id, "slide-1"));
   const retired = await retireMedia(db, "admin-a", media?.id ?? "");
   assert.equal(retired.ok, true);
+});
+
+test("store layout settings are validated, persisted and audited", async () => {
+  const db = await database();
+  const value = {
+    stickyHeader: false,
+    headerLogoHeight: 64,
+    footerLogoHeight: 128,
+    footerAlignment: "center" as const,
+  };
+  const saved = await applyStoreLayout(db, "admin-layout", value);
+  assert.equal(saved.ok, true);
+  const [row] = await db.select().from(settings).where(eq(settings.key, "store.layout"));
+  assert.deepEqual(row?.value, value);
+  const [audit] = await db.select().from(auditLogs);
+  assert.equal(audit?.action, "store.layout_updated");
+
+  const invalid = await applyStoreLayout(db, "admin-layout", { ...value, headerLogoHeight: 20 });
+  assert.equal(invalid.ok, false);
+  const [unchanged] = await db.select().from(settings).where(eq(settings.key, "store.layout"));
+  assert.deepEqual(unchanged?.value, value);
+  assert.equal((await db.select().from(auditLogs)).length, 1);
+});
+
+
+test("brand header and footer logos can be selected from the managed media library", async () => {
+  const db = await database();
+  await db.insert(mediaAssets).values({
+    id: "media-header-logo",
+    folder: "library",
+    filename: "shahoo-header.png",
+    mimeType: "image/png",
+    byteSize: 120,
+    alt: "لوگوی هدر شاهو",
+    storageKey: "s3:shahoo-header.png",
+    publicUrl: "/media/file/media-header-logo",
+  });
+  const saved = await applyBrandSettings(db, "admin-brand", {
+    brandName: "شاهو",
+    tagline: "طبیعت در هر قطره",
+    copyright: "© شاهو",
+    headerLogo: "/media/file/media-header-logo",
+    footerLogo: "/assets/brand/shahoo-logo-primary.png",
+  });
+  assert.equal(saved.ok, true);
+  const [logos] = await db.select().from(settings).where(eq(settings.key, "brand.logos"));
+  assert.equal((logos?.value as Record<string, unknown>).header, "/media/file/media-header-logo");
+  const rejected = await applyBrandSettings(db, "admin-brand", {
+    brandName: "شاهو",
+    tagline: "",
+    copyright: "",
+    headerLogo: "/media/file/media-missing-logo",
+    footerLogo: "/assets/brand/shahoo-logo-primary.png",
+  });
+  assert.equal(rejected.ok, false);
 });
 
 test("story copy does not rewrite the official logo settings", async () => {
@@ -289,7 +404,9 @@ test("content writes require the content permission at the server function", () 
   assert.match(source, /requireAdmin\("content\.write"\)/);
   assert.doesNotMatch(source, /STORAGE_|ZARINPAL|passwordHash/);
   const mediaDesk = readFileSync(join(root, "src/components/site/content-desk.tsx"), "utf8");
-  assert.doesNotMatch(mediaDesk, /type="file"|uploadMedia\(|بارگذاری تصویر/);
+  assert.match(mediaDesk, /desk\.uploadEnabled/);
+  assert.match(mediaDesk, /type="file"/);
+  assert.match(mediaDesk, /uploadMedia\(/);
   assert.match(mediaDesk, /ثبت نشانی تصویر HTTPS/);
   const storefront = readFileSync(join(root, "src/server/storefront/api.ts"), "utf8");
   assert.match(storefront, /article\.status !== "published"/);
@@ -307,3 +424,90 @@ test("concurrent section orders stay a complete permutation", async () => {
   const orders = rows.map((row) => row.sortOrder).sort();
   assert.deepEqual(orders, [1, 2]);
 });
+
+
+test("page and article publication are independent, audited, and versioned transitions", async () => {
+  const db = await database();
+  const pageSaved = await applyPageUpdate(db, "admin-publisher", {
+    slug: "shipping-info",
+    title: "راهنمای ارسال",
+    body: "متن ذخیره‌شده راهنمای ارسال.",
+    seoTitle: "",
+    seoDescription: "",
+    isPublished: false,
+  });
+  assert.equal(pageSaved.ok, true);
+  const [page] = await db.select().from(sitePages).where(eq(sitePages.slug, "shipping-info"));
+  assert.ok(page);
+  const pagePreview = await loadContentPreview(db, "page", page!.id);
+  assert.equal(pagePreview?.kind, "page");
+  assert.equal(pagePreview?.status, "draft");
+  assert.equal(pagePreview?.body, "متن ذخیره‌شده راهنمای ارسال.");
+  assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, true)).ok, true);
+  assert.equal((await db.select().from(sitePages).where(eq(sitePages.id, page!.id)))[0]?.isPublished, true);
+  assert.equal((await applyPagePublication(db, "admin-publisher", page!.id, false)).ok, true);
+  assert.equal((await db.select().from(sitePages).where(eq(sitePages.id, page!.id)))[0]?.isPublished, false);
+
+  const articleSaved = await applyArticleSave(db, "admin-publisher", {
+    slug: "shipping-guide",
+    title: "راهنمای ارسال سفارش",
+    excerpt: "خلاصه راهنمای ارسال سفارش",
+    seoTitle: "",
+    seoDescription: "",
+    content: "متن کامل راهنمای ارسال سفارش.",
+    authorName: "کارگاه شاهو",
+    readMinutes: 3,
+    status: "draft",
+    categoryId: "oils-journal",
+    coverMediaId: null,
+    relatedProductIds: [],
+  });
+  assert.equal(articleSaved.ok, true);
+  const [article] = await db.select().from(articles).where(eq(articles.slug, "shipping-guide"));
+  assert.ok(article);
+  const articlePreview = await loadContentPreview(db, "article", article!.id);
+  assert.equal(articlePreview?.kind, "article");
+  assert.equal(articlePreview?.status, "draft");
+  assert.equal(articlePreview?.body, "متن کامل راهنمای ارسال سفارش.");
+  assert.equal((await applyArticlePublication(db, "admin-publisher", article!.id, true)).ok, true);
+  const [publishedArticle] = await db.select().from(articles).where(eq(articles.id, article!.id));
+  assert.equal(publishedArticle?.status, "published");
+  assert.ok(publishedArticle?.publishedAt);
+  assert.equal((await applyArticlePublication(db, "admin-publisher", article!.id, false)).ok, true);
+  const [unpublishedArticle] = await db.select().from(articles).where(eq(articles.id, article!.id));
+  assert.equal(unpublishedArticle?.status, "draft");
+
+  const history = await loadContentHistory(db, "article", article!.id);
+  assert.deepEqual(history.map((item) => item.status), ["draft", "published", "draft"]);
+  const actions = (await db.select({ action: auditLogs.action }).from(auditLogs)).map((row) => row.action);
+  assert.ok(actions.includes("content.page_published"));
+  assert.ok(actions.includes("content.page_unpublished"));
+  assert.ok(actions.includes("content.article_published"));
+  assert.ok(actions.includes("content.article_unpublished"));
+});
+
+test("an article with incomplete body cannot be published through the dedicated action", async () => {
+  const db = await database();
+  const saved = await applyArticleSave(db, "admin-publisher", {
+    slug: "incomplete-guide",
+    title: "مقاله ناتمام",
+    excerpt: "",
+    seoTitle: "",
+    seoDescription: "",
+    content: "",
+    authorName: "کارگاه شاهو",
+    readMinutes: 3,
+    status: "draft",
+    categoryId: "oils-journal",
+    coverMediaId: null,
+    relatedProductIds: [],
+  });
+  assert.equal(saved.ok, true);
+  const [article] = await db.select().from(articles).where(eq(articles.slug, "incomplete-guide"));
+  assert.ok(article);
+  const result = await applyArticlePublication(db, "admin-publisher", article!.id, true);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /خلاصه و متن معتبر/);
+  assert.equal((await db.select().from(articles).where(eq(articles.id, article!.id)))[0]?.status, "draft");
+});
+

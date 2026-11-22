@@ -55,16 +55,22 @@ The admin platform must remain portable across:
 - [x] Add the CMS route to admin navigation, gated by `content.write`; `/admin/content` retains its server-side permission check.
 - [x] Make existing banners, homepage sections, navigation, pages, magazine/articles, store profile/contact and brand settings discoverable from the CMS desk.
 
-- [ ] Complete carousel/slider, header and footer layout controls (brand name, tagline, copyright and header/footer logo URL settings are now present; layout controls remain).
-- [ ] Ensure public components read the same canonical settings and invalidate/cache-refresh consistently.
-- [ ] Add preview/publish workflows and revision/audit history.
+- [x] Add centralized carousel autoplay and interval controls (3–15 seconds), with reduced-motion support on the public homepage.
+- [x] Add centralized header/footer layout controls: sticky-header toggle, header/footer logo heights with bounded validation, and footer content alignment. Settings are stored under `store.layout`, audited, and consumed by the public shell; defaults preserve the current layout.
+- [ ] Complete responsive layout refinements after the next available Preview review.
+- [ ] Audit every public component for canonical settings consumption and consistent cache invalidation/revalidation.
+- [x] Add admin-only saved-content preview links for pages and articles (including drafts); unsaved changes preview in-editor. Saved preview is served through a noindex, permission-guarded route. Explicit publish/unpublish workflow remains to be completed.
+- [x] Add immutable page/article revision history, transactional restore, and audit events (migration 0017).
+- [x] Add explicit permission-guarded publish/unpublish actions for pages and articles, with validation and transactional audit events.
 
 ### Phase 3 — Media library
-- [ ] Implement provider-neutral media storage interface.
-- [ ] Support a persistent object-storage adapter for Vercel and a documented S3-compatible adapter for Linux/Windows hosting.
-- [ ] Add upload, validation, MIME sniffing, size limits, safe filenames, image processing, alt text, preview, replacement, usage references and safe retirement.
+- [x] Implement provider-neutral media storage interface and provider-qualified object keys.
+- [x] Add documented S3-compatible persistent object-storage adapter for Vercel and Linux/Windows hosting.
+- [x] Add guarded upload, file validation, size limits, safe object names, alt text, usage references and provider-aware safe retirement/cleanup.
+- [ ] Add image processing/thumbnail generation and verify all product/category/banner/article/logo workflows share the same media library. GIF upload sanitization now validates frame bounds, LZW clear/end codes and decoded pixel counts; focused regression tests are registered.
 - [ ] Never rely on local ephemeral disk for production uploads.
 - [ ] Ensure product/category/banner/article/logo images share the same media library.
+- [x] Add S3-compatible upload/read/delete adapter tests, provider-aware retirement cleanup and fail-closed configuration tests. Latest code head includes these tests; current CI project-test job is still running.
 
 ### Phase 4 — Admin dashboard and reports
 - [ ] Add date-range controls and server-side aggregation.
@@ -188,9 +194,176 @@ Before handing this work to another agent:
 - Production remains untouched. PR #9 remains draft and stacked on PR #8; no merge or Production promotion.
 
 
-## 13. Owner approval of admin navigation and guidance (2026-11-20)
+## 13. S3-compatible media storage adapter (2026-11-20)
 
-- Owner reviewed the latest Preview admin navigation grouping and contextual Persian descriptions/examples and explicitly approved the result.
-- Owner smoke test had already confirmed that changing brand settings persists and renders on the public Preview storefront.
-- Guidance CI run `44768555195` completed successfully for commit `32875c63c5601ad5bc52b751c399a2ffced48151`: Quality (typecheck/lint/build), Project tests, PostgreSQL integration/migrations, Migration inventory, Security checks, and Payment/SMS mocks all passed. Manus private platform harness was skipped by workflow configuration.
-- Current PR #9 head is `43cd9a0e993b715c3b1314237316c385b03d035e`; PR #9 remains Draft and stacked on PR #8. This approval records the Preview UX/content acceptance only; no merge or Production deployment was performed.
+- Added `S3ObjectStorage` using native Node crypto and Fetch with AWS Signature Version 4; supports S3-compatible PUT, GET and DELETE, including Cloudflare R2-style endpoints.
+- `STORAGE_PROVIDER=s3` selects the adapter only when endpoint, bucket, region, access-key ID and secret are all present and valid. Incomplete/invalid configuration fails closed; local ephemeral disk is not used as a fallback.
+- Media database rows now persist provider-qualified object keys (`local:` or `s3:`). The public media route resolves either configured provider, and storage read failures return 503 rather than silently masquerading as missing assets.
+- Added `docs/MEDIA_STORAGE.md` with Vercel and self-hosted setup, environment variable names, backup considerations and staged rollout guidance.
+- No storage credentials were configured, no bucket was created, no Vercel environment variables were changed, and no Production data or deployment was touched. S3 uploads remain unavailable until an operator provisions a bucket and adds Preview-only credentials.
+- CI for the previous upload UI commit `1f4c4ef12bffec1555e1c9cfc6b076158696406d` passed. The S3 adapter changes in the following commit require a fresh CI run; do not claim them verified until all required jobs pass.
+- Next: validate S3 signing/path behavior with focused tests and CI, configure a dedicated Preview bucket only with owner-approved credentials, then smoke-test upload/read/delete and image display before considering Production.
+
+
+### S3 media lifecycle hardening
+
+- Added provider-aware media retirement and retry cleanup: a `local:` asset is removed only by the local adapter and an `s3:` asset only by the matching S3 adapter.
+- Cleanup failures create diagnostics; retries leave provider-mismatched items pending rather than marking them skipped or deleting from the wrong bucket.
+- Added mocked tests for signed S3 PUT/GET/DELETE, endpoint path prefixes, unsafe names, fail-closed production configuration, provider-qualified keys and local traversal protection. Registered the test in `scripts/run-tests.mjs`.
+- These additions are awaiting CI on the latest branch head; do not consider the adapter validated until the new suite passes.
+
+
+## 14. CMS revision history and media storage verification (2026-11-20)
+
+- Latest PR #9 head: `c6b7fcf8f9cd2a14a4e32178816ea168a7459730`; branch `feat/admin-cms-phase2`; PR remains open/draft and stacked on PR #8. The PR compares 50 commits ahead of `feat/admin-catalog-ux-phase1`, with no commits behind.
+- CI run [`44781020108`](https://github.com/arefbrh/shahoo/actions/runs/44781020108) on that exact head completed successfully:
+  - Quality (typecheck, lint, build): success.
+  - Project tests: success.
+  - PostgreSQL integration/migrations, multi-connection contention, backup/restore: success.
+  - Migration inventory: success.
+  - Security checks: success.
+  - Payment/SMS mocks: success.
+  - Manus private platform harness: skipped by workflow configuration; not counted as passed.
+- Added migration `0017_content_revisions.sql` and the Drizzle schema for immutable page/article snapshots. Page/article create/update operations append snapshots transactionally. Admin history shows the latest 30 versions; restore validates the stored snapshot, restores page/article content and related product links transactionally, appends a new revision, and records an audit event.
+- Added permission-guarded `getContentHistoryFn` and `restoreContentRevisionFn`; both require `content.write`. The history UI is present in page/article editor forms.
+- Added S3-compatible storage adapter using AWS Signature Version 4, provider-qualified keys, fail-closed configuration, media route reads, and provider-aware retirement/retry cleanup. Added mocked PUT/GET/DELETE, path-prefix, unsafe-name, fail-closed config, provider-key and traversal tests.
+- The exact latest CI run above passed the full project test suite and Quality, PostgreSQL, migration, security, and payment/SMS checks, including the S3 lifecycle test coverage.
+- No S3 bucket or credentials have been provisioned. Upload remains disabled until an operator configures a persistent S3-compatible bucket and Preview-only credentials. No Vercel environment variables, Preview deployment, Production deployment, or Production data were changed in this work.
+- Vercel's deployment creation limit previously blocked new Preview builds after the project exceeded its 24-hour deployment quota. The owner asked to defer deployment until the final review; no manual Preview deployment was triggered.
+- PR #8 and PR #9 remain open/draft; neither is merged. PR #9 is stacked on PR #8. No Production changes or release approval.
+- Remaining Phase 2 work: admin-only content preview/publish workflow, final responsive review, and an end-to-end audit of canonical settings/cache invalidation.
+- Remaining Phase 3 work: image processing/thumbnail generation, shared-media-library coverage across all asset types, and an owner-approved Preview bucket configuration followed by upload/read/delete smoke testing.
+- Next implementation step: add a safe admin-only preview path for unpublished pages/articles without exposing drafts publicly; then add explicit publish/unpublish actions with permission checks, transactional audit history and regression tests.
+
+## 15. New roadmap phase — order fulfillment, invoices, shipping labels and printing (2026-11-20)
+
+Owner requirement: expand order management beyond a basic status field into an end-to-end pick, pack, document, dispatch and tracking workflow. This is a planned product phase; no implementation or order-data changes are implied by this roadmap entry.
+
+### Phase 7 — Order fulfillment and print center
+
+- [ ] Map the complete order lifecycle: received, payment verification, picking, packing, ready to dispatch, handed to carrier, in transit, delivered, failed delivery, returned/cancelled. Keep payment state separate from fulfillment/shipping state.
+- [ ] Add an order fulfillment workspace with item-level picking checklist, quantities, variant/SKU, stock validation, packing notes, package count/weight/dimensions, operator and timestamps.
+- [ ] Preserve immutable order-time product names, SKUs, quantities, discounts, shipping/tax and price snapshots on the invoice; never recalculate historical invoices from current catalog prices.
+- [ ] Create a distinctive SHAHOO invoice design using the approved minimal brand logo. First deliver a visual draft for owner review; do not add the template or implementation to the app until explicit design approval.
+- [ ] After approval, generate invoice exports as print-quality PDF, PNG preview/image, and Excel-compatible XLSX. Define Persian RTL typography, numerals, currency formatting, page breaks, long-item handling, order number/date, buyer details, line items, totals, payment/shipping details and return/contact policy.
+- [ ] Support customer-facing invoice and internal picking/packing slip as separate document modes, with configurable visibility of prices and internal notes.
+- [ ] Add a sender profile in admin (name/business name, phone, return address, postal code and optional contact details). Sender details must be editable centrally and snapshotted onto each shipment label when created.
+- [ ] Generate a shipping address label from the order recipient details plus the configured sender profile. Validate recipient name, phone, full address and 10-digit postal code; allow authorized correction before label generation and retain an audit trail.
+- [ ] Research and document carrier-specific requirements before claiming compliance. Initial research found general address/legibility guidance and references to sender/recipient address, postal code and phone, but did not establish one authoritative current National Post label size/layout specification. Treat A5/A4 and 100×150 mm (4×6 inch) thermal layouts as configurable candidate formats, not officially approved dimensions. Confirm current requirements with the National Post / carrier or its merchant integration documentation before finalizing.
+- [ ] Build a print center with selectable paper/label size, orientation, margins, scaling, copies, printer destination via the browser/system print dialog, print preview, and safe retry. Support ordinary laser/inkjet printers and common thermal label printers without hard-coding one printer model.
+- [ ] Provide dedicated layouts for A4/A5 sheet printing and configurable 100×150 mm / 4×6 thermal labels; add calibration/test page and preserve barcode quiet zones and minimum readable sizes where carrier barcodes are used.
+- [ ] Keep carrier tracking number/barcode distinct from SHAHOO order number. Only print a carrier barcode/official tracking identifier when issued by the carrier or its approved integration; never fabricate one.
+- [ ] Add shipment records, carrier/service, tracking number, dispatch date, shipping cost, label generation history, reprint action, delivery/exception events and customer notification hooks.
+- [ ] Investigate official carrier APIs/merchant portals (starting with Iran National Post) for address validation, shipment registration, postage, tracking and label generation. Keep carrier integration behind an adapter so other carriers can be added.
+- [ ] Add permissions, audit events, idempotency and tests for duplicate label generation, reprints, address edits, partial shipments, refunds/returns and concurrent fulfillment.
+- [ ] Test print output on PDF and real hardware: at least one standard printer and one thermal label printer, across desktop browsers. Browser printing is the portable baseline; direct silent printing/device management may require an optional local print bridge or supported network-print service and must be evaluated separately.
+- [ ] Do not mark carrier compliance or hardware compatibility complete based only on generated PDFs or mocked tests; require owner verification on actual devices and confirmation from the selected carrier.
+
+### Research notes (initial, non-final)
+
+- Public guidance located during initial research emphasizes a legible complete recipient address, city/province, postal code and placement on the parcel; supplementary operational guidance recommends recipient/sender names, phone numbers and complete address. See the carrier-neutral guidance at https://peyksanati.ir/ and public postal-address guidance reported at https://www.hamedanpayam.com/file/0xb5407d15ede41191.pdf.
+- A Tapin merchant agreement document refers to an address label, parcel contents information, accompanying sales invoice, and use of a digital scale and laser printer in that specific contractual workflow: https://www.tapin.ir/wp-content/uploads/2020/01/اعتبار-حقوقی.pdf. This is not a universal National Post specification.
+- A public label generator advertises A5 output and multi-carrier use, but this is third-party evidence, not proof of official approval: https://postprinter.ir/.
+- Before final design, obtain the current requirements for the actual service used by SHAHOO (National Post, including any merchant/contract workflow, or another carrier). Determine whether the carrier provides its own barcode/label, mandatory fields, label stock size, placement, and whether merchant-generated labels are accepted.
+
+### Delivery sequence
+
+1. Complete the currently active CMS/media work and its review; do not interrupt the active branch with order-print implementation.
+2. Audit the existing order/payment/shipping schema and admin routes; write an order lifecycle and data-gap proposal before schema changes.
+3. Produce the SHAHOO invoice visual concept and sample data preview in PNG/PDF/XLSX for owner approval. Keep it outside the application until approved.
+4. Research and confirm the chosen carrier's label requirements; produce a separate shipping-label concept for owner review.
+5. Implement immutable invoice snapshots, fulfillment workflow, sender settings, label generation and print center in isolated PR(s), with migrations/tests.
+6. Validate browser print and real standard/thermal printers, then owner-smoke-test Preview.
+7. Only after explicit owner approval, merge and promote through the normal release process.
+
+
+
+## 16. Saved content previews, GIF validation and order-schema audit (2026-11-20)
+
+- Latest observed PR #9 head: `a88dd6af38ed906d64c411b9c0e062b22925ae3c`; PR #9 remains draft and stacked on PR #8. No merge or deployment was performed.
+- Added saved page/article preview loading for drafts and published content, with an admin-only server function and a noindex preview route. The editor offers a new-tab preview of saved content while retaining an in-form preview for unsaved edits. Preview tests cover page and article drafts.
+- Hardened GIF sanitization: require an initial LZW clear code, validate frame rectangles against the logical canvas, validate decoded pixel counts, and correct dictionary phrase-length handling. Regression tests include valid and malformed GIF fixtures.
+- Latest CI run `44797010227` on the observed head: Quality, Security, PostgreSQL integration/migrations, migration inventory, and Payment/SMS mocks passed. Project tests were still in progress at the last poll; do not claim the full suite passed until it completes. Private platform harness is skipped by workflow configuration.
+- Order-schema audit (read-only): existing `orders` rows already snapshot recipient name/mobile/address/province/city/postal code/plaque/unit, shipping method/title, tracking code, monetary totals and payment status. `order_items` already snapshot product name, variant label, SKU, quantity, unit price and line total. `order_events` and `shipping_logs` provide event history; `payment_attempts` and `payments` are separate records. Existing admin actions support manual fulfillment status transitions and manual carrier/tracking entry.
+- Media-library audit (read-only): the `media_assets` table exists and product images plus article covers can reference it, but category imagery, banners/homepage section visuals and brand/header/footer logos still use URL/path fields rather than a shared `mediaId` relation. The CMS upload flow registers assets, but it is not yet a complete searchable/selectable media desk reused by every content editor. Thumbnail/derivative generation is also absent. This is why Phase 3 remains open.
+- Identified gaps for the planned Phase 7: no dedicated immutable invoice/document snapshot or invoice numbering/version record; no configurable sender profile or sender snapshot per shipment; no package/parcel, weight/dimensions, pick/pack item checklist or partial-fulfillment model; no carrier-issued label artifact/barcode record, label reprint history or print-job settings; and no verified carrier API integration. These are audit findings from schema/code inspection, not changes to live data.
+- Next: finish and verify the running Project tests; then close the remaining CMS/media gaps without deploying. Phase 7 implementation stays deferred until Phase 2/3 review. Invoice visual concept must be shown to the owner and explicitly approved before its template is added to the application.
+
+
+## 17. Brand logo media-library integration (2026-11-20)
+
+- Brand settings editor now offers shared-library selectors for header and footer logos while preserving manual path/HTTPS entry for compatibility.
+- Server-side save validates library-backed logo paths against a non-retired `media_assets` row and restricts them to PNG/JPEG/WebP. Arbitrary or retired media paths cannot be saved as logos.
+- Added integration coverage for selecting a valid library asset and rejecting a missing asset. The test uses the existing PGlite CMS database fixture.
+- Existing published logo settings and legacy official asset paths are preserved; no migration or live data mutation was performed.
+- Validation status: previous CI runs `44797010227` and `44797863097` passed all active jobs. The new logo integration commits require their own CI run before this change is considered verified.
+
+
+## 18. Shipping-label standards research (2026-11-20)
+
+- Public-source review did not locate a current, official Iran National Post merchant label specification that confirms a mandatory domestic label size (including 100×150 mm / 4×6 in), exact barcode symbology/placement, or acceptance of merchant-generated labels. These values must not be presented as Iran Post requirements until confirmed directly with the carrier or its merchant/contract documentation.
+- The postal-law definition of a postal item requires sender and/or recipient addressing; a secondary reproduction of the statute notes the sender/recipient address must appear on the item wrapper. Treat this as a baseline addressing principle, not a complete label layout specification. Reference: https://hoghogh.ai/laws/قانون-اساسنامه-شرکت-ملی-پست-جمهوری-اسلامی-ایران/2
+- UPU Convention Regulations 2025 Article 17-215 specify an S10 identifier for outward international parcels: human-readable and barcode forms, placed near and on the same side as the addressee address. This is an international-parcel rule and must not be assumed to govern domestic Iran Post parcels. Reference: https://www.upu.int/getmedia/b46605b5-4485-435a-9f20-92f8a00ef1e8/POC-REGL-2025-1%E2%94%80Doc-1
+- UPU addressing guidance identifies postcode as a fundamental address element and directs users to country-specific designated-operator formats. Reference: https://www.upu.int/en/postal-solutions/programmes-services/addressing-solutions
+- Provisional SHAHOO label design can therefore include clear recipient/sender blocks, province/city, full address, postal code, contact phone, and a reserved tracking/barcode region populated only with a carrier-issued identifier. This is a proposed merchant layout, not a certified Iran Post label.
+- Before finalizing the carrier label, obtain written/official confirmation from Iran Post or the actual contracted carrier for domestic label stock size, printer format, barcode type and quiet zones, required fields, and whether the merchant may generate the label. Keep 100×150 mm and A4/A5 as configurable print presets only, not as claimed official standards.
+
+
+
+## 19. Approved SHAHOO invoice template — implementation started (2026-11-20)
+
+- Owner approved the final visual direction: use the official minimal SHAHOO logo (not the primary ornate mark), keep the invoice title separate from the logo, and use the corrected invoice issue-date placement.
+- Added an order-linked invoice view using the existing order-time snapshots for customer, address, SKU/variant, quantities, unit prices, totals and order creation date. Invoice number uses the immutable public order code; the issue date is the order's recorded creation date, not the current date.
+- The official minimal brand asset is served from `/assets/brand/shahoo-logo-minimal.png`.
+- Added an A4 browser-print layout with repeating table headings, non-splitting item rows and multi-page flow. Browser print can save the document as PDF. No artificial limit is imposed on item count; a 10-line order is supported by the dynamic table.
+- Added order-detail integration so the invoice is available from the customer/admin order view, subject to the existing order access checks.
+- Added PNG export (long orders split into numbered image pages) and a real XLSX workbook export with RTL worksheet direction and numeric amount cells. Browser print remains the PDF path; the browser controls the final PDF save/print dialog.
+- Remaining gaps: immutable invoice-number/document snapshots beyond the existing immutable order code, seller contact/address configuration, tax/legal fields if required, and cross-browser page-number behavior. Do not describe the invoice as a certified tax invoice until the seller details and applicable legal requirements are confirmed.
+- Validation is pending CI on this commit. The work remains on the stacked PR #9 branch; no PR merge, Preview deployment, Production deployment, or Production data change was performed.
+
+
+
+## 20. Internal picking and packing slip — first implementation (2026-11-20)
+
+- Added an admin-order-only internal picking/packing slip, separate from the customer invoice and not rendered on customer order pages.
+- The slip uses the order's stored recipient/address/shipping snapshots and item name, variant, SKU and quantity snapshots.
+- Added interactive per-line picking checkboxes, requested/collected quantity columns, and manual fields for picker, final checker, package count, weight and packing discrepancy notes.
+- Added a dedicated print action and print-target isolation so the warehouse slip prints without exposing/printing the customer invoice, and vice versa.
+- Package weights/dimensions, partial fulfilment, persistent picking progress and immutable shipment snapshots are not yet implemented; blank operational fields are intentionally manual and must not be mistaken for saved data.
+- CI validation is pending. No merge or deployment performed.
+
+
+## 21. Persistent picking and packing work — implementation added (2026-11-20)
+
+- Added migration `0018_order_fulfillment_work.sql` and typed table `order_fulfillment_work`, one row per order, storing per-line picked quantities, picker/checker names, package count, optional weight in grams, discrepancy notes, updater and timestamps.
+- Added admin-only read and write server functions. Read requires `orders.read`; write requires `orders.write`. Writes lock the order row, validate that every submitted line belongs to the order, reject duplicate/unknown line IDs and prevent picked quantities exceeding the ordered quantity.
+- Writes use an order-level upsert and append an audit event. No customer-facing route exposes this internal record.
+- Migration and CI must be verified before merge or deployment. Production migration is not run here.
+
+
+- The packing slip UI now loads the saved work record, allows per-line partial picked quantities, and persists operator names, package count, weight and discrepancy notes through an explicit save action.
+
+
+## 22. Sender profile and immutable shipment address snapshots — implementation added (2026-11-20)
+
+- Added a centralized sender profile in the settings store (name, phone, province, city, address, postal code), editable by staff with `orders.write` and readable by staff with `orders.read`.
+- Sender profile updates are audited. No sender details are prefilled with invented business data.
+- Added sender and recipient JSON snapshots to shipping log records. When a shipment is recorded, both sender profile and the order's recipient/address are copied into that shipment log, so later profile or order edits do not rewrite the historic shipment addresses.
+- Shipment recording now refuses to proceed until required sender name, phone, city and address are configured.
+- Added migration `0019_shipping_address_snapshots.sql`. No production migration or deployment performed; CI pending.
+
+
+- Added an admin shipping-label desk with shipment history selection and reprint from immutable sender/recipient snapshots. Print presets: 100×150 mm and A4; these are SHAHOO browser-print layouts only, not certified carrier labels. Tracking/barcode area remains blank unless a real carrier-provided tracking/barcode value exists.\n\n- Follow-up implementation commit `5cbc6cf` fixes a missing `desc` import found by CI for the shipping-label query. Invoice exports and order-view integration are now in the same active PR branch; full CI validation is pending for the latest head.\n
+
+## 23. Consolidated completion pass — reports, staff controls and shipping label (2026-11-21)
+
+- Consolidated implementation head: `98bdeb3d02efb56699cd47dc3373b646f02eab7d` on `feat/admin-cms-phase2`; this commit contains the same complete source tree as the immediately preceding implementation/test commit.
+- Reports now accept a validated `today | 7 | 30 | all` range through the route and server function. Order-state, registration, shipping-method and payment-ledger aggregates respect the selected range. Current inventory and demographic profile distributions remain explicitly all-current/all-time snapshots. A UTF-8 BOM CSV export includes report aggregates and the payment-ledger caveat; it does not export customer PII.
+- Added admin session revocation to the staff desk. Only `admins.write` can revoke sessions; self-revocation from this action is refused to avoid accidental lockout. All active sessions for the selected colleague are revoked transactionally and the action is audited. Existing role changes already take effect on subsequent requests because permissions are loaded from the database on each request; disabling a user blocks their sessions.
+- Shipping label was finalized to the owner-approved monochrome layout: no title, logo, package count, QR or fabricated barcode; sender/recipient blocks include postal code; website is `organicshahoo.ir`; 100×150 mm and A4 remain configurable browser-print presets, not certified carrier dimensions.
+- Existing staff, customer, order, inventory, coupon, shipping, returns, support and review desks were audited as present. They are not equivalent to a complete ERP; dedicated admin invitation/reset delivery, bulk price operations, full trend/top-product reports and some cross-editor media references remain separate unfinished work.
+- Media storage adapter and CMS asset pickers exist for product images, banner desktop/mobile artwork, article covers and brand logos. Actual persistent S3 bucket credentials are not configured. Thumbnail/derivative processing and complete category/homepage-section media references remain outstanding. Production must never fall back to ephemeral local storage.
+- Phase 7 remains partially implemented: invoice PNG/XLSX and browser-print PDF, persistent pick/pack checklist, sender profile snapshots and label reprint desk are present. Carrier-issued barcode/API integration, shipment tracking sync, dimensional parcel model, actual printer hardware verification and official domestic Iran Post merchant label confirmation remain outstanding.
+- CI run for source tree before this tracker-only update: `44823458336` on the same source tree; Quality, Project tests, PostgreSQL integration/migrations and Payment/SMS mocks were running at last observation. Migration inventory and Security checks had completed successfully. Do not claim the run passed until it is complete.
+- No PR merge, Vercel deployment, Production migration, Production data mutation, or Production configuration change was performed.
+- Next: poll the CI run for the source tree; fix any failures; complete remaining code-level gaps before merge. Keep carrier account setup, media bucket credentials, email delivery and real printer verification as explicit operational dependencies rather than marking them complete in code alone.

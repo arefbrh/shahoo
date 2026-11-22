@@ -3,18 +3,26 @@ import { z } from "zod";
 import type { CmsDesk, CmsResult } from "@/lib/cms-types";
 import { requireAdmin } from "../auth/guard";
 import {
+  applyArticlePublication,
   applyArticleRetire,
   applyArticleSave,
+  applyBrandSettings,
+  applyCarouselSettings,
+  applyStoreLayout,
   applyBannerOrder,
   applyBannerSave,
   applyNavOrder,
   applyNavSave,
+  applyPagePublication,
   applyPageUpdate,
   applySectionOrder,
   applySectionUpdate,
   applySiteCopy,
   applyStoreProfile,
   loadCmsDesk,
+  loadContentPreview,
+  loadContentHistory,
+  restoreContentRevision,
   registerExternalMedia,
   retireMedia,
 } from "./content";
@@ -87,6 +95,13 @@ async function withContentWrite<T>(run: (db: Awaited<ReturnType<typeof requireAd
   return run(db, admin.id);
 }
 
+export const getContentPreviewFn = createServerFn({ method: "GET" })
+  .validator((input: unknown) => z.object({
+    entityType: z.enum(["page", "article"]),
+    entityId: z.string().min(2).max(100),
+  }).parse(input))
+  .handler(async ({ data }) => withContentWrite((db) => loadContentPreview(db, data.entityType, data.entityId)));
+
 export const getCmsDesk = createServerFn({ method: "GET" }).handler(async (): Promise<CmsDesk> => withContentWrite((db) => loadCmsDesk(db)));
 
 export const saveSiteCopyFn = createServerFn({ method: "POST" })
@@ -94,6 +109,31 @@ export const saveSiteCopyFn = createServerFn({ method: "POST" })
     z.object({ storyTitle: z.string().max(120), storyAbout: z.string().max(2000), storyPhilosophy: z.string().max(2000), promo: z.string().max(200) }).parse(input),
   )
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applySiteCopy(db, actorId, data)));
+
+export const saveCarouselSettingsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ autoPlay: z.boolean(), intervalMs: z.number().int().min(3000).max(15000) }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyCarouselSettings(db, actorId, data)));
+
+export const saveStoreLayoutFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({
+    stickyHeader: z.boolean(),
+    headerLogoHeight: z.number().int().min(40).max(80),
+    footerLogoHeight: z.number().int().min(64).max(144),
+    footerAlignment: z.enum(["start", "center"]),
+  }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyStoreLayout(db, actorId, data)));
+
+export const saveBrandSettingsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z.object({
+      brandName: z.string().max(80),
+      tagline: z.string().max(180),
+      copyright: z.string().max(180),
+      headerLogo: z.string().max(500),
+      footerLogo: z.string().max(500),
+    }).parse(input),
+  )
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyBrandSettings(db, actorId, data)));
 
 export const saveStoreProfileFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
@@ -134,9 +174,28 @@ export const saveNavOrderFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ menuKey: z.string().min(2).max(40), ids: z.array(z.string().min(2).max(80)).min(1).max(12) }).parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyNavOrder(db, actorId, data.menuKey, data.ids)));
 
+export const getContentHistoryFn = createServerFn({ method: "GET" })
+  .validator((input: unknown) => z.object({
+    entityType: z.enum(["page", "article"]),
+    entityId: z.string().min(2).max(100),
+  }).parse(input))
+  .handler(async ({ data }) => withContentWrite((db) => loadContentHistory(db, data.entityType, data.entityId)));
+
+export const restoreContentRevisionFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ revisionId: z.string().min(2).max(100) }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => restoreContentRevision(db, actorId, data.revisionId)));
+
+export const publishPageFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ id: z.string().min(2).max(80), published: z.boolean() }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyPagePublication(db, actorId, data.id, data.published)));
+
 export const savePageFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => pageSchema.parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyPageUpdate(db, actorId, data)));
+
+export const publishArticleFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ id: z.string().min(2).max(80), published: z.boolean() }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyArticlePublication(db, actorId, data.id, data.published)));
 
 export const saveArticleFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => articleSchema.parse(input))

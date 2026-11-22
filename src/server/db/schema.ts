@@ -502,8 +502,25 @@ export const shippingLogs = pgTable("shipping_logs", {
   note: text("note").notNull().default(""),
   carrier: text("carrier").notNull().default(""),
   handedOffAt: timestamp("handed_off_at", { withTimezone: true }),
+  senderSnapshot: jsonb("sender_snapshot").$type<Record<string, string> | null>(),
+  recipientSnapshot: jsonb("recipient_snapshot").$type<Record<string, string> | null>(),
   actor: text("actor").notNull().default("system"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+
+export const orderFulfillmentWork = pgTable("order_fulfillment_work", {
+  id: text("id").primaryKey(),
+  orderId: text("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+  pickedItems: jsonb("picked_items").$type<Array<{ orderItemId: string; pickedQuantity: number }>>().notNull().default([]),
+  pickerName: text("picker_name").notNull().default(""),
+  checkerName: text("checker_name").notNull().default(""),
+  packageCount: integer("package_count").notNull().default(1),
+  weightGrams: integer("weight_grams"),
+  discrepancyNote: text("discrepancy_note").notNull().default(""),
+  updatedBy: text("updated_by").references(() => adminUsers.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const wishlists = pgTable("wishlists", {
@@ -640,6 +657,24 @@ export const settings = pgTable("settings", {
   value: jsonb("value").$type<unknown>().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const contentRevisions = pgTable(
+  "content_revisions",
+  {
+    id: text("id").primaryKey(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    version: integer("version").notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    actorId: text("actor_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("content_revisions_entity_type_check", sql`${table.entityType} IN ('page', 'article')`),
+    uniqueIndex("content_revisions_entity_version_idx").on(table.entityType, table.entityId, table.version),
+    index("content_revisions_entity_created_idx").on(table.entityType, table.entityId, table.createdAt),
+  ],
+);
 
 export const sitePages = pgTable("site_pages", {
   id: text("id").primaryKey(),

@@ -67,3 +67,89 @@
   font-family: var(--font-display);
   letter-spacing: 0.14em;
 }
+
+
+/* SHAHOO order invoice: browser print is the first-class PDF path. */
+.invoice-sheet {
+  color: #29291f;
+  background: #fffdf8;
+  border: 1px solid #d7c49c;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 12px 35px rgb(23 61 40 / 7%);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.invoice-heading { display:grid; grid-template-columns: 1fr 1fr; align-items:center; gap:24px; border-bottom:2px solid #b69755; padding-bottom:18px; }
+.invoice-brand { display:flex; justify-content:center; align-items:center; min-height:118px; }
+.invoice-brand img { width:104px; height:118px; object-fit:contain; }
+.invoice-title { text-align:right; }
+.invoice-title h1 { color:#173d28; font-size:25px; font-weight:800; }
+.invoice-title p { margin-top:5px; color:#6d6758; }
+.invoice-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px 24px; padding:14px 0; border-bottom:1px solid #e6d8be; }
+.invoice-meta p { display:flex; gap:8px; align-items:baseline; }
+.invoice-parties { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0; }
+.invoice-panel { border:1px solid #dfd2b9; border-radius:12px; overflow:hidden; padding:0 14px 12px; }
+.invoice-panel h2 { margin:0 -14px 10px; padding:8px 14px; color:#fff9ee; background:#173d28; font-weight:700; }
+.invoice-panel p { margin-top:5px; overflow-wrap:anywhere; }
+.invoice-muted { color:#6d6758; font-size:11px; }
+.invoice-lines { width:100%; border-collapse:collapse; table-layout:auto; font-size:11px; }
+.invoice-lines th,.invoice-lines td { border:1px solid #d9c9a8; padding:7px 6px; text-align:center; vertical-align:middle; }
+.invoice-lines thead th { color:#fff9ee; background:#173d28; font-weight:700; }
+.invoice-lines .invoice-repeat-code { color:#173d28; background:#f5eedf; text-align:right; }
+.invoice-lines tbody tr { break-inside:avoid; page-break-inside:avoid; }
+.invoice-variant { color:#6d6758; }
+.invoice-bottom { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; align-items:stretch; }
+.invoice-notes { min-height:116px; }
+.invoice-totals { border:1px solid #dfd2b9; border-radius:12px; overflow:hidden; }
+.invoice-totals p { display:flex; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid #e6d8be; }
+.invoice-totals .invoice-grand-total { color:#fff9ee; background:#173d28; border:0; font-weight:800; }
+.invoice-footer { display:flex; justify-content:center; align-items:center; gap:22px; margin-top:30px; padding-top:14px; border-top:1px solid #b69755; color:#173d28; font-weight:700; }
+.invoice-footer small { color:#b69755; font-family:var(--font-display); letter-spacing:.18em; }
+@media (max-width: 640px) {
+  .invoice-sheet { padding:14px; font-size:11px; }
+  .invoice-heading,.invoice-parties,.invoice-bottom { grid-template-columns:1fr; }
+  .invoice-brand { min-height:92px; }
+  .invoice-brand img { width:76px; height:90px; }
+  .invoice-title { text-align:center; }
+  .invoice-lines { font-size:9px; }
+  .invoice-lines th,.invoice-lines td { padding:5px 3px; }
+}
+@page { size:A4; margin:12mm; }
+@page { @bottom-right { content:"صفحه " counter(page) " از " counter(pages); color:#6d6758; font-family:var(--font-sans); font-size:9px; } }
+@media print {
+  html,body { background:#fff !important; min-height:0 !important; }
+  body * { visibility:hidden !important; }
+  .invoice-print-root,.invoice-print-root * { visibility:visible !important; }
+  .invoice-print-root { position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; margin:0 !important; }
+  .invoice-toolbar { display:none !important; }
+  .invoice-sheet { border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; font-size:10px !important; }
+  .invoice-heading { break-inside:avoid; page-break-inside:avoid; }
+  .invoice-parties,.invoice-bottom,.invoice-footer { break-inside:avoid; page-break-inside:avoid; }
+  .invoice-lines { font-size:9px !important; }
+  .invoice-lines thead { display:table-header-group; }
+  .invoice-lines tfoot { display:table-footer-group; }
+  .invoice-lines tr { break-inside:avoid; page-break-inside:avoid; }
+  .invoice-panel,.invoice-totals { break-inside:avoid; page-break-inside:avoid; }
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+}
+
+
+/* Internal warehouse picking/packing slip; rendered only on admin order detail. */
+.packing-slip-sheet { background:#fff; border:1px solid #d9c9a8; border-radius:14px; padding:24px; color:#29291f; font-size:12px; line-height:1.9; }
+.packing-slip-lines th,.packing-slip-lines td { border:1px solid #d9c9a8; padding:8px 6px; text-align:center; vertical-align:middle; }
+.packing-slip-lines th { background:#173d28; color:#fff9ee; font-weight:700; }
+.packing-slip-lines tbody tr { break-inside:avoid; page-break-inside:avoid; }
+.packing-slip-lines input { width:18px; height:18px; accent-color:#173d28; }
+@media print {
+  body[data-print-target="invoice"] * { visibility:hidden !important; }
+  body[data-print-target="invoice"] .invoice-print-root,body[data-print-target="invoice"] .invoice-print-root * { visibility:visible !important; }
+  body[data-print-target="packing-slip"] * { visibility:hidden !important; }
+  body[data-print-target="packing-slip"] .packing-slip-print-root,body[data-print-target="packing-slip"] .packing-slip-print-root * { visibility:visible !important; }
+  body[data-print-target="packing-slip"] .packing-slip-print-root { position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; margin:0 !important; }
+  body[data-print-target="packing-slip"] .packing-slip-toolbar { display:none !important; }
+  body[data-print-target="packing-slip"] .packing-slip-sheet { border:0 !important; border-radius:0 !important; padding:0 !important; }
+  body[data-print-target="packing-slip"] .packing-slip-lines thead { display:table-header-group; }
+  body[data-print-target="packing-slip"] .packing-slip-lines tr { break-inside:avoid; page-break-inside:avoid; }
+}

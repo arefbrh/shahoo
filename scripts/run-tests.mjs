@@ -33,7 +33,7 @@ const applicationTests = [
   "src/lib/commerce-integrity.test.ts", "src/lib/wishlist-rules.test.ts", "src/lib/wishlist-sync.test.ts",
   "src/lib/cart-ui-rules.test.ts", "src/lib/cart-concurrency.test.ts", "src/lib/checkout-cart-safety.test.ts",
   "src/lib/home-carousel.test.ts", "src/components/site/cart-intents.test.ts", "src/components/site/cart-wiring.test.mjs",
-  "src/components/site/account-wiring.test.mjs", "src/lib/media-upload-client.test.ts", "src/server/auth/auth.test.ts",
+  "src/components/site/account-wiring.test.mjs", "src/lib/media-upload-client.test.ts", "src/server/media/disk.test.ts", "src/server/media/sanitize-image.test.ts", "src/server/auth/auth.test.ts",
   "src/server/auth/throttle.integration.test.ts", "src/server/admin/access-control.test.ts",
   "src/server/commerce/pricing.test.ts", "src/server/commerce/integrity.test.ts", "src/server/catalog/rules.test.ts",
   "src/server/offers/rules.test.ts", "src/server/db/migration-0501.test.ts", "src/server/env/runtime.test.ts",

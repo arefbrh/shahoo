@@ -84,7 +84,13 @@ export type CmsMedia = {
 };
 
 export type CmsDesk = {
-  uploadEnabled: false;
+  uploadEnabled: boolean;
+  brandName: string;
+  tagline: string;
+  copyright: string;
+  logos: { header: string; footer: string };
+  carousel: { autoPlay: boolean; intervalMs: number };
+  layout: StoreLayoutSettings;
   storyTitle: string;
   storyAbout: string;
   storyPhilosophy: string;
@@ -176,4 +182,16 @@ export type ProfileDraft = {
   address: string;
   instagram: string;
   telegram: string;
+};
+
+export type StoreLayoutSettings = { stickyHeader: boolean; headerLogoHeight: number; footerLogoHeight: number; footerAlignment: "start" | "center" };
+
+export type StoreLayoutDraft = StoreLayoutSettings;
+
+export type BrandSettingsDraft = {
+  brandName: string;
+  tagline: string;
+  copyright: string;
+  headerLogo: string;
+  footerLogo: string;
 };

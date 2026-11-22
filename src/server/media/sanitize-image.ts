@@ -237,22 +237,28 @@ function sanitizePng(bytes: Uint8Array): CleanImage | null {
   return { mime: "image/png", ext: "png", bytes: new Uint8Array(body) };
 }
 
-function gifLzwOk(minCodeSize: number, data: Uint8Array): boolean {
-  if (minCodeSize < 2 || minCodeSize > 8 || data.length === 0) return false;
+function gifLzwOk(minCodeSize: number, data: Uint8Array, expectedPixels: number): boolean {
+  if (minCodeSize < 2 || minCodeSize > 8 || data.length === 0 || expectedPixels < 1) return false;
   const clear = 1 << minCodeSize;
   const end = clear + 1;
   let codeSize = minCodeSize + 1;
   let next = end + 1;
-  const dict: number[][] = [];
-  for (let index = 0; index < clear; index += 1) dict[index] = [index];
-  let previous: number[] | null = null;
+  const dict: Array<{ first: number; length: number } | undefined> = [];
+  const reset = () => {
+    dict.length = 0;
+    for (let index = 0; index < clear; index += 1) dict[index] = { first: index, length: 1 };
+  };
+  reset();
+  let previous: { first: number; length: number } | null = null;
+  let decodedPixels = 0;
+  let sawInitialClear = false;
   let buffer = 0;
   let bits = 0;
   let cursor = 0;
   const readCode = (): number => {
     while (bits < codeSize) {
       if (cursor >= data.length) return -1;
-      buffer |= data[cursor] << bits;
+      buffer |= data[cursor]! << bits;
       bits += 8;
       cursor += 1;
     }
@@ -265,19 +271,22 @@ function gifLzwOk(minCodeSize: number, data: Uint8Array): boolean {
     const code = readCode();
     if (code < 0) return false;
     if (code === clear) {
+      sawInitialClear = true;
       codeSize = minCodeSize + 1;
       next = end + 1;
-      dict.length = 0;
-      for (let index = 0; index < clear; index += 1) dict[index] = [index];
+      reset();
       previous = null;
       continue;
     }
-    if (code === end) return true;
+    if (!sawInitialClear) return false;
+    if (code === end) return decodedPixels === expectedPixels;
     let entry = code < next ? dict[code] : undefined;
-    if (!entry && code === next && previous) entry = previous.concat([previous[0]]);
+    if (!entry && code === next && previous) entry = { first: previous.first, length: previous.length + 1 };
     if (!entry) return false;
+    decodedPixels += entry.length;
+    if (decodedPixels > expectedPixels) return false;
     if (previous && next < 4096) {
-      dict[next] = previous.concat([entry[0]]);
+      dict[next] = { first: previous.first, length: previous.length + 1 };
       next += 1;
       if (next === 1 << codeSize && codeSize < 12) codeSize += 1;
     }
@@ -289,18 +298,19 @@ function sanitizeGif(bytes: Uint8Array): CleanImage | null {
   if (bytes.length < 13) return null;
   const header = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
   if (header !== "GIF87a" && header !== "GIF89a") return null;
-  const width = bytes[6] | (bytes[7] << 8);
-  const height = bytes[8] | (bytes[9] << 8);
-  if (!edgeOk(width, height)) return null;
+  const width = bytes[6]! | (bytes[7]! << 8);
+  const height = bytes[8]! | (bytes[9]! << 8);
+  if (!edgeOk(width, height) || width * height > MAX_RAW) return null;
   let i = 13;
-  if (bytes[10] & 0x80) {
-    const size = 3 * (1 << ((bytes[10] & 7) + 1));
+  const hasGlobalPalette = (bytes[10]! & 0x80) !== 0;
+  if (hasGlobalPalette) {
+    const size = 3 * (1 << ((bytes[10]! & 7) + 1));
     if (i + size > bytes.length) return null;
     i += size;
   }
   const skipBlocks = (): boolean => {
     while (i < bytes.length) {
-      const count = bytes[i];
+      const count = bytes[i]!;
       i += 1;
       if (count === 0) return true;
       if (i + count > bytes.length) return false;
@@ -308,12 +318,13 @@ function sanitizeGif(bytes: Uint8Array): CleanImage | null {
     }
     return false;
   };
-  let sawImage = false;
+  let frameCount = 0;
+  let totalPixels = 0;
   while (i < bytes.length) {
-    const block = bytes[i];
+    const block = bytes[i]!;
     i += 1;
     if (block === 0x3b) {
-      if (!sawImage) return null;
+      if (frameCount === 0) return null;
       return { mime: "image/gif", ext: "gif", bytes: bytes.slice(0, i) };
     }
     if (block === 0x21) {
@@ -324,31 +335,40 @@ function sanitizeGif(bytes: Uint8Array): CleanImage | null {
     }
     if (block === 0x2c) {
       if (i + 9 > bytes.length) return null;
-      const local = bytes[i + 8];
+      const left = bytes[i]! | (bytes[i + 1]! << 8);
+      const top = bytes[i + 2]! | (bytes[i + 3]! << 8);
+      const frameWidth = bytes[i + 4]! | (bytes[i + 5]! << 8);
+      const frameHeight = bytes[i + 6]! | (bytes[i + 7]! << 8);
+      const local = bytes[i + 8]!;
       i += 9;
-      if (local & 0x80) {
+      if (!frameWidth || !frameHeight || left + frameWidth > width || top + frameHeight > height) return null;
+      const pixels = frameWidth * frameHeight;
+      totalPixels += pixels;
+      frameCount += 1;
+      if (frameCount > 100 || totalPixels > MAX_RAW) return null;
+      const hasLocalPalette = (local & 0x80) !== 0;
+      if (hasLocalPalette) {
         const size = 3 * (1 << ((local & 7) + 1));
         if (i + size > bytes.length) return null;
         i += size;
-      }
+      } else if (!hasGlobalPalette) return null;
       if (i >= bytes.length) return null;
-      const minCode = bytes[i];
+      const minCode = bytes[i]!;
       i += 1;
       const packed: number[] = [];
       let ended = false;
       while (i < bytes.length) {
-        const count = bytes[i];
+        const count = bytes[i]!;
         i += 1;
         if (count === 0) {
           ended = true;
           break;
         }
         if (i + count > bytes.length) return null;
-        for (let offset = 0; offset < count; offset += 1) packed.push(bytes[i + offset]);
+        for (let offset = 0; offset < count; offset += 1) packed.push(bytes[i + offset]!);
         i += count;
       }
-      if (!ended || !gifLzwOk(minCode, Uint8Array.from(packed))) return null;
-      sawImage = true;
+      if (!ended || !gifLzwOk(minCode, Uint8Array.from(packed), pixels)) return null;
       continue;
     }
     return null;

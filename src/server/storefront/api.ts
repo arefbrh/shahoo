@@ -20,6 +20,7 @@ import type {
   ShellData,
   SitePage,
   StoreProfile,
+  StoreLayoutSettings,
   VariantChoice,
 } from "@/lib/store-types";
 import { getDb } from "../db/client";
@@ -220,10 +221,20 @@ export const getShell = createServerFn({ method: "GET" }).handler(async (): Prom
   const map = settingMap(settingRows);
   const profile = profileSchema.parse(map.get("store.profile"));
   const logos = logosSchema.parse(map.get("brand.logos"));
+  const layoutRaw = map.get("store.layout");
+  const layoutConfig = layoutRaw && typeof layoutRaw === "object" ? (layoutRaw as Record<string, unknown>) : {};
+  const clampLayout = (value: unknown, fallback: number, min: number, max: number) => typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : fallback;
+  const layout: StoreLayoutSettings = {
+    stickyHeader: layoutConfig.stickyHeader !== false,
+    headerLogoHeight: clampLayout(layoutConfig.headerLogoHeight, 56, 40, 80),
+    footerLogoHeight: clampLayout(layoutConfig.footerLogoHeight, 112, 64, 144),
+    footerAlignment: layoutConfig.footerAlignment === "center" ? "center" : "start",
+  };
   const promoRaw = z.object({ text: z.string() }).parse(map.get("header.promo"));
   return {
     profile,
     logos,
+    layout,
     promo: publicPromo(promoRaw.text),
     nav: headerLinks.map(link),
     footer: [
@@ -284,7 +295,11 @@ export const getHome = createServerFn({ method: "GET" }).handler(async (): Promi
   const parsedStory = storySchema.parse(settingMap(settingRows).get("store.story"));
   const story = storyIsConfigured(parsedStory) ? parsedStory : { title: "", about: "", philosophy: "" };
   const bannerMedia = new Map(mediaRows.filter((row) => !row.deletedAt).map((row) => [row.id, { url: row.publicUrl, alt: row.alt }]));
+  const carouselRaw = settingMap(settingRows).get("home.carousel");
+  const carouselConfig = carouselRaw && typeof carouselRaw === "object" ? (carouselRaw as Record<string, unknown>) : {};
+  const carouselInterval = typeof carouselConfig.intervalMs === "number" ? carouselConfig.intervalMs : 6500;
   return {
+    carousel: { autoPlay: carouselConfig.autoPlay !== false, intervalMs: Math.min(15000, Math.max(3000, carouselInterval)) },
     banners: bannerRows.filter((row) => bannerIsVisible(row.startsAt, row.endsAt, Date.now())).map((row) => toBanner(row, bannerMedia)),
     sections: sectionRows.map(toSection),
     categories: categoryRows.map(toCategory),

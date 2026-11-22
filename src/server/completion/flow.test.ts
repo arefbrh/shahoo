@@ -28,7 +28,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 async function database() {
   const pg = new PGlite();
-  for (const name of ["0002_shahoo_foundation.sql", "0003_commerce_cart.sql", "0004_batch_0501.sql", "0005_batch_0502.sql", "0006_completion.sql", "0007_media_primary.sql", "0008_batch_02.sql", "0011_batch_05_customer_account.sql", "0012_batch_07_inventory_audit.sql"]) {
+  for (const name of ["0002_shahoo_foundation.sql", "0003_commerce_cart.sql", "0004_batch_0501.sql", "0005_batch_0502.sql", "0006_completion.sql", "0007_media_primary.sql", "0008_batch_02.sql", "0011_batch_05_customer_account.sql", "0012_batch_07_inventory_audit.sql", "0019_shipping_address_snapshots.sql"]) {
     await pg.exec(readFileSync(join(root, "migrations", name), "utf8"));
   }
   const db = drizzle(pg, { schema });
@@ -37,6 +37,7 @@ async function database() {
       ('cust-a', '09120000001', 'آزاده', 'active'),
       ('cust-b', '09120000002', 'بهار', 'active');
     insert into admin_users (id, email, full_name, status) values ('admin-1', 'desk@example.com', 'مدیر', 'active');
+    insert into settings (key, value) values ('shipping.sender_profile', '{"name":"شاهو","phone":"02100000000","province":"تهران","city":"تهران","address":"نشانی آزمایشی فرستنده","postalCode":"1234567890"}'::jsonb);
     insert into product_categories (id, slug, name, short_name) values ('cat-a', 'oils', 'روغن', 'روغن');
     insert into products (id, category_id, slug, sku, name, status) values ('prod-a', 'cat-a', 'prod-a', 'SKU-A', 'روغن', 'published');
     insert into product_variants (id, product_id, sku, label, price_irr) values ('var-a', 'prod-a', 'SKU-A-1', 'بسته', 1000);

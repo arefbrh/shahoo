@@ -13,7 +13,7 @@ export function HomeView({ data }: { data: HomeData }) {
     <div>
       {data.sections.map((section) => {
         if (!isPublicHomeSection(section)) return null;
-        if (section.sectionType === "hero") return <Hero key={section.id} banners={data.banners} />;
+        if (section.sectionType === "hero") return <Hero key={section.id} banners={data.banners} settings={data.carousel} />;
         if (section.sectionType === "featured_categories") {
           return (
             <Section key={section.id} title={section.title} subtitle={section.subtitle} body={section.body}>
@@ -136,7 +136,7 @@ function pickProducts(products: ProductCard[], flags: string[], limit: number) {
   return list.slice(0, limit);
 }
 
-function Hero({ banners }: { banners: HomeData["banners"] }) {
+function Hero({ banners, settings }: { banners: HomeData["banners"]; settings: HomeData["carousel"] }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -152,7 +152,7 @@ function Hero({ banners }: { banners: HomeData["banners"] }) {
   const [documentHidden, setDocumentHidden] = useState(false);
   const activeIndex = carouselIndex(index, banners.length);
   const activeBannerId = banners[activeIndex]?.id ?? null;
-  const rotating = banners.length > 1 && !paused && !hovered && !focused && !reducedMotion && !documentHidden;
+  const rotating = settings.autoPlay && banners.length > 1 && !paused && !hovered && !focused && !reducedMotion && !documentHidden;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -177,9 +177,9 @@ function Hero({ banners }: { banners: HomeData["banners"] }) {
           hoveredRef.current || carouselRef.current?.contains(document.activeElement)) return;
       setPreviousImageId(activeBannerId);
       setIndex((current) => carouselIndex(current + 1, banners.length));
-    }, 6500);
+    }, settings.intervalMs);
     return () => window.clearInterval(timer);
-  }, [rotating, banners.length, activeBannerId]);
+  }, [rotating, banners.length, activeBannerId, settings.intervalMs]);
 
   useEffect(() => {
     if (previousImageId === null) return;
@@ -279,10 +279,10 @@ function Hero({ banners }: { banners: HomeData["banners"] }) {
         </div>
         {banners.length > 1 ? (
           <div className="mt-2 text-center">
-            <button type="button" disabled={reducedMotion} aria-describedby={reducedMotion ? undefined : rotationHintId} onClick={toggleRotation} className="min-h-11 rounded-full px-3 text-xs font-bold text-forest transition-colors hover:text-[#795d28] active:bg-gold-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-70">
-              {reducedMotion ? "نمایش خودکار غیرفعال است" : paused ? "ادامه نمایش خودکار" : "توقف نمایش خودکار"}
+            <button type="button" disabled={reducedMotion || !settings.autoPlay} aria-describedby={reducedMotion || !settings.autoPlay ? undefined : rotationHintId} onClick={toggleRotation} className="min-h-11 rounded-full px-3 text-xs font-bold text-forest transition-colors hover:text-[#795d28] active:bg-gold-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:opacity-70">
+              {reducedMotion || !settings.autoPlay ? "نمایش خودکار غیرفعال است" : paused ? "ادامه نمایش خودکار" : "توقف نمایش خودکار"}
             </button>
-            {!reducedMotion ? (
+            {!reducedMotion && settings.autoPlay ? (
               <p id={rotationHintId} aria-live="polite" className="mx-auto max-w-lg text-xs leading-6 text-muted">
                 {paused ? "پس از انتخاب ادامه، نمایش خودکار با خروج نشانگر و فوکوس از گردونه آغاز می‌شود." : "نمایش خودکار هنگام حضور نشانگر یا فوکوس در گردونه متوقف است و پس از خروج هر دو ادامه می‌یابد."}
               </p>

@@ -3,6 +3,7 @@ import { adminReplyFn, adminThreadFn, adminTicketsFn, myThreadFn, myTicketsFn, o
 import { recordRefundFn, returnQueueFn, reviewReturnFn } from "@/server/commerce/fulfillment-api";
 import { finishReturnAction, replaceReturnQueue, type ReturnDeskRow } from "@/lib/return-desk";
 import { buttonGhost, buttonPrimary, fieldClass, pageTitle, panelClass } from "./ui";
+import { AdminHelp } from "./admin-help";
 
 type ThreadMessage = { id: string; authorType: string; body: string; createdAt: string };
 type Thread = { id: string; publicCode: string; subject: string; status: string; category: string; messages: ThreadMessage[] };
@@ -251,7 +252,7 @@ export function AdminSupport() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-forest">پشتیبانی و مرجوعی</h1>
+      <h1 className="text-3xl font-bold text-forest">پشتیبانی و مرجوعی</h1><AdminHelp title="پشتیبانی و مرجوعی">درخواست‌های مشتری را باز کنید، گفتگو را بخوانید و پاسخ را همراه با وضعیت مناسب ثبت کنید. بخش مرجوعی پایین صفحه صف جداگانه‌ای دارد؛ تأیید درخواست به‌تنهایی به معنی ثبت دریافت کالا یا استرداد وجه نیست. هر اقدام را فقط پس از بررسی سفارش و ثبت دلیل انجام دهید.</AdminHelp>
       {message ? <p className="mt-3 text-sm font-bold text-forest">{message}</p> : null}
       {tickets.length === 0 ? <p className="mt-4 text-sm text-muted">درخواستی نیست.</p> : null}
       <ul className="mt-4 space-y-3">
@@ -400,7 +401,7 @@ export function AdminReviews() {
   }, []);
   return (
     <div>
-      <h1 className="text-3xl font-bold text-forest">نظرها</h1>
+      <h1 className="text-3xl font-bold text-forest">نظرها</h1><AdminHelp title="نظرهای مشتریان">نظرها را پیش از نمایش عمومی بررسی کنید. تأیید یعنی انتشار نظر برای کاربران؛ ردکردن یعنی عدم نمایش آن. در تصمیم‌گیری به محتوای نظر و ارتباط آن با محصول توجه کنید؛ این بخش برای پاسخ‌گویی به تیکت‌ها نیست.</AdminHelp>
       {message ? <p className="mt-3 text-sm">{message}</p> : null}
       <ul className="mt-4 space-y-3">
         {rows.map((row) => (
