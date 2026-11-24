@@ -5,6 +5,7 @@
  * both share scripts/grok-pwa-shared.mjs.
  */
 import { readFileSync } from "node:fs";
+import { renderBrandedInstallPage, renderBrandedManifest } from "./shahoo-pwa-branding.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -30,7 +31,7 @@ function requestHost(req) {
 
 export function renderInstallPage(hostHeader, url = "/") {
   const template = readFileSync(INSTALL_PAGE_PATH, "utf8");
-  return renderInstallPageHtml(template, { host: hostHeader, url });
+  return renderBrandedInstallPage(template, { host: hostHeader, url, site: snapshotOgIdentity(process.cwd()).site });
 }
 
 function sendHtml(res, html) {
@@ -53,7 +54,7 @@ function serveGrokPwa(middlewares) {
     }
 
     if (pathOnly === "/__grok/manifest.webmanifest" || pathOnly === "/__grok/manifest.json") {
-      const body = Buffer.from(renderWebManifest(requestHost(req)), "utf8");
+      const body = Buffer.from(renderBrandedManifest(requestHost(req), snapshotOgIdentity(root).site), "utf8");
       res.statusCode = 200;
       res.setHeader("content-type", "application/manifest+json; charset=utf-8");
       res.setHeader("cache-control", "no-cache");
