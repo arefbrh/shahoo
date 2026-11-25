@@ -1,3 +1,4 @@
+import { IRAN_PROVINCES } from "@/lib/iran-provinces";
 import { useEffect, useState } from "react";
 import type { OfferCoupon, OfferDesk, OfferShipping } from "@/lib/offer-types";
 import { parseWhole } from "@/lib/catalog-rules";
@@ -197,6 +198,8 @@ function ShippingEditor({
   canWrite: boolean;
 }) {
   const [key, setKey] = useState(editing?.key ?? "");
+  const [province, setProvince] = useState(editing?.province ?? "");
+  const [city, setCity] = useState(editing?.city ?? "");
   const [title, setTitle] = useState(editing?.title ?? "");
   const [description, setDescription] = useState(editing?.description ?? "");
   const [price, setPrice] = useState(editing ? String(editing.priceToman) : "");
@@ -221,6 +224,7 @@ function ShippingEditor({
           key,
           title,
           description,
+          province, city,
           priceToman: priceValue,
           freeOverToman: freeValue,
           sortOrder: sortValue,
@@ -244,7 +248,10 @@ function ShippingEditor({
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="عنوان" value={title} onChange={setTitle} hint="نام قابل مشاهده برای مشتری؛ نمونه: ارسال با پست پیشتاز." />
         <Field label="شناسه انگلیسی" value={key} ltr onChange={setKey} disabled={Boolean(editing)} hint="شناسه داخلی یکتا؛ فقط حروف کوچک انگلیسی و خط تیره، نمونه: post-express. پس از ساخت قابل تغییر نیست." />
-        <Field label="توضیح" value={description} onChange={setDescription} />
+        <label>محدوده ارسال<select className={fieldClass} value={province} onChange={(event) => { setProvince(event.target.value); setCity(""); }}>
+          <option value="">همه استان‌ها</option>{IRAN_PROVINCES.map((name) => <option key={name}>{name}</option>)}</select></label>
+        {province && <Field label="شهر تحت پوشش" value={city} onChange={setCity} hint="خالی یعنی همه شهرهای استان." />}
+        <Field label="بازه تحویل و توضیحات ارسال" value={description} onChange={setDescription} />
         <Field label="هزینه، تومان" value={price} ltr onChange={setPrice} hint="هزینه‌ای که به سفارش افزوده می‌شود؛ فقط عدد تومان." />
         <Field label="رایگان از، تومان" value={freeOver} ltr onChange={setFreeOver} hint="از این مبلغ سبد به بالا هزینه این روش صفر می‌شود؛ خالی یعنی ارسال رایگان خودکار نداریم." />
         <Field label="ترتیب" value={sortOrder} ltr onChange={setSortOrder} />

@@ -1,3 +1,5 @@
+import { deliveryAreaKey, deliveryAreas } from "./delivery-area";
+import { IRAN_PROVINCES } from "../../lib/iran-provinces";
 import { and, asc, eq } from "drizzle-orm";
 import { irrToToman } from "@/lib/money";
 import type { OfferDesk, OfferResult } from "@/lib/offer-types";
@@ -5,14 +7,15 @@ import { dayKey, parseCouponDraft, parseShippingDraft, type CouponDraft, type Sh
 import { writeAudit } from "../auth/audit";
 import { SessionError, requireAdmin, requireAdminAny } from "../auth/guard";
 import { maskMobile } from "../auth/mobile";
-import { orderEvents, orders, coupons, shippingMethods } from "../db/schema";
+import { orderEvents, orders, coupons, shippingMethods, settings } from "../db/schema";
 import { recordReservationConflict, releaseHeldStock, asReservationConflict } from "../commerce/release-hold";
 
 export async function loadOfferDesk(): Promise<OfferDesk> {
   const { db } = await requireAdminAny(["settings.read", "settings.write"]);
-  const [couponRows, methodRows] = await Promise.all([
+  const [couponRows, methodRows, areas] = await Promise.all([
     db.select().from(coupons).orderBy(asc(coupons.code)),
     db.select().from(shippingMethods).orderBy(asc(shippingMethods.sortOrder)),
+    deliveryAreas(db),
   ]);
   return {
     coupons: couponRows.map((row) => ({
@@ -30,6 +33,7 @@ export async function loadOfferDesk(): Promise<OfferDesk> {
       isActive: row.isActive,
     })),
     methods: methodRows.map((row) => ({
+      ...areas.get(row.id),
       id: row.id,
       key: row.key,
       title: row.title,
@@ -99,6 +103,7 @@ export async function applyShippingDraft(
   actorId: string,
   input: ShippingDraft & { id?: string },
 ): Promise<OfferResult> {
+  if ((input.city && !input.province) || (input.province && !IRAN_PROVINCES.some((name) => name === input.province))) return { ok: false, message: "استان معتبر انتخاب کنید." };
   const parsed = parseShippingDraft(input);
   if (!parsed.ok) return parsed;
   const data = parsed.value;
@@ -122,6 +127,11 @@ export async function applyShippingDraft(
   await db.transaction(async (tx) => {
     if (input.id) await tx.update(shippingMethods).set(values).where(eq(shippingMethods.id, input.id));
     else await tx.insert(shippingMethods).values({ id, key: data.key, ...values });
+    if (input.province !== undefined || input.city !== undefined) {
+      const value = { province: input.province ?? "", city: input.city ?? "" };
+      await tx.insert(settings).values({ key: deliveryAreaKey(id), value })
+        .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
+    }
     await writeAudit(tx, {
       actorType: "admin",
       actorId,

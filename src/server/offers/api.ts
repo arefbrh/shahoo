@@ -18,6 +18,8 @@ const couponSchema = z.object({
 });
 
 const shippingSchema = z.object({
+  province: z.string().trim().max(40).optional(),
+  city: z.string().trim().max(40).optional(),
   id: z.string().min(2).max(80).optional(),
   key: z.string().min(2).max(40),
   title: z.string().min(2).max(60),

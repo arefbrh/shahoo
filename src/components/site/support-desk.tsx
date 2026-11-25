@@ -253,7 +253,7 @@ export function AdminSupport() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-forest">پشتیبانی و مرجوعی</h1><AdminHelp title="پشتیبانی و مرجوعی">درخواست‌های مشتری را باز کنید، گفتگو را بخوانید و پاسخ را همراه با وضعیت مناسب ثبت کنید. بخش مرجوعی پایین صفحه صف جداگانه‌ای دارد؛ تأیید درخواست به‌تنهایی به معنی ثبت دریافت کالا یا استرداد وجه نیست. هر اقدام را فقط پس از بررسی سفارش و ثبت دلیل انجام دهید.</AdminHelp>
+      <h1 className="text-3xl font-bold text-forest">پشتیبانی</h1><AdminHelp title="پشتیبانی">درخواست مشتری را باز کنید و پاسخ و وضعیت رسیدگی را ثبت کنید. مرجوعی به صورت تلفنی پیگیری می‌شود.</AdminHelp>
       {message ? <p className="mt-3 text-sm font-bold text-forest">{message}</p> : null}
       {tickets.length === 0 ? <p className="mt-4 text-sm text-muted">درخواستی نیست.</p> : null}
       <ul className="mt-4 space-y-3">

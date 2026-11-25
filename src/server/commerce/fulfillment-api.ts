@@ -1,3 +1,4 @@
+import { todayInTehran } from "../../lib/order-flow";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { moveOrderForAdmin, refundForAdmin, returnForCustomer, returnQueue, reviewReturnForAdmin, settlePaidCancelForAdmin, shipmentForAdmin } from "./fulfillment";
@@ -65,7 +66,7 @@ export const nextStatusOptions = manualNextStatuses;
 
 const packingWorkSchema = z.object({
   publicCode: z.string().min(4).max(32),
-  pickedItems: z.array(z.object({ orderItemId: z.string().min(1).max(100), pickedQuantity: z.number().int().min(0).max(1000) })).max(100),
+  pickedItems: z.array(z.object({ orderItemId: z.string().min(1).max(100), pickedQuantity: z.number().int().min(0).max(1000), lot: z.string().trim().max(80).optional(), expiresOn: z.union([z.iso.date(), z.literal("")]).optional() })).max(100),
   pickerName: z.string().trim().max(80),
   checkerName: z.string().trim().max(80),
   packageCount: z.number().int().min(1).max(100),
@@ -101,6 +102,9 @@ export const saveOrderPackingWorkFn = createServerFn({ method: "POST" })
         const requested = allowed.get(item.orderItemId);
         if (requested === undefined || seen.has(item.orderItemId) || item.pickedQuantity > requested) {
           return { ok: false as const, message: "مقادیر برداشت با اقلام سفارش مطابقت ندارد." };
+        }
+        if (item.pickedQuantity > 0 && item.expiresOn && item.expiresOn < todayInTehran()) {
+          return { ok: false as const, message: "برداشت از سری منقضی مجاز نیست." };
         }
         seen.add(item.orderItemId);
       }

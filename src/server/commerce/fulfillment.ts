@@ -1,4 +1,4 @@
-import { onlineReturnsEnabled } from "../../lib/order-flow";
+import { onlineReturnsEnabled, todayInTehran } from "../../lib/order-flow";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { canManuallyMove, canReviewReturn, canSettlePaidCancel, orderStatusAfterRefund, refundAmount, type RefundKind } from "@/lib/order-flow";
 import { chooseRefundSourcePayment, refundCeiling } from "../../lib/commerce-integrity.ts";
@@ -7,7 +7,7 @@ import { writeAudit } from "../auth/audit";
 import { requireAdmin, requireCustomer, SessionError } from "../auth/guard";
 import { maskMobile } from "../auth/mobile";
 import type { AppDatabase } from "../db/client";
-import { inventory, inventoryLogs, orderEvents, orderItems, orders, paymentLogs, payments, returnEvents, returnRequests, shippingLogs, settings } from "../db/schema";
+import { orderFulfillmentWork, inventory, inventoryLogs, orderEvents, orderItems, orders, paymentLogs, payments, returnEvents, returnRequests, shippingLogs, settings } from "../db/schema";
 import { recordNotice } from "../notify/events";
 import { orderStatusLabel } from "./pricing";
 import { releaseHeldStock } from "./release-hold";
@@ -54,6 +54,13 @@ function clean(value: string, max: number): string | null {
   return text;
 }
 
+async function packingHasExpiredLot(tx: DbTx, orderId: string) {
+  const [work] = await tx.select({ items: orderFulfillmentWork.pickedItems }).from(orderFulfillmentWork)
+    .where(eq(orderFulfillmentWork.orderId, orderId)).limit(1);
+  const today = todayInTehran();
+  return work?.items.some((item) => item.pickedQuantity > 0 && item.expiresOn && item.expiresOn < today);
+}
+
 export async function moveOrderStatus(db: AppDatabase, actorId: string, publicCode: string, next: string, reason: string) {
   const text = clean(reason, 400);
   if (!text || text.length < 2) return { ok: false as const, message: "دلیل تغییر وضعیت را وارد کنید." };
@@ -63,6 +70,7 @@ export async function moveOrderStatus(db: AppDatabase, actorId: string, publicCo
     if (next === "paid" || !canManuallyMove(order.status, next, order.paymentStatus)) {
       return { ok: false as const, message: "این تغییر وضعیت مجاز نیست." };
     }
+    if (next === "shipped" && await packingHasExpiredLot(tx, order.id)) return { ok: false as const, message: "سری منقضی را پیش از ارسال جایگزین کنید." };
     if (next === "cancelled" && order.paymentStatus !== "unpaid") {
       return { ok: false as const, message: "سفارش پرداخت‌شده را فقط با ثبت استرداد داخلی لغو کنید." };
     }
@@ -153,6 +161,7 @@ export async function recordShipment(
     if (!["ready_to_ship", "shipped", "delivered"].includes(order.status)) {
       return { ok: false as const, message: "سفارش هنوز آماده ثبت ارسال نیست." };
     }
+    if (order.status === "ready_to_ship" && await packingHasExpiredLot(tx, order.id)) return { ok: false as const, message: "سری منقضی را پیش از ارسال جایگزین کنید." };
     const [senderSetting] = await tx.select({ value: settings.value }).from(settings).where(eq(settings.key, "shipping.sender_profile")).limit(1);
     const rawSender = senderSetting?.value && typeof senderSetting.value === "object" ? senderSetting.value as Record<string, unknown> : {};
     const senderSnapshot = {

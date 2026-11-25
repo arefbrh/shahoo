@@ -1,3 +1,4 @@
+import { servesDestination } from "@/lib/public-shipping";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CartSnapshot, CheckoutContext, QuoteResult } from "@/lib/commerce-types";
@@ -27,7 +28,9 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
   const recipientNameLocked = Boolean(selectedAddress?.recipientName);
   const [customerNote, setCustomerNote] = useState("");
   const [couponCode, setCouponCode] = useState("");
-  const [shippingMethodId, setShippingMethodId] = useState(original.methods[0]?.id ?? "");
+  const [preferredMethod, setShippingMethodId] = useState(original.methods[0]?.id ?? "");
+  const availableMethods = initial.methods.filter((method) => servesDestination(method, province, city));
+  const shippingMethodId = availableMethods.find((method) => method.id === preferredMethod)?.id ?? availableMethods[0]?.id ?? "";
   const [paymentMethod, setPaymentMethod] = useState<"manual" | "payping">("manual");
   const [cart, setCart] = useState<CartSnapshot>(original.cart);
   const [identity, setIdentity] = useState<"unverified" | "verified" | "changed">("unverified");
@@ -225,7 +228,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         invalidate();
         return;
       }
-      void quoteCheckoutFn({ data: { shippingMethodId, couponCode } })
+      void quoteCheckoutFn({ data: { shippingMethodId, couponCode, province, city } })
         .then((result) => {
           if (cancelled || staleRef.current) return;
           const busyAfterRead = cartWritePending();
@@ -246,7 +249,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [shippingMethodId, couponCode, cart, identity, stale, quoteAttempt, invalidate]);
+  }, [shippingMethodId, couponCode, province, city, cart, identity, stale, quoteAttempt, invalidate]);
 
   const currentQuote = identity === "verified" && !stale && quote && quote.cart === cart && quote.method === shippingMethodId && quote.coupon === couponCode ? quote.result : null;
 
@@ -513,10 +516,10 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         </section>
         <fieldset className={`${panelClass} space-y-3 p-5`}>
           <legend className="font-bold text-forest">روش ارسال</legend>
-          {initial.methods.length === 0 ? (
-            <p className="text-sm leading-7 text-muted">هزینه و روش ارسال هنوز توسط فروشگاه اعلام نشده است. تا تنظیم آن، مبلغ ارسال و ارسال رایگان در این صفحه نمایش داده نمی‌شود.</p>
+          {availableMethods.length === 0 ? (
+            <p className="text-sm leading-7 text-muted">برای مقصد فعلی روش ارسال فعالی وجود ندارد. استان و شهر را بررسی کنید.</p>
           ) : (
-            initial.methods.map((method) => (
+            availableMethods.map((method) => (
               <label key={method.id} className="flex min-h-11 items-start gap-3 text-sm leading-7">
                 <input
                   type="radio"

@@ -24,6 +24,8 @@ export type CartMutation = {
 };
 
 export type ShippingChoice = {
+  province?: string;
+  city?: string;
   id: string;
   title: string;
   description: string;

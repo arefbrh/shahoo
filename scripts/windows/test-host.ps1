@@ -37,6 +37,8 @@ try {
     if ($LASTEXITCODE) { throw "Migration failed" }
     & "$PSScriptRoot\install-service.ps1"
     & "$PSScriptRoot\setup-server.ps1" -ConfigureFirewall:$false
+    # The hosted image includes IIS. Reserve HTTP/S for the proxy under test.
+    if (Get-Service W3SVC -ErrorAction SilentlyContinue) { Stop-Service W3SVC -Force }
     & "$PSScriptRoot\install-caddy-service.ps1" -ServiceName "ShahooCaddy"
     function Assert-Ready {
         foreach ($try in 1..30) {
@@ -66,6 +68,9 @@ try {
     if ($LASTEXITCODE -or [int]$count -ne @(Get-ChildItem migrations\*.sql).Count) { throw "Restored migration history differs" }
     & "$PSScriptRoot\restore-media.ps1" -ArchiveFile $empty.FullName -Force
     if (@(Get-ChildItem $media).Count) { throw "Empty archive restore failed" }
+} catch {
+    if (Test-Path "logs/caddy-service-stderr.log") { Get-Content "logs/caddy-service-stderr.log" -Tail 8 }
+    throw
 } finally {
     & pg_ctl.exe -D $pgdata -m fast -w stop
     Remove-Item .env -ErrorAction SilentlyContinue

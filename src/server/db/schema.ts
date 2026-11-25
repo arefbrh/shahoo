@@ -512,7 +512,7 @@ export const shippingLogs = pgTable("shipping_logs", {
 export const orderFulfillmentWork = pgTable("order_fulfillment_work", {
   id: text("id").primaryKey(),
   orderId: text("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
-  pickedItems: jsonb("picked_items").$type<Array<{ orderItemId: string; pickedQuantity: number }>>().notNull().default([]),
+  pickedItems: jsonb("picked_items").$type<Array<{ orderItemId: string; pickedQuantity: number; lot?: string; expiresOn?: string }>>().notNull().default([]),
   pickerName: text("picker_name").notNull().default(""),
   checkerName: text("checker_name").notNull().default(""),
   packageCount: integer("package_count").notNull().default(1),

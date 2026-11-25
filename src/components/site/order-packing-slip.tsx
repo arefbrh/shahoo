@@ -4,7 +4,7 @@ import { toPersianNum } from "@/lib/format";
 import { getOrderPackingWorkFn, saveOrderPackingWorkFn } from "@/server/commerce/fulfillment-api";
 
 type PackingWork = {
-  pickedItems: Array<{ orderItemId: string; pickedQuantity: number }>;
+  pickedItems: Array<{ orderItemId: string; pickedQuantity: number; lot?: string; expiresOn?: string }>;
   pickerName: string;
   checkerName: string;
   packageCount: number;
@@ -29,6 +29,7 @@ export function OrderPackingSlip({ order }: { order: OrderView }) {
         if (!active || !saved) return;
         setWork({
           pickedItems: order.lines.map((line) => ({
+            ...saved.pickedItems.find((item) => item.orderItemId === line.id),
             orderItemId: line.id,
             pickedQuantity: saved.pickedItems.find((item) => item.orderItemId === line.id)?.pickedQuantity ?? 0,
           })),
@@ -49,6 +50,13 @@ export function OrderPackingSlip({ order }: { order: OrderView }) {
     setWork((current) => ({
       ...current,
       pickedItems: current.pickedItems.map((item) => item.orderItemId === id ? { ...item, pickedQuantity: quantity } : item),
+    }));
+  }
+
+  function editLot(id: string, change: { lot?: string; expiresOn?: string }) {
+    setWork((current) => ({
+      ...current,
+      pickedItems: current.pickedItems.map((item) => item.orderItemId === id ? { ...item, ...change } : item),
     }));
   }
 
@@ -108,14 +116,17 @@ export function OrderPackingSlip({ order }: { order: OrderView }) {
           <div><h2 className="font-bold text-forest">کنترل بسته</h2><p className="mt-1">روش ارسال: {order.shippingTitle}</p><p>تعداد ردیف کالا: {toPersianNum(order.lines.length)}</p><p>تعداد کل واحدها: {toPersianNum(order.lines.reduce((sum, line) => sum + line.quantity, 0))}</p><p>یادداشت مشتری: {order.customerNote || "ندارد"}</p></div>
         </section>
         <table className="packing-slip-lines mt-5 w-full border-collapse text-sm">
-          <thead><tr><th>برداشت</th><th>ردیف</th><th>کالا / تنوع</th><th>SKU</th><th>تعداد درخواستی</th><th>تعداد برداشته‌شده</th></tr></thead>
+          <thead><tr><th>برداشت</th><th>ردیف</th><th>کالا / تنوع</th><th>SKU</th><th>تعداد درخواستی</th><th>تعداد برداشته‌شده</th><th>سری ساخت و انقضا</th></tr></thead>
           <tbody>{order.lines.map((line, index) => {
             const picked = work.pickedItems.find((item) => item.orderItemId === line.id)?.pickedQuantity ?? 0;
+            const item = work.pickedItems.find((row) => row.orderItemId === line.id);
             return <tr key={line.id}>
               <td><input aria-label={`برداشت ${line.name}`} type="checkbox" checked={picked === line.quantity} onChange={(event) => updatePicked(line.id, event.target.checked ? line.quantity : 0)} /></td>
               <td>{toPersianNum(index + 1)}</td><td>{line.name}{line.label ? <small className="block text-muted">{line.label}</small> : null}</td>
               <td><bdi dir="ltr">{line.sku || "—"}</bdi></td><td>{toPersianNum(line.quantity)}</td>
               <td><input className="w-20 rounded border border-line px-2 py-1 text-center" type="number" min={0} max={line.quantity} value={picked} onChange={(event) => updatePicked(line.id, Math.max(0, Math.min(line.quantity, Number(event.target.value) || 0)))} aria-label={`تعداد برداشت‌شده ${line.name}`} /></td>
+              <td><input aria-label={`سری ساخت ${line.name}`} maxLength={80} value={item?.lot ?? ""} onChange={(event) => editLot(line.id, { lot: event.target.value })} />
+                <input type="date" aria-label={`انقضای ${line.name}`} value={item?.expiresOn ?? ""} onChange={(event) => editLot(line.id, { expiresOn: event.target.value })} /></td>
             </tr>;
           })}</tbody>
         </table>
