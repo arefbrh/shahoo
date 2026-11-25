@@ -389,6 +389,10 @@ function toCategory(row: typeof productCategories.$inferSelect): CategoryCard {
   };
 }
 
+function catalogSearchText(value: string) {
+  return value.normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\s\u200c]+/g, "").toLowerCase();
+}
+
 export const listCatalog = createServerFn({ method: "GET" })
   .validator((input: unknown): CatalogQuery => {
     const parsed = catalogSchema.parse(input ?? {});
@@ -412,8 +416,8 @@ export const listCatalog = createServerFn({ method: "GET" })
       if (data.best && !product.isBestSeller) return false;
       if (data.available && !product.inStock) return false;
       if (data.q) {
-        const haystack = `${product.name} ${product.englishName} ${product.subtitle}`.toLowerCase();
-        if (!haystack.includes(data.q.toLowerCase())) return false;
+        const needle = catalogSearchText(data.q);
+        if (![product.name, product.englishName, product.subtitle].some((value) => catalogSearchText(value).includes(needle))) return false;
       }
       return true;
     });

@@ -11,8 +11,8 @@ import { useCartIntents } from "./use-cart-intents";
 import { ProductMark } from "./product-mark";
 import { buttonGhost, buttonGold, buttonPrimary, pageKicker, panelClass } from "./ui";
 
-export function ProductView({ product }: { product: ProductDetail }) {
-  const initial = product.variants.find((variant) => variant.isDefault) ?? product.variants[0];
+export function ProductView({ product, initialSku }: { product: ProductDetail; initialSku?: string }) {
+  const initial = product.variants.find((item) => item.sku === initialSku) ?? product.variants.find((variant) => variant.isDefault) ?? product.variants[0];
   const [variantId, setVariantId] = useState(initial?.id ?? "");
   const [imageId, setImageId] = useState(product.gallery.find((image) => image.isPrimary)?.id ?? product.gallery[0]?.id ?? "");
   const [quantity, setQuantity] = useState(1);
@@ -103,6 +103,9 @@ export function ProductView({ product }: { product: ProductDetail }) {
         </p>
         <div className="mt-5 border-t border-line pt-4">
           <p className="text-2xl font-bold tabular-nums text-forest">{formatTomanFromIrr(variant.priceIrr)}</p>
+          {variant.amount && variant.amount > 0 && variant.unitKind !== "custom" ? (
+            <p className="text-xs text-muted">هر ۱۰۰ {variant.unitKind === "volume" ? "میلی‌لیتر" : "گرم"}: {formatTomanFromIrr(Math.round(variant.priceIrr * 100 / variant.amount))}</p>
+          ) : null}
           {discounted && variant.compareAtPriceIrr ? (
             <p className="text-sm text-muted line-through tabular-nums">{formatTomanFromIrr(variant.compareAtPriceIrr)}</p>
           ) : null}

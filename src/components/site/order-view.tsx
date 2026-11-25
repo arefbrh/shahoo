@@ -17,6 +17,7 @@ export function OrderDetail({ order }: { order: OrderView | null }) {
         <p className="mt-4 text-sm leading-8">
           این سفارش برای شما در دسترس نیست. اگر همین‌جا ثبت شده، با همان مرورگر برگردید یا با حساب همان شماره وارد شوید.
         </p>
+        <Link to="/contact" className={buttonGhost}>پیگیری با پشتیبانی</Link>
         <Link to="/account" className={`mt-6 ${buttonGhost}`}>
           حساب کاربری
         </Link>

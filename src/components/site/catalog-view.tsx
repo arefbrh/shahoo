@@ -7,7 +7,7 @@ import { ProductCardView } from "./product-card";
 import { pageKicker, pageTitle } from "./ui";
 
 const sorts = [
-  ["popular", "محبوب‌ترین"],
+  ["popular", "پیشنهاد فروشگاه"],
   ["newest", "جدیدترین"],
   ["price-asc", "ارزان‌ترین"],
   ["price-desc", "گران‌ترین"],
@@ -276,7 +276,7 @@ export function CatalogView({
             />
 
             <VisualToggle
-              label="محصولات دارای نشان ارگانیک"
+              label="محصولات طبیعی"
               icon={<Sparkles className="h-4 w-4 text-gold" />}
               checked={query.organic}
               onChange={(organic) => setSearch({ organic })}

@@ -311,7 +311,15 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         return;
       }
       if (paymentMethod === "payping") {
-        const intent = await initiatePayPingPaymentFn({ data: { orderId: result.orderId, idempotencyKey: checkoutKey() } });
+        let intent;
+        try {
+          intent = await initiatePayPingPaymentFn({ data: { orderId: result.orderId, idempotencyKey: checkoutKey() } });
+        } catch {
+          succeeded = true;
+          notifyCart(0);
+          window.location.assign(`/order/${result.publicCode}`);
+          return;
+        }
         succeeded = true;
         try { sessionStorage.removeItem("shahoo-checkout-key"); } catch { /* The payment attempt is already durable. */ }
         window.location.assign(intent.redirectUrl);
@@ -362,7 +370,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
           <p className={pageKicker}>SHAHOO</p>
           <h1 className={pageTitle}>تسویه حساب</h1>
           <p className="mt-2 text-sm leading-8 text-muted">
-            سفارش با وضعیت «در انتظار پرداخت» ثبت می‌شود و موجودی تا ۲۴ ساعت کنار گذاشته می‌شود. در صورت فعال بودن پرداخت آنلاین، پس از ثبت سفارش به پی‌پینگ هدایت می‌شوید.
+            سفارش با وضعیت «در انتظار پرداخت» ثبت می‌شود و موجودی تا ۲۴ ساعت کنار گذاشته می‌شود. {initial.paypingEnabled ? "با انتخاب پرداخت آنلاین، به پی‌پینگ هدایت می‌شوید." : "برای پیگیری، کد سفارش را نگه دارید و از راه‌های تماس فروشگاه استفاده کنید."}
           </p>
         </div>
         {checking || stale || cartPending || hasRetry ? (

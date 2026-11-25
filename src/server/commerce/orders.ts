@@ -13,9 +13,6 @@ import { orderStatusLabel, paymentStatusLabel } from "./pricing";
 import { canSettlePaidCancel, manualNextStatuses } from "@/lib/order-flow";
 import { latestShipment } from "./fulfillment";
 
-const PAYMENT_NOTE =
-  "هیچ پرداختی ثبت نشده است. زرین‌پال، زیبال و آیدی‌پی در این مرحله فراخوانی نمی‌شوند و این صفحه به‌معنای پرداخت موفق نیست.";
-
 export async function customerOrderSummaries(db: AppDatabase, customerId: string): Promise<OrderSummary[]> {
   await releaseExpiredHolds(db);
   const rows = await db
@@ -106,8 +103,8 @@ export async function loadOrder(publicCode: string): Promise<OrderView | null> {
     createdAtLabel: formatFaDate(order.createdAt),
     holdUntilLabel: order.status === "awaiting_payment" && hold ? formatFaDate(hold) : null,
     paymentNote: paid
-      ? "پرداخت در سرویس داخلی تأیید شده است. درگاه بیرونی وصل نیست و این صفحه به‌معنای واریز بانکی زنده نیست."
-      : PAYMENT_NOTE,
+      ? `وضعیت مالی ثبت‌شده برای این سفارش: ${paymentStatusLabel(order.paymentStatus)}.`
+      : "پرداخت تأیید نشده است. برای پیگیری، کد سفارش را به پشتیبانی اعلام کنید.",
     trackingCode: shipment?.trackingCode ?? order.trackingCode,
     carrier: shipment?.carrier ?? "",
     shipmentNote: staffOnlyOrderNote(shipment?.note, staff),

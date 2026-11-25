@@ -10,6 +10,8 @@ import { getProduct, getProductFaqs } from "@/server/storefront/api";
 import { getSeoOrigin } from "@/server/seo/api";
 
 export const Route = createFileRoute("/product/$productId")({
+  validateSearch: (search: Record<string, unknown>): { sku?: string } =>
+    typeof search.sku === "string" ? { sku: search.sku } : {},
   loader: async ({ params }) => {
     const [product, origin, faqs] = await Promise.all([
       getProduct({ data: { slug: params.productId } }),
@@ -36,7 +38,8 @@ export const Route = createFileRoute("/product/$productId")({
 
 function ProductPage() {
   const { product, origin, reviews, faqs } = Route.useLoaderData();
-  const variant = product.variants.find((item: VariantChoice) => item.isDefault) ?? product.variants[0];
+  const { sku } = Route.useSearch();
+  const variant = product.variants.find((item) => item.sku === sku) ?? product.variants.find((item: VariantChoice) => item.isDefault) ?? product.variants[0];
   return (
     <>
       <JsonLd
@@ -60,7 +63,7 @@ function ProductPage() {
           })}
         />
       ) : null}
-      <ProductView product={product} />
+      <ProductView key={variant?.id ?? product.id} product={product} initialSku={variant?.sku} />
       <ProductFaq customFaqs={faqs} />
       <ReviewsPanel productId={product.id} reviews={reviews} />
     </>

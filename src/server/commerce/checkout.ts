@@ -63,7 +63,7 @@ export async function checkoutContext(): Promise<CheckoutContext> {
   return {
     cart: cart ? await loadCart(db, cart.id) : { count: 0, lines: [], subtotalIrr: 0 },
     methods: await listMethods(db),
-    paypingEnabled: payPingConfigured(process.env),
+    paypingEnabled: Boolean(customer) && payPingConfigured(process.env),
     account: customer ? { fullName: customer.fullName, mobile: customer.mobile } : null,
     addresses: customer ? await listAddresses(db, customer.id) : [],
   };

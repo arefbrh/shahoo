@@ -89,7 +89,7 @@ export async function generateTorobProductFeed(): Promise<TorobFeedResponse> {
       page_unique_code: row.sku || `${row.productId}_${row.variantId}`,
       title: `${row.productName}${row.variantLabel ? ` (${row.variantLabel})` : ""} - شاهو`,
       subtitle: row.productSubtitle || "محصولات طبیعی شاهو",
-      page_url: `${origin}/product/${encodeURIComponent(row.slug)}`,
+      page_url: `${origin}/product/${encodeURIComponent(row.slug)}?sku=${encodeURIComponent(row.sku)}`,
       price: currentPrice,
       current_price: currentPrice,
       old_price: oldPrice,

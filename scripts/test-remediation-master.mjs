@@ -146,7 +146,8 @@ test("Spreadsheet exporter builds valid XML and escapes formula injection vulner
 
   const xml = buildInvoiceSheetXml(mockOrder);
   assert.ok(xml.includes("<?xml version="));
-  assert.ok(xml.includes("urn:schemas-microsoft-com:office:spreadsheet") || xml.includes("schemas.openxmlformats.org"));
+  const namespace = /^<\?xml[^>]*>\s*<worksheet\s+xmlns="([^"]+)"/.exec(xml)?.[1];
+  assert.equal(namespace, "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
   assert.ok(xml.includes("روغن زیتون فرابکر طارم"));
   assert.ok(xml.includes("SH-9999"));
 

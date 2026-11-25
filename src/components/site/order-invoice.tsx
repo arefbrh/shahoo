@@ -2,7 +2,12 @@ import type { OrderView } from "@/lib/commerce-types";
 import { formatTomanFromIrr, toPersianNum } from "@/lib/format";
 import { downloadInvoicePng, downloadInvoiceXlsx } from "@/lib/invoice-export";
 
+import { getRouteApi } from "@tanstack/react-router";
+
+const rootRoute = getRouteApi("__root__");
+
 export function OrderInvoice({ order }: { order: OrderView }) {
+  const { profile } = rootRoute.useLoaderData();
   return (
     <section className="invoice-print-root mt-6" aria-label="فاکتور فروش شاهو">
       <div className="invoice-toolbar mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -47,8 +52,10 @@ export function OrderInvoice({ order }: { order: OrderView }) {
         <div className="invoice-parties">
           <section className="invoice-panel">
             <h2>اطلاعات فروشگاه</h2>
-            <p><strong>نام فروشگاه:</strong> شاهو (SHAHOO)</p>
-            <p className="invoice-muted">اطلاعات تماس و نشانی فروشنده از تنظیمات رسمی فروشگاه تکمیل خواهد شد.</p>
+            <p><strong>نام فروشگاه:</strong> {profile.brandName}</p>
+            {profile.phone && <p>تلفن: <bdi>{profile.phone}</bdi></p>}
+            {profile.address && <p>نشانی: {profile.address}</p>}
+            {profile.email && <p>ایمیل: <bdi>{profile.email}</bdi></p>}
           </section>
           <section className="invoice-panel">
             <h2>اطلاعات خریدار</h2>
