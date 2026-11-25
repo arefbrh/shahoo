@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { DEFAULT_PRODUCT_FAQS, DEFAULT_TRUST_MARKS } from "../../lib/cms-defaults.ts";
 import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { tehranDayKey } from "../../lib/tehran-time.ts";
