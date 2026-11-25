@@ -1,8 +1,21 @@
 # SHAHOO v1.0.0 — Current issue register and release blockers
 
-**Current stage (2026-11-25): Batch 09 remediation is complete; Batch 10 infrastructure remediation is IN PROGRESS.** The release decision remains **NOT READY FOR PRODUCTION CUTOVER**. The Batch 10 source integration candidate is prepared locally, but it has not been committed to GitHub, opened as a pull request, deployed to Preview, or validated on a running self-hosted stack. `main` remains the Vercel Production branch and must not receive unreviewed changes.
+## Active issues — 2026-11-25
 
-This register preserves the Batch 09 issue findings and their evidence boundaries. Batch 09 is not “not started”: its corrective remediation was completed on 2026-11-20. The current Batch 10 status and latest environment blockers are recorded in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md), [docs/INTEGRATION_DIFF.md](docs/INTEGRATION_DIFF.md), [docs/ADMIN_IMPLEMENTATION_TRACKER.md](docs/ADMIN_IMPLEMENTATION_TRACKER.md), and [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md). The historical pre-Revision 02.1 register remains preserved in [docs/archive/REMAINING_ISSUES_pre_revision_02_1.md](docs/archive/REMAINING_ISSUES_pre_revision_02_1.md).
+PR #11 is merged into `main`. The release milestone tracks the environment checks and decisions that remain open. [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
+
+| Scope | Latest evidence | Tracking |
+| --- | --- | --- |
+| Production schema | `0016` recorded on Production. Staging and the disposable branch are at `0019`. Recovery plan and Production upgrade are open. | [#13](https://github.com/shahoo-workspace/shahoo/issues/13) |
+| Preview checkout | Local guest checkout passed with a synthetic shipping method. Staging had zero active methods at the last check. | [#14](https://github.com/shahoo-workspace/shahoo/issues/14) |
+| Preview admin and media | The sign-in page loaded and Preview settings match the private Staging bucket. Authenticated access and the application media lifecycle are open. | [#15](https://github.com/shahoo-workspace/shahoo/issues/15) |
+| Target VPS recovery | Linux and Windows CI drills passed on disposable infrastructure. The target-host exercise remains open. | [#16](https://github.com/shahoo-workspace/shahoo/issues/16) |
+| Follow-up tests | PR #12 adds schema upgrade and PostgreSQL checks. Execution is deferred at the owner's request. | [#17](https://github.com/shahoo-workspace/shahoo/issues/17) |
+| External providers | Payment, SMS and carrier integration have their own approval and verification scope. | [#18](https://github.com/shahoo-workspace/shahoo/issues/18) |
+
+## Historical audit register
+
+The following findings preserve earlier batch evidence. Use the current issue links above and the [project handoff](PROJECT_HANDOFF.md) to establish the latest status. [Archive](docs/archive/REMAINING_ISSUES_pre_revision_02_1.md)
 
 Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VERIFIED; OPEN; NOT VERIFIED; BLOCKED BY ENVIRONMENT; DEFERRED TO BATCH 09**. “Verified” means only the specifically named historical verification; it does not claim a fresh run for this integration candidate. The evidence register, not old totals, controls the release gate.
 

@@ -1,12 +1,22 @@
 # SHAHOO — Project Handoff & Engineering Memory
 
-> **Canonical handoff for future agents and maintainers.** Read this file before changing code, infrastructure, migrations, or release state. It consolidates repository evidence and the verified project history available on 2026-11-24. It is deliberately explicit about what was tested, what was only reviewed, and what remains blocked.
->
-> **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but Production schema/data verification, live provider activation, PostgreSQL multi-connection verification, and final release checks are still outstanding.
+> **Canonical handoff for maintainers.** The current status appears first. The sections below it retain engineering history and prior verification.
 
-**Last reconciled:** 2026-11-25 (Batch 10 local integration and live GitHub state check)
+**Last reconciled:** 2026-11-25
 
-## 0. Latest verified repository maintenance
+## Current integration and release status
+
+| Area | Verified state |
+| --- | --- |
+| GitHub | The owner authorized the merge of PR #11 without a new test run. Source was integrated into `main` as `c282747`. New schema tests are in draft PR #12. [PR #11](https://github.com/shahoo-workspace/shahoo/pull/11) · [PR #12](https://github.com/shahoo-workspace/shahoo/pull/12) |
+| CI evidence | The last pre-merge candidate at `571c63e` passed project tests, PostgreSQL, Linux and Windows recovery, quality and security. [CI run](https://github.com/shahoo-workspace/shahoo/actions/runs/45683089313) |
+| Preview | The application build at `09766d6` returned healthy readiness and loaded the catalog, returns page and admin sign-in page. Its branch-specific `DATABASE_URL` targets Neon Staging. [Preview](https://shahoo-28z3v7jty-shahoo.vercel.app) |
+| PostgreSQL | The last read-only check recorded `0016` on Production and `0019` on Staging and the disposable rehearsal branch. The Production upgrade requires a separate approved recovery plan. [Issue #13](https://github.com/shahoo-workspace/shahoo/issues/13) |
+| Public release | Track Preview checkout and admin media, target VPS recovery, and the new QA PR before the release decision. [Release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1) |
+
+The repository merge and any Production rollout are separate operational events. Use the current [project status](docs/PROJECT_STATUS.md), [test report](TEST_REPORT.md), and [issue register](REMAINING_ISSUES.md) for the open gates. The subsequent sections retain historical snapshots.
+
+## 0. Historical repository maintenance
 
 - PR #2, `docs: add comprehensive SHAHOO project handoff`, was merged after its full GitHub Actions CI run completed successfully. Merge commit: `299b85a7aa1b76d05bd03594915b888d7d469ca9`. This was documentation-only; it did not change application code, migrations, database settings, or deploy Production.
 - PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updated the agent entry point and marked superseded batch/status documents as historical. Its CI run `44713902624` completed successfully for head `a0516f65a2474a1e8cb9b60b3981f31493184401`; it was squash-merged into `main` as `ab5d3617f62b7156b2a90504d86f2e4d9409e2d3`. Documentation-only; no application source, dependencies, migrations, database data, secrets, or deployment settings changed.

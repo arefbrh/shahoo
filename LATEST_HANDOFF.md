@@ -1,4 +1,10 @@
-# Historical handoff archive — superseded
+# SHAHOO handoff archive
+
+## Current handoff — 2026-11-25
+
+PR #11 is merged. Continue from the canonical [project handoff](PROJECT_HANDOFF.md), [test evidence](TEST_REPORT.md) and [release issues](REMAINING_ISSUES.md). The new verification work is tracked in [PR #12](https://github.com/shahoo-workspace/shahoo/pull/12).
+
+## Historical handoffs
 
 This file contains chronological handoffs from earlier batches. Some instructions and status statements below are obsolete. Do not use them to determine current project state or authorization. Start with [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), then [REMAINING_ISSUES.md](REMAINING_ISSUES.md) and [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md). The documentation map is [docs/README.md](docs/README.md).
 

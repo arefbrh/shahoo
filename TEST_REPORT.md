@@ -1,4 +1,20 @@
-> **Historical document — not current instructions.** This file preserves earlier planning, review guidance, or test snapshots. Some dates, statuses, commands, and next-step instructions may be superseded. For the authoritative current state and roadmap, start with [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), then [REMAINING_ISSUES.md](REMAINING_ISSUES.md) and [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md). See [docs/README.md](docs/README.md) for the document map.
+# SHAHOO test evidence
+
+## PR #11 integration — 2026-11-25
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Candidate CI | EXECUTED — PASS | Candidate `571c63e`. Project tests, PostgreSQL, quality, security, Linux and Windows recovery passed. [Run 45683089313](https://github.com/shahoo-workspace/shahoo/actions/runs/45683089313) |
+| Disposable local project suite | EXECUTED — PASS | 516 checks across the script, application and migration groups before merge. |
+| Candidate Preview | EXECUTED — PASS | Application build `09766d6`. Readiness, catalog, returns and the admin sign-in page returned HTTP 200. [Preview](https://shahoo-28z3v7jty-shahoo.vercel.app) |
+| Local guest checkout | EXECUTED — PASS | A disposable PostgreSQL 16 database and synthetic shipping method produced exactly one unpaid order and displayed its receipt. |
+| Merge `c282747` | NOT EXECUTED — OWNER DEFERRED | The merge was authorized without a new project-suite run. [PR #11](https://github.com/shahoo-workspace/shahoo/pull/11) |
+| Follow-up schema tests | NOT EXECUTED — OWNER DEFERRED | New tests are in draft PR #12. [PR #12](https://github.com/shahoo-workspace/shahoo/pull/12) |
+| Authenticated Preview, target VPS and operational recovery | NOT VERIFIED | Remaining checks have their own acceptance criteria. [Release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1) |
+
+## Historical reports
+
+The following sections preserve earlier test snapshots. Use the [project handoff](PROJECT_HANDOFF.md) and [issue register](REMAINING_ISSUES.md) for current decisions.
 
 ---
 

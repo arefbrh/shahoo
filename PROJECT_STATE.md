@@ -2,7 +2,11 @@
 
 > **Historical state snapshots follow.** This file contains detailed status records from earlier batches and may contain superseded dates, release gates, and next actions. The canonical current state is [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md); current unresolved findings are in [REMAINING_ISSUES.md](REMAINING_ISSUES.md).
 
-## Current workflow status — Batch 09 remediation (2026-11-19)
+## Current status — 2026-11-25
+
+PR #11 integrated the self-hosted candidate into `main`. Draft PR #12 contains the follow-up checks. The last Production schema check recorded `0016`; the Staging schema recorded `0019`. [Status report](docs/PROJECT_STATUS.md) · [Release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
+
+## Historical workflow status — Batch 09 remediation (2026-11-19)
 
 The latest completed remediation is **Batch 08 Revision 02**, whose implementation has been completed and reviewed. **Revision 02.1** is the current documentation and release-evidence reconciliation stage, not final release approval. The release decision remains **NOT READY FOR RELEASE**; Batch 09 source remediation is complete for owner review. The next action is independent review of the archive, the evidence and remaining blockers; no later phase or provider work is authorized by this handoff.
 

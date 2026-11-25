@@ -1,3 +1,10 @@
+## 2026-11-25 — Self-hosted integration and repository documentation
+
+- Merged the audited self-hosted candidate, including server and worker support, Linux and Windows recovery, CMS and order changes, into `main` at `c282747`. [PR #11](https://github.com/shahoo-workspace/shahoo/pull/11)
+- Recorded the pre-merge CI evidence, Preview verification and remaining release gates. [Test report](TEST_REPORT.md) · [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
+- Added a repository overview, contributor guide, and issue and PR templates. [README](README.md) · [Contributing](CONTRIBUTING.md)
+- Prepared additional migration tests in draft PR #12. Execution is deferred at the owner's request. [PR #12](https://github.com/shahoo-workspace/shahoo/pull/12)
+
 ## 2026-11-20 — Repository documentation consolidation
 
 - PR #2 added the canonical `PROJECT_HANDOFF.md` and was merged after all required GitHub CI jobs completed successfully (merge commit `299b85a7aa1b76d05bd03594915b888d7d469ca9`).

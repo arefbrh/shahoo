@@ -9,12 +9,14 @@ This directory explains which documents are current, which are historical, and w
 3. [Batch 09 comprehensive audit](../BATCH_09_COMPREHENSIVE_AUDIT.md) and [remediation report](../BATCH_09_REMEDIATION_REPORT.md) — detailed source audit and corrective work evidence.
 4. [AGENTS.md](../AGENTS.md) — non-negotiable contributor/agent rules.
 5. [Production guidance](PRODUCTION.md) — deployment and release constraints; never infer that Production is configured merely because Preview works.
+6. [Test evidence](../TEST_REPORT.md) — results by candidate and environment, including deferred checks.
+7. [Release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1) — active work items and their acceptance criteria.
 
 ## Roadmap and self-hosting operations
 
 - [Admin implementation tracker](ADMIN_IMPLEMENTATION_TRACKER.md) — Batch 01–10 roadmap and current exit criteria.
 
-## Self-hosting and operations (new integration candidate)
+## Self-hosting and operations
 
 - [Integration diff](INTEGRATION_DIFF.md) — files added, changed, corrected and deliberately left untouched.
 - [Project status](PROJECT_STATUS.md) — source comparison and actual verification boundary.

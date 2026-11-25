@@ -1,0 +1,24 @@
+name: گزارش مشکل
+description: خطا یا رفتار نادرست را با گام‌های بازتولید ثبت کنید
+labels: [bug]
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: محیط و نسخه
+      description: نام محیط، نسخه یا SHA و در صورت ارتباط مرورگر را بنویسید.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: گام‌های بازتولید
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: نتیجهٔ واقعی و نتیجهٔ مورد انتظار
+      description: گزارش یا تصویر بدون رمز، توکن یا دادهٔ مشتری را اضافه کنید.
+    validations:
+      required: true
