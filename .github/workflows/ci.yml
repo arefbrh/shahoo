@@ -98,6 +98,49 @@ jobs:
             node --version
           '
 
+      - name: Disposable self-host runtime and media restore
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker compose down -v --remove-orphans || true
+          }
+          trap cleanup EXIT
+
+          # Fresh disposable CI containers only; never use live/staging credentials.
+          docker tag shahoo-self-host:ci shahoo-app:latest
+          docker compose up -d --no-build db app
+          docker compose exec -T -e SHAHOO_ALLOW_PRODUCTION_MIGRATE=1 app node scripts/migrate.mjs
+
+          ready=0
+          for attempt in $(seq 1 60); do
+            if docker compose exec -T app curl -fsS 'http://127.0.0.1:3000/api/health?type=ready' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            docker compose logs --tail=100 db app
+            echo "Disposable application did not become ready." >&2
+            exit 1
+          fi
+
+          docker compose up -d --no-build worker
+          docker compose exec -T worker node scripts/worker-healthcheck.mjs
+          docker compose exec -T app sh -c "printf 'ci-original' > /app/storage/media/ci-test-marker.txt"
+
+          mkdir -p "$RUNNER_TEMP/shahoo-media"
+          bash scripts/linux/backup-media.sh "$RUNNER_TEMP/shahoo-media" 1
+          archive="$(find "$RUNNER_TEMP/shahoo-media" -maxdepth 1 -type f -name 'shahoo_media_*.tar.gz' -print -quit)"
+          test -n "$archive"
+          docker compose exec -T app sh -c "printf 'ci-modified' > /app/storage/media/ci-test-marker.txt"
+          printf 'RESTORE\n' | STORAGE_PROVIDER=local bash scripts/linux/restore-media.sh "$archive"
+
+          restored="$(docker compose exec -T app cat /app/storage/media/ci-test-marker.txt | tr -d '\r\n')"
+          [[ "$restored" == 'ci-original' ]]
+          docker compose exec -T app curl -fsS 'http://127.0.0.1:3000/api/health?type=ready' >/dev/null
+
   payment-and-sms-mocks:
     name: Payment and SMS mocks
     runs-on: ubuntu-latest
