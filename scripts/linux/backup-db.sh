@@ -21,7 +21,7 @@ if [[ ! -s "$TEMP" ]]; then
   echo "Backup file is empty." >&2
   exit 1
 fi
-docker compose exec -T db pg_restore --list - < "$TEMP" >/dev/null
+docker compose exec -T db pg_restore --list < "$TEMP" >/dev/null
 mv "$TEMP" "$FINAL"
 find "$BACKUP_DIR" -type f -name 'shahoo_db_*.dump' -mtime "+$RETENTION_DAYS" -delete
 echo "Database backup verified: $FINAL"

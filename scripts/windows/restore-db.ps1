@@ -54,8 +54,10 @@ if (-not $DumpFile) {
 }
 if (-not $DumpFile -or -not (Test-Path $DumpFile)) { throw "A valid backup file is required." }
 
-& $PgRestore --list $DumpFile | Out-Null
+$dumpList = & $PgRestore --list $DumpFile
 if ($LASTEXITCODE -ne 0) { throw "The selected backup failed pg_restore validation." }
+# The administrator recreates these extensions, so their archive entries cannot be restored by the application role.
+$restoreList = $dumpList | Where-Object { $_ -notmatch '^\d+;\s+\d+\s+\d+\s+(EXTENSION -|COMMENT - EXTENSION)\s+"?(pgcrypto|uuid-ossp)"?(\s|$)' }
 
 $envValues = Read-EnvFile (Join-Path $ProjectRoot $EnvFile)
 $adminDb = Resolve-DbConfig $envValues $true
@@ -82,18 +84,20 @@ if (-not $CreateDb) { $candidate = "C:\Program Files\PostgreSQL\16\bin\createdb.
 if (-not $Psql) { $candidate = "C:\Program Files\PostgreSQL\16\bin\psql.exe"; if (Test-Path $candidate) { $Psql = $candidate } }
 if (-not $DropDb -or -not $CreateDb -or -not $Psql) { throw "dropdb.exe, createdb.exe and psql.exe for PostgreSQL 16 must be installed or added to PATH." }
 
-$taskName = "SHAHOO_Release_Expired_Holds"
-$workerTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-$resumeWorker = $workerTask -and $workerTask.State -ne "Disabled"
-if ($resumeWorker) {
-    Disable-ScheduledTask -TaskName $taskName | Out-Null
-    Stop-ScheduledTask -TaskName $taskName
-}
-$service = Get-Service -Name "ShahooStore" -ErrorAction SilentlyContinue
-$serviceWasRunning = $service -and $service.Status -eq "Running"
-if ($serviceWasRunning) { Stop-Service -Name "ShahooStore" -Force }
-$env:PGPASSWORD = $adminDb.Password
+$restoreListFile = [IO.Path]::GetTempFileName()
 try {
+    [IO.File]::WriteAllLines($restoreListFile, [string[]]$restoreList, [Text.UTF8Encoding]::new($false))
+    $taskName = "SHAHOO_Release_Expired_Holds"
+    $workerTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    $resumeWorker = $workerTask -and $workerTask.State -ne "Disabled"
+    if ($resumeWorker) {
+        Disable-ScheduledTask -TaskName $taskName | Out-Null
+        Stop-ScheduledTask -TaskName $taskName
+    }
+    $service = Get-Service -Name "ShahooStore" -ErrorAction SilentlyContinue
+    $serviceWasRunning = $service -and $service.Status -eq "Running"
+    if ($serviceWasRunning) { Stop-Service -Name "ShahooStore" -Force }
+    $env:PGPASSWORD = $adminDb.Password
     & $DropDb -h $adminDb.Host -p $adminDb.Port -U $adminDb.User --if-exists --force $adminDb.Name
     if ($LASTEXITCODE -ne 0) { throw "dropdb failed with exit code $LASTEXITCODE." }
     & $CreateDb -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -O $appDb.User $adminDb.Name
@@ -107,7 +111,7 @@ ALTER ROLE :"app_role" SET timezone TO 'Asia/Tehran';
     $setupSql | & $Psql -X -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -d $adminDb.Name -v ON_ERROR_STOP=1 -v "db_name=$($adminDb.Name)" -v "app_role=$($appDb.User)" -f -
     if ($LASTEXITCODE -ne 0) { throw "Restored database configuration failed." }
     $env:PGPASSWORD = $appDb.Password
-    & $PgRestore -h $appDb.Host -p $appDb.Port -U $appDb.User -d $appDb.Name --exit-on-error --no-owner $DumpFile
+    & $PgRestore -h $appDb.Host -p $appDb.Port -U $appDb.User -d $appDb.Name --exit-on-error --no-owner --use-list $restoreListFile $DumpFile
     if ($LASTEXITCODE -ne 0) { throw "pg_restore failed with exit code $LASTEXITCODE." }
     if ($serviceWasRunning) { Start-Service -Name "ShahooStore" }
     if ($resumeWorker) { Enable-ScheduledTask -TaskName $taskName | Out-Null }
@@ -115,4 +119,5 @@ ALTER ROLE :"app_role" SET timezone TO 'Asia/Tehran';
 }
 finally {
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $restoreListFile -ErrorAction SilentlyContinue
 }

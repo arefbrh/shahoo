@@ -6,11 +6,15 @@ if [[ $# -lt 1 || ! -f "$1" ]]; then
   exit 2
 fi
 DUMP_FILE="$1"
+RESTORE_LIST=""
 RESTART_ON_EXIT=0
 RESTORE_STARTED=0
 cleanup() {
   status=$?
   trap - EXIT
+  if [[ -n "$RESTORE_LIST" ]]; then
+    docker compose exec -T db rm -f -- "$RESTORE_LIST" >/dev/null || true
+  fi
   if [[ "$RESTART_ON_EXIT" == "1" && "$RESTORE_STARTED" == "0" ]]; then
     docker compose start app worker || echo "WARNING: app/worker restart failed; start them manually after checking database state." >&2
   elif [[ "$RESTORE_STARTED" == "1" ]]; then
@@ -20,10 +24,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker compose exec -T db pg_restore --list - < "$DUMP_FILE" >/dev/null
-DB_NAME="$(docker compose exec -T db printenv POSTGRES_DB | tr -d '\r')"
-DB_ADMIN_USER="$(docker compose exec -T db printenv POSTGRES_USER | tr -d '\r')"
-DB_APP_USER="$(docker compose exec -T db printenv APP_DB_USER | tr -d '\r')"
+RESTORE_LIST="$(docker compose exec -T db mktemp </dev/null)"
+# The administrator recreates these extensions, so their archive entries cannot be restored by the application role.
+docker compose exec -T db pg_restore --list < "$DUMP_FILE" \
+  | sed -E '/^[0-9]+;[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+(EXTENSION -|COMMENT - EXTENSION)[[:space:]]+"?(pgcrypto|uuid-ossp)"?([[:space:]]|$)/d' \
+  | docker compose exec -T db tee "$RESTORE_LIST" >/dev/null
+DB_NAME="$(docker compose exec -T db printenv POSTGRES_DB </dev/null | tr -d '\r')"
+DB_ADMIN_USER="$(docker compose exec -T db printenv POSTGRES_USER </dev/null | tr -d '\r')"
+DB_APP_USER="$(docker compose exec -T db printenv APP_DB_USER </dev/null | tr -d '\r')"
 
 echo "WARNING: this overwrites objects in database '$DB_NAME'."
 read -r -p "Type RESTORE to stop app/worker and continue: " CONFIRM
@@ -40,7 +48,7 @@ docker compose exec -T db createdb -U "$DB_ADMIN_USER" -O "$DB_APP_USER" "$DB_NA
 docker compose exec -T db psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS "pgcrypto";'
 docker compose exec -T db psql -U "$DB_ADMIN_USER" -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE \"$DB_NAME\" SET timezone TO 'Asia/Tehran';"
 docker compose exec -T db psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -c "ALTER ROLE \"$DB_APP_USER\" SET timezone TO 'Asia/Tehran';"
-docker compose exec -T db pg_restore --exit-on-error --no-owner -U "$DB_APP_USER" -d "$DB_NAME" < "$DUMP_FILE"
+docker compose exec -T db pg_restore --exit-on-error --no-owner --use-list "$RESTORE_LIST" -U "$DB_APP_USER" -d "$DB_NAME" < "$DUMP_FILE"
 RESTORE_STARTED=0
 docker compose start app worker
 RESTART_ON_EXIT=0
