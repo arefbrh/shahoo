@@ -7,6 +7,7 @@ import { retryPayPingSettlementForAdminFn, retryPayPingVerificationForAdminFn } 
 import { buttonGhost, buttonPrimary, pageKicker, pageTitle, panelClass } from "./ui";
 import { OrderActions } from "./order-actions";
 import { OrderInvoice } from "./order-invoice";
+import { resolveCarrierTracking } from "@/lib/carrier-tracking";
 
 export function OrderDetail({ order }: { order: OrderView | null }) {
   if (!order) {
@@ -30,6 +31,52 @@ export function OrderDetail({ order }: { order: OrderView | null }) {
         {order.publicCode}
       </h1>
       <OrderTrack isPaid={order.isPaid} isClosed={order.isClosed} label={order.statusLabel} paymentLabel={order.paymentStatusLabel} />
+      {order.trackingCode ? (() => {
+        const carrierInfo = resolveCarrierTracking(order.carrier, order.trackingCode);
+        return (
+          <section className="mt-4 rounded-3xl border-2 border-emerald-600/30 bg-emerald-50/50 p-5 text-ink shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="inline-block rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
+                  مرسوله ارسال شد
+                </span>
+                <h2 className="mt-2 text-base font-bold text-forest">
+                  کد رهگیری مرسوله ({carrierInfo.carrierLabel})
+                </h2>
+                <p className="mt-1 text-xs text-muted">
+                  ارائه‌دهنده ارسال: {carrierInfo.carrierLabel}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  dir="ltr"
+                  className="select-all rounded-xl border border-line bg-paper px-4 py-2 font-mono text-base font-bold text-forest"
+                  title="برای کپی کلیک کنید"
+                >
+                  {order.trackingCode}
+                </span>
+                {carrierInfo.url ? (
+                  <a
+                    href={carrierInfo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-forest px-4 py-2.5 text-xs font-bold text-ivory transition hover:bg-deep"
+                  >
+                    {carrierInfo.buttonLabel}
+                  </a>
+                ) : (
+                  <span className="rounded-xl border border-line bg-paper/60 px-3 py-2 text-xs text-muted">
+                    رهگیری مستقیم از طریق سایت شرکت ارائه‌دهنده
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-muted">
+              نکته: ثبت اطلاعات و بارگذاری وضعیت بسته در سامانه شرکت حمل‌ونقل ممکن است تا ۲۴ ساعت کاری پس از تحویل زمان ببرد.
+            </p>
+          </section>
+        );
+      })() : null}
       <OrderActions order={order} />
       {order.canManagePayments && order.paymentRecovery?.length ? <PaymentRecovery attempts={order.paymentRecovery} /> : null}
       <p className="mt-4 rounded-3xl border border-gold/40 bg-cream p-4 text-sm leading-8">{order.paymentNote}</p>

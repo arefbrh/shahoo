@@ -19,6 +19,7 @@
 | `NODE_ENV=production` | برای اعمال شاخه‌های امنیتی و داده تولید لازم است؛ تشخیص در کد با همین رشته دقیق انجام می‌شود. |
 | `DATABASE_URL` | تنها نام بررسی‌شده اجباری در `validateProductionEnv` برای production و برای **هر** اجرای `db:migrate`؛ URL معتبر PostgreSQL. اتصال ناموفق به PGlite تبدیل نمی‌شود. در یک URL حاوی رمز، حفاظت از متغیر فرآیند و لاگ‌ها ضروری است؛ در روش محلی آزمون از فایل گذرواژه استفاده کنید. |
 | `SHAHOO_ALLOW_PRODUCTION_MIGRATE=1` | فقط هنگام اجرای صریح migration با `NODE_ENV=production` لازم است؛ پس از آن unset کنید. برای build یا اجرای عادی لازم نیست. |
+| `APP_DOMAIN` | hostname مورد استفاده Caddy برای TLS و host routing؛ در Docker Compose الزامی است و باید با host داخل `APP_URL` یکسان باشد. در Caddy ویندوز نیز باید در محیط process تنظیم شود. |
 | `APP_URL` | به‌شدت توصیه می‌شود: origin عمومی HTTPS برای SEO، sitemap و لینک‌های مطلق؛ برخلاف عنوان کلی نمونه، startup آن را الزامی نمی‌کند و در نبود آن از origin درخواست استفاده می‌شود. تنظیم و بررسی Host/proxy معتبر مهم است. |
 | `VITE_AUTH_ENABLED=false` | توصیه امنیتی و قرارداد پیکربندی فروشگاه در زمان **build و runtime**؛ احراز مشتری/مدیر شاهو مستقل از Better Auth است. wrapper در حالت نبود مقدار `false` می‌دهد و فقط رشته دقیق `true` را فعال نگه می‌دارد. `npm run dev/build/preview` از wrapper استفاده می‌کنند؛ Vite مستقیم آن را دور می‌زند. |
 | `GROK_AUTH_CLIENT_ID`, `GROK_AUTH_CLIENT_SECRET`, `GROK_PREVIEW_CLIENT_SECRET` | برای فروشگاه فعلی لازم نیستند. فقط با مجوز آینده و فعال‌سازی اختیاری scaffold، secret را خارج از مخزن به runtime تزریق کنید. credential پیش‌نمایش hardcoded از archive خروجی حذف شده است؛ مالک credential باید احتمال افشا در نسخه ورودی را بررسی و در صورت لزوم rotate/revoke کند. هیچ credential واقعی اینجا درج نشود. |
@@ -30,7 +31,10 @@
 | `SMS_MODE`, `SMS_LIVE`, `SMS_PROVIDER` | در این انتشار `SMS_MODE=disabled` یا unset و `SMS_LIVE` خاموش بماند. فعال‌سازی زنده فقط با `NODE_ENV=production`، `SMS_MODE=live`، `SMS_LIVE=1` و provider شناخته‌شده انجام می‌شود؛ این تنظیمات به معنی اتصال، آزمون یا اجازه استفاده زنده نیست. `SMS_MODE=sandbox` فقط mock محلی صریح را ممکن می‌کند و fallback زنده ندارد. |
 | `SMS_IR_API_KEY`, `SMS_API_KEY`, `SMS_IR_OTP_TEMPLATE_ID` | برای SMS.ir، کلید اصلی `SMS_IR_API_KEY` است؛ در صورت نبود آن کد `SMS_API_KEY` را به‌عنوان fallback می‌خواند. `SMS_IR_OTP_TEMPLATE_ID` باید شناسه عددی صحیح و مثبت قالب تأییدشده باشد. این مقادیر فقط خارج از مخزن و در secret manager/محیط امن قرار گیرند. |
 | `SMS_API_KEY`, `SMS_SENDER` | `SMS_API_KEY` برای Kavenegar نیز استفاده می‌شود؛ `SMS_SENDER` اختیاری و مختص Kavenegar است. برای SMS.ir از `SMS_SENDER` استفاده نمی‌شود. |
-| `STORAGE_PROVIDER`, `STORAGE_LOCAL_DIR`, `ALLOW_LOCAL_STORAGE` | در حالت عادی unset. ذخیره local در production با `ALLOW_LOCAL_STORAGE=true` یا `1` و provider خالی یا `local` ممکن است؛ تنها پس از تأیید دیسک پایدار، دسترسی، پشتیبان و بازیابی رسانه فعال شود. سایر providerها آداپتر ابری متصل ندارند. |
+| `STORAGE_PROVIDER`, `STORAGE_LOCAL_DIR`, `ALLOW_LOCAL_STORAGE` | در self-hosting با volume پایدار می‌توان `STORAGE_PROVIDER=local` و `ALLOW_LOCAL_STORAGE=true` را فعال کرد. روی Vercel/فایل‌سیستم ephemeral از local استفاده نکنید. |
+| `STORAGE_S3_BUCKET` | برای S3 نام bucket را صریح تنظیم کنید؛ در Neon مقدار نمونه Staging برابر `shahoo-media` است. |
+| `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION`, `STORAGE_S3_ACCESS_KEY_ID`, `STORAGE_S3_SECRET_ACCESS_KEY` | قرارداد SHAHOO برای S3. آداپتر همچنین نام‌های AWS/Neon یعنی `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` را می‌پذیرد. تمام مقادیر فقط در secret manager/Vercel environment قرار گیرند. |
+
 
 **Auth در Revision 02.1:** مقایسه مستقیم `VITE_AUTH_ENABLED` در `src/lib/auth/server.ts` و `src/lib/auth/gate-identity.server.ts` از helper دارای trim به مقایسه مقدار خام تغییر کرده است. اکنون در این مسیرها، wrapper و client تنها `true` دقیق scaffold را فعال می‌کند؛ ` true ` و مقادیر خالی/بدشکل خاموش‌اند. آزمون regression برای gate و import مستقیم server اضافه شده است. وضعیت دقیق اجرای جدید را در شواهد نهایی Revision 02.1 ببینید. مقدار `false` را در build/runtime صریح نگه دارید و در محیط منتخب واقعاً بررسی کنید. `npm run check:auth -- --dev-url http://127.0.0.1:8080` dev در حال اجرا را با مقدار build بعدی مقایسه می‌کند، **نه** خود bundle ساخته‌شده یا محیط production را.
 
@@ -48,7 +52,7 @@ Seed پایه در نخستین دسترسی مربوطه مجوزها، قال�
 
 - کوکی‌های سفارشی مشتری، مدیر، سبد و رسید `HttpOnly`، `SameSite=Lax` و `path=/` هستند؛ `Secure` وقتی `NODE_ENV=production` است فعال می‌شود. HTTPS معتبر و بررسی واقعی پاسخ‌های proxy/کوکی روی میزبان الزامی است. محافظت از نشست، ownership، RBAC، rate limiting و گزارش خطاها را در محیط واقعی دوباره بررسی کنید.
 - CSP تولیدی `unsafe-eval` ندارد، اما `unsafe-inline` برای اسکریپت/استایل باقی است؛ nonce پیاده نشده است. هدرهای `nosniff`، `Referrer-Policy` و `Permissions-Policy` وجود دارند؛ HSTS فقط برای درخواست تشخیص‌داده‌شده HTTPS اضافه می‌شود. اطمینان از تشخیص HTTPS، سیاست proxy و پوشش تمامی پاسخ‌های میزبان هنوز لازم است.
-- CMS تأییدشده رسانه را با URL امن HTTPS و متن جایگزین ثبت می‌کند، نه workflow آپلود ابری. مسیر قدیمی آپلود، احراز مدیر، محدودیت و پاک‌سازی دارد؛ local disk صرفاً با تنظیمات بالا در production ممکن است. از داده‌های محلی رسانه جدا از dump دیتابیس پشتیبان بگیرید و روی محیط مجاز بازیابی و پیوندها را بررسی کنید. URLهای خارجی نیازمند دسترس‌پذیری و ماندگاری مستقل‌اند؛ هیچ object storage متصل نشده است.
+- CMS رسانه را از مسیر مدیر احراز‌شده آپلود می‌کند؛ فایل ابتدا sanitize می‌شود، سپس با adapter انتخاب‌شده ذخیره و رکورد provider-qualified در دیتابیس ثبت می‌شود. adapterهای Local Disk و S3-compatible در کد موجودند. برای Vercel از S3 استفاده کنید؛ local disk فقط روی میزبان self-hosted با volume پایدار و `ALLOW_LOCAL_STORAGE=true` مجاز است. از object bucket و دیتابیس با هم پشتیبان بگیرید و restore جفت‌شده را آزمایش کنید. Neon Staging اکنون bucket خصوصی `shahoo-media` دارد، اما تا زمانی که credential و متغیرهای محیطی در Preview تنظیم و PUT/GET/DELETE واقعی تست نشده، integration عملیاتی تأییدشده محسوب نمی‌شود. Production bucket/credential در این مرحله ایجاد نشده است.
 - قیمت در پایگاه به ریال صحیح است و نمایش به تومان. حمل و کد رهگیری دستی است؛ ثبت مرجوعی/استرداد دفتری به معنی پرداخت یا استرداد بانکی نیست. بدون تأیید درگاه واقعی، سفارش صندوق پرداخت‌شده نیست.
 
 ## فهرست پس از انتخاب میزبان — اجرا نشده
@@ -57,7 +61,7 @@ Seed پایه در نخستین دسترسی مربوطه مجوزها، قال�
 2. با داده ساختگی بررسی کنید PostgreSQL و migration، initialization و عملیات چنداتصالی مطابق [چک‌لیست](POSTGRESQL_VERIFICATION.md) کار می‌کنند. این کار را هرگز روی پایگاه تولید یا با داده مشتری آغاز نکنید.
 3. اجرای واقعی پشتیبان/بازیابی، مانیتورینگ، بازیابی رسانه، ظرفیت، retention، مجوزها، برنامه rollback و بازیابی اضطراری را ثبت کنید.
 4. صفحات عمومی، مسیرهای `robots.txt` و `sitemap.xml`، URL عمومی، صفحات حساس `noindex`، session/RBAC، واکنش‌گرایی، E2E و دسترس‌پذیری را روی محیط مجاز بسنجید.
-5. رفع و تأیید شکاف‌های ثبت‌شده در یادداشت انتشار و تصمیم مستقل مالک لازم است. اتصال SMS.ir، PayPing، پرداخت زنده، حمل API، cloud storage و hosting تولیدی جزء Batch 09 و خارج از این مرحله‌اند.
+5. رفع و تأیید شکاف‌های ثبت‌شده در یادداشت انتشار و تصمیم مستقل مالک لازم است. آداپتر S3-compatible در کد موجود است و bucket خصوصی Staging در Neon ساخته شده، اما اتصال زنده آن تا تزریق credential و آزمون PUT/GET/DELETE تأیید نشده است. SMS.ir، PayPing، پرداخت زنده، حمل API و hosting تولیدی همچنان به تأیید و آزمون مستقل نیاز دارند.
 
 ## Batch 09 provider status (2026-11-20)
 

@@ -56,8 +56,9 @@ trap cleanup EXIT
 RESTART_ON_EXIT=1
 docker compose stop app worker
 RESTORE_STARTED=1
-# The app is stopped, so exec would fail. Use a temporary app container with
-# the shared media volume; do not rename the volume mountpoint itself.
+# app is stopped, so `docker compose exec app` would fail. Use a temporary,
+# non-service app container with the same media volume instead. Never rename
+# the volume mountpoint itself (which fails with "device busy").
 docker compose run --rm --no-deps -T --entrypoint sh app -c '
   set -eu
   cd /app/storage/media
@@ -67,6 +68,7 @@ docker compose run --rm --no-deps -T --entrypoint sh app -c '
   mkdir "$stage" "$previous"
   tar -xzf - -C "$stage"
   test -d "$stage/media" || { echo "Archive missing media root" >&2; exit 2; }
+  # Preserve the previous media tree within the same volume for recovery.
   for item in ./* ./.[!.]* ./..?*; do
     [ -e "$item" ] || [ -L "$item" ] || continue
     case "$item" in "./$stage"|"./$previous") continue ;; esac

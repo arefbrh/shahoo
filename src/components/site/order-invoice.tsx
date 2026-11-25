@@ -22,7 +22,16 @@ export function OrderInvoice({ order }: { order: OrderView }) {
       <article className="invoice-sheet" dir="rtl">
         <header className="invoice-heading">
           <div className="invoice-brand">
-            <img src="/assets/brand/shahoo-logo-minimal.png" alt="لوگوی مینیمال SHAHOO" />
+            <img
+              src="/assets/brand/shahoo-logo-minimal.jpg"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith(".png")) {
+                  target.src = "/assets/brand/shahoo-logo-minimal.png";
+                }
+              }}
+              alt="لوگوی مینیمال SHAHOO"
+            />
           </div>
           <div className="invoice-title">
             <h1>فاکتور فروش</h1>

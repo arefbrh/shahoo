@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { uploadMedia, validateUploadFile } from "@/lib/media-upload-client";
 import { parseWhole } from "@/lib/catalog-rules";
 import { FLAG_LABELS, PRODUCT_FLAGS, SECTION_LABELS, isProductSection, isPublicHomeSection, isSectionType } from "@/lib/cms-rules";
-import type { CmsArticle, CmsBanner, CmsDesk, CmsMenu, CmsPage, CmsResult, CmsSection, SectionFlag } from "@/lib/cms-types";
+import type { CmsArticle, CmsBanner, CmsDesk, CmsMenu, CmsPage, CmsResult, CmsSection, SectionFlag, FaqItemDraft, TrustMarkDraft } from "@/lib/cms-types";
 import {
   getCmsDesk,
   getContentHistoryFn,
@@ -25,14 +25,18 @@ import {
   saveSectionOrderFn,
   saveSiteCopyFn,
   saveStoreProfileFn,
+  saveProductFaqsFn,
+  saveTrustMarksFn,
 } from "@/server/cms/api";
 import { buttonGhost, buttonPrimary, fieldClass, panelClass } from "./ui";
 import { AdminHelp } from "./admin-help";
 
-type Tab = "home" | "nav" | "pages" | "magazine" | "media";
+type Tab = "home" | "faqs" | "trust" | "nav" | "pages" | "magazine" | "media";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "home", label: "صفحه اول" },
+  { id: "faqs", label: "پرسش‌های متداول (FAQ)" },
+  { id: "trust", label: "نمادهای اعتماد" },
   { id: "nav", label: "منو" },
   { id: "pages", label: "صفحه‌ها" },
   { id: "magazine", label: "مجله" },
@@ -101,6 +105,8 @@ export function ContentDesk() {
       {desk ? (
         <div key={stamp} className="mt-6 space-y-4">
           {tab === "home" ? <><AdminHelp title="صفحه اول" example="برای تغییر نام و لوگوی فروشگاه از «هویت برند» استفاده کنید؛ برای متن معرفی از «معرفی و نوار بالا» و برای بنر تبلیغاتی از «اسلایدها» استفاده کنید.">این زبانه چند قسمت مستقل دارد: هویت برند و لوگوها، متن معرفی، اطلاعات تماس، بخش‌های محتوایی و اسلایدهای صفحه اول. تغییر عنوان محصول یا قیمت از کاتالوگ انجام می‌شود، نه اینجا.</AdminHelp><HomeTab desk={desk} onDone={finish} onMove={move} /></> : null}
+          {tab === "faqs" ? <><AdminHelp title="پرسش‌های متداول" example="پاسخ به سوالات متداول خریداران درباره اصالت، پرس سرد و نگهداری.">پرسش و پاسخ‌های متداول در صفحه محصولات نمایش داده می‌شوند. می‌توانید سوالات جدید اضافه کنید، پاسخ‌ها را ویرایش کنید یا ترتیب نمایش را تغییر دهید.</AdminHelp><FaqsTab desk={desk} onDone={finish} /></> : null}
+          {tab === "trust" ? <><AdminHelp title="نمادهای اعتماد الکترونیکی" example="تنظیم نشان اینماد و ساماندهی پس از اخذ مجوز رسمی.">تا زمان اخذ مجوز، نمادها در حالت «در دست اقدام» باقی می‌مانند و هیچ نشان ساختگی منتشر نمی‌شود. پس از دریافت نماد، آدرس تاییدیه رسمی HTTPS را وارد و وضعیت را «تایید شده» کنید.</AdminHelp><TrustTab desk={desk} onDone={finish} /></> : null}
           {tab === "nav" ? <><AdminHelp title="منوهای سایت" example="عنوان «مجله» با نشانی /magazine یک پیوند داخلی است؛ برای یک سایت خارجی نشانی کامل https:// وارد کنید.">اینجا فقط عنوان و مقصد پیوندهای منوی هدر/فوتر و ترتیب آن‌ها تغییر می‌کند. برای افزودن صفحه جدید ابتدا آن را در «صفحه‌ها» بسازید و سپس نشانی همان صفحه را به منو اضافه کنید. خاموش‌کردن یک مورد آن را از نمایش عمومی پنهان می‌کند.</AdminHelp><NavTab desk={desk} onDone={finish} onMove={move} /></> : null}
           {tab === "pages" ? <><AdminHelp title="صفحه‌های ثابت" example="صفحه «درباره ما» می‌تواند نشانی about و محتوای معرفی فروشگاه داشته باشد.">برای ساخت و ویرایش صفحه‌های اطلاعاتی مانند درباره ما، تماس با ما و قوانین استفاده کنید. عنوان برای نمایش به کاربر است؛ شناسه انگلیسی بخشی از نشانی صفحه می‌شود و بهتر است پس از انتشار بی‌دلیل تغییر نکند.</AdminHelp><PagesTab desk={desk} onDone={finish} /></> : null}
           {tab === "magazine" ? <><AdminHelp title="مجله و مقاله‌ها" example="برای مقاله راهنمای نگهداری روغن، عنوان روشن، نشانی کوتاه مثل oil-care، خلاصه و تصویر مرتبط انتخاب کنید.">مقاله‌ها و محتوای تحریریه در این بخش مدیریت می‌شوند و با صفحه‌های ثابت تفاوت دارند. برای انتشار عمومی وضعیت انتشار و تاریخ را بررسی کنید؛ بازنشسته‌کردن مقاله آن را از فهرست عمومی خارج می‌کند، نه اینکه سفارش یا محصولی را تغییر دهد.</AdminHelp><MagazineTab desk={desk} onDone={finish} /></> : null}
@@ -1123,5 +1129,254 @@ function MediaTab({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult)
         </article>
       ))}
     </div>
+  );
+}
+
+function FaqsTab({
+  desk,
+  onDone,
+}: {
+  desk: CmsDesk;
+  onDone: (result: CmsResult) => Promise<void>;
+}) {
+  const [faqs, setFaqs] = useState<FaqItemDraft[]>(desk.faqs ?? []);
+  const [pending, setPending] = useState(false);
+
+  function updateItem(index: number, patch: Partial<FaqItemDraft>) {
+    setFaqs((curr) => {
+      const next = [...curr];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  }
+
+  function addItem() {
+    setFaqs((curr) => [
+      ...curr,
+      {
+        id: `faq-${Date.now()}`,
+        q: "پرسش جدید",
+        a: "پاسخ پرسش...",
+        isActive: true,
+        sortOrder: curr.length + 1,
+      },
+    ]);
+  }
+
+  function removeItem(index: number) {
+    setFaqs((curr) => curr.filter((_, i) => i !== index));
+  }
+
+  function moveItem(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= faqs.length) return;
+    setFaqs((curr) => {
+      const next = [...curr];
+      const [item] = next.splice(index, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
+  }
+
+  async function save() {
+    setPending(true);
+    try {
+      const result = await saveProductFaqsFn({ data: { faqs } });
+      await onDone(result);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className={`${panelClass} p-5 space-y-5`}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div>
+          <h2 className="font-bold text-forest text-base">مدیریت پرسش‌های متداول صفحه محصول (FAQ)</h2>
+          <p className="text-xs text-muted mt-1">
+            متن‌ها و اولویت نمایش پرسش و پاسخ‌ها را تنظیم کنید. تغییرات پس از ذخیره بلافاصله در صفحات محصولات اعمال می‌شود.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={addItem} className={buttonGhost}>
+            + افزودن پرسش جدید
+          </button>
+          <button type="button" onClick={() => void save()} disabled={pending} className={buttonPrimary}>
+            {pending ? "در حال ذخیره..." : "ذخیره تغییرات FAQ"}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {faqs.map((faq, idx) => (
+          <div key={faq.id ?? idx} className="rounded-2xl border border-line bg-paper/70 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-bold text-forest">پرسش شماره {idx + 1}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveItem(idx, -1)}
+                  disabled={idx === 0}
+                  className="rounded-lg border border-line px-2 py-1 text-xs disabled:opacity-40"
+                  title="انتقال به بالا"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveItem(idx, 1)}
+                  disabled={idx === faqs.length - 1}
+                  className="rounded-lg border border-line px-2 py-1 text-xs disabled:opacity-40"
+                  title="انتقال به پایین"
+                >
+                  ↓
+                </button>
+                <label className="flex items-center gap-1.5 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={faq.isActive}
+                    onChange={(e) => updateItem(idx, { isActive: e.target.checked })}
+                    className="rounded border-line"
+                  />
+                  فعال
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 px-2 py-1 text-xs"
+                >
+                  حذف
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">متن پرسش:</label>
+              <input
+                type="text"
+                value={faq.q}
+                onChange={(e) => updateItem(idx, { q: e.target.value })}
+                className={fieldClass}
+                placeholder="عنوان سوال..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">متن پاسخ:</label>
+              <textarea
+                rows={3}
+                value={faq.a}
+                onChange={(e) => updateItem(idx, { a: e.target.value })}
+                className={fieldClass}
+                placeholder="پاسخ کامل و شفاف..."
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TrustTab({
+  desk,
+  onDone,
+}: {
+  desk: CmsDesk;
+  onDone: (result: CmsResult) => Promise<void>;
+}) {
+  const [marks, setMarks] = useState<TrustMarkDraft[]>(desk.trustMarks ?? []);
+  const [pending, setPending] = useState(false);
+
+  function updateItem(index: number, patch: Partial<TrustMarkDraft>) {
+    setMarks((curr) => {
+      const next = [...curr];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
+  }
+
+  async function save() {
+    setPending(true);
+    try {
+      const result = await saveTrustMarksFn({ data: { marks } });
+      await onDone(result);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className={`${panelClass} p-5 space-y-5`}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div>
+          <h2 className="font-bold text-forest text-base">پیکربندی و مدیریت نمادهای اعتماد و مجوزها</h2>
+          <p className="text-xs text-muted mt-1">
+            تا زمان دریافت رسمی مجوز، وضعیت را «در دست اقدام» بگذارید. فقط پس از تایید نهایی و با ثبت آدرس تاییدیه، نماد رسمی به مشتریان نمایش داده می‌شود.
+          </p>
+        </div>
+        <button type="button" onClick={() => void save()} disabled={pending} className={buttonPrimary}>
+          {pending ? "در حال ذخیره..." : "ذخیره تنظیمات نمادها"}
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {marks.map((mark, idx) => (
+          <div key={mark.id ?? mark.provider} className="rounded-2xl border border-line bg-paper/70 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <strong className="text-sm font-bold text-forest">{mark.title} ({mark.provider})</strong>
+              <select
+                value={mark.status}
+                onChange={(e) => updateItem(idx, { status: e.target.value as TrustMarkDraft["status"] })}
+                className="rounded-xl border border-line bg-paper px-2 py-1 text-xs"
+              >
+                <option value="pending">در دست اقدام (غیرفعال در سایت)</option>
+                <option value="verified">تأییدشده و فعال</option>
+                <option value="draft">پیش‌نویس</option>
+                <option value="disabled">غیرفعال</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">عنوان نمایشی:</label>
+              <input
+                type="text"
+                value={mark.title}
+                onChange={(e) => updateItem(idx, { title: e.target.value })}
+                className={fieldClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">توضیح مرجع صادرکننده:</label>
+              <input
+                type="text"
+                value={mark.description}
+                onChange={(e) => updateItem(idx, { description: e.target.value })}
+                className={fieldClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">آدرس صفحه اعتبارسنجی رسمی (HTTPS):</label>
+              <input
+                type="url"
+                dir="ltr"
+                value={mark.verifyUrl ?? ""}
+                onChange={(e) => updateItem(idx, { verifyUrl: e.target.value })}
+                className={fieldClass}
+                placeholder="https://trustseal.enamad.ir/?id=..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">آدرس لوگوی اختصاصی (اختیاری):</label>
+              <input
+                type="text"
+                dir="ltr"
+                value={mark.iconUrl ?? ""}
+                onChange={(e) => updateItem(idx, { iconUrl: e.target.value })}
+                className={fieldClass}
+                placeholder="/assets/brand/enamad.png"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

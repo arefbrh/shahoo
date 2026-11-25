@@ -1,19 +1,24 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { JsonLd } from "@/components/site/json-ld";
 import { ProductView } from "@/components/site/product-view";
+import { ProductFaq } from "@/components/site/product-faq";
 import { ReviewsPanel } from "@/components/site/reviews-panel";
 import { getProductReviewsFn } from "@/server/catalog/review-api";
 import { breadcrumbLd, canonicalLink, productLd } from "@/lib/seo";
 import type { VariantChoice } from "@/lib/store-types";
-import { getProduct } from "@/server/storefront/api";
+import { getProduct, getProductFaqs } from "@/server/storefront/api";
 import { getSeoOrigin } from "@/server/seo/api";
 
 export const Route = createFileRoute("/product/$productId")({
   loader: async ({ params }) => {
-    const [product, origin] = await Promise.all([getProduct({ data: { slug: params.productId } }), getSeoOrigin()]);
+    const [product, origin, faqs] = await Promise.all([
+      getProduct({ data: { slug: params.productId } }),
+      getSeoOrigin(),
+      getProductFaqs(),
+    ]);
     if (!product) throw notFound();
     const reviews = await getProductReviewsFn({ data: { productId: product.id } });
-    return { product, origin, reviews };
+    return { product, origin, reviews, faqs };
   },
   head: ({ loaderData }) => {
     const product = loaderData?.product;
@@ -30,7 +35,7 @@ export const Route = createFileRoute("/product/$productId")({
 });
 
 function ProductPage() {
-  const { product, origin, reviews } = Route.useLoaderData();
+  const { product, origin, reviews, faqs } = Route.useLoaderData();
   const variant = product.variants.find((item: VariantChoice) => item.isDefault) ?? product.variants[0];
   return (
     <>
@@ -56,6 +61,7 @@ function ProductPage() {
         />
       ) : null}
       <ProductView product={product} />
+      <ProductFaq customFaqs={faqs} />
       <ReviewsPanel productId={product.id} reviews={reviews} />
     </>
   );

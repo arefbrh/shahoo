@@ -29,6 +29,23 @@ export type BrandLogos = {
 
 export type StoreLayoutSettings = { stickyHeader: boolean; headerLogoHeight: number; footerLogoHeight: number; footerAlignment: "start" | "center" };
 
+export type TrustMarkItem = {
+  id: string;
+  provider: "enamad" | "samandehi" | "custom";
+  title: string;
+  description: string;
+  status: "unconfigured" | "draft" | "pending" | "verified" | "disabled";
+  verifyUrl?: string;
+  iconUrl?: string;
+};
+
+export type FaqItem = {
+  id?: string;
+  q: string;
+  a: string;
+  isActive?: boolean;
+};
+
 export type ShellData = {
   profile: StoreProfile;
   layout: StoreLayoutSettings;
@@ -36,6 +53,7 @@ export type ShellData = {
   promo: string;
   nav: NavLink[];
   footer: FooterColumn[];
+  trustMarks?: TrustMarkItem[];
 };
 
 export type CategoryCard = {

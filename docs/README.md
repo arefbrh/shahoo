@@ -10,6 +10,23 @@ This directory explains which documents are current, which are historical, and w
 4. [AGENTS.md](../AGENTS.md) — non-negotiable contributor/agent rules.
 5. [Production guidance](PRODUCTION.md) — deployment and release constraints; never infer that Production is configured merely because Preview works.
 
+## Roadmap and self-hosting operations
+
+- [Admin implementation tracker](ADMIN_IMPLEMENTATION_TRACKER.md) — Batch 01–10 roadmap and current exit criteria.
+
+## Self-hosting and operations (new integration candidate)
+
+- [Integration diff](INTEGRATION_DIFF.md) — files added, changed, corrected and deliberately left untouched.
+- [Project status](PROJECT_STATUS.md) — source comparison and actual verification boundary.
+- [Capability matrix](CAPABILITY_MATRIX.md) — code presence versus tested/verified status.
+- [Provider status](PROVIDER_STATUS.md) — exact runtime environment names and disabled-by-default integrations.
+- [Self-hosting architecture](SELF_HOSTING_ARCHITECTURE.md) — intended Docker/VPS topology, not a live host.
+- [VPS deployment](VPS_DEPLOYMENT.md) — Linux/Docker instructions; migrate only with the explicit guard.
+- [Windows Server deployment](WINDOWS_SERVER_DEPLOYMENT.md) — native Windows instructions and service prerequisites.
+- [Backup and restore runbook](BACKUP_RESTORE_RUNBOOK.md) — current scripts and unimplemented PITR/off-site work.
+- [Release checklist](RELEASE_CHECKLIST.md) — owner-operated release gates.
+- [Security hardening](SECURITY_HARDENING.md) — controls and verification limits.
+
 ## Current technical references
 
 - [PostgreSQL verification](POSTGRESQL_VERIFICATION.md)
@@ -36,3 +53,5 @@ Do not delete historical reports, migrations, tests, assets, or scripts solely b
 ## Admin platform implementation
 
 See [Admin Implementation Tracker](./ADMIN_IMPLEMENTATION_TRACKER.md) for the phased admin-platform plan, portability rules, active branch, verification evidence, and agent handoff instructions.
+
+- [Neon Object Storage setup and Staging status](NEON_OBJECT_STORAGE_SETUP.md)

@@ -15,6 +15,8 @@ import type {
   SectionConfigDraft,
   SectionDraft,
   StoreLayoutDraft,
+  FaqItemDraft,
+  TrustMarkDraft,
 } from "../../lib/cms-types.ts";
 import {
   cleanBody,
@@ -155,6 +157,8 @@ export async function loadContentPreview(db: Database, entityType: "page" | "art
     coverAlt: cover?.alt ?? "",
   };
 }
+
+export { DEFAULT_PRODUCT_FAQS, DEFAULT_TRUST_MARKS } from "../../lib/cms-defaults.ts";
 
 export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const [sectionRows, bannerRows, menuRows, itemRows, pageRows, articleRows, categoryRows, productRows, mediaRows, settingRows, links] =
@@ -305,6 +309,20 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
       mimeType: row.mimeType,
       official: isOfficialBrandAsset(row.publicUrl),
     })),
+    faqs: (() => {
+      const raw = settingsMap.get("store.product_faqs");
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw as FaqItemDraft[];
+      }
+      return DEFAULT_PRODUCT_FAQS;
+    })(),
+    trustMarks: (() => {
+      const raw = settingsMap.get("store.trust_marks");
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw as TrustMarkDraft[];
+      }
+      return DEFAULT_TRUST_MARKS;
+    })(),
   };
 }
 
@@ -363,6 +381,68 @@ export async function applyStoreLayout(db: Database, actorId: string, input: Sto
     if (row) await tx.update(settings).set({ value, updatedAt: new Date() }).where(eq(settings.key, "store.layout"));
     else await tx.insert(settings).values({ key: "store.layout", value, updatedAt: new Date() });
     await writeAudit(tx, { actorType: "admin", actorId, action: "store.layout_updated", entityType: "settings", entityId: "store.layout" });
+  });
+}
+
+export async function applyProductFaqs(db: Database, actorId: string, faqs: FaqItemDraft[]): Promise<CmsResult> {
+  if (!Array.isArray(faqs)) {
+    return { ok: false, message: "داده‌های پرسش و پاسخ معتبر نیست." };
+  }
+  for (const item of faqs) {
+    if (!item.q || typeof item.q !== "string" || !item.q.trim()) {
+      return { ok: false, message: "متن پرسش الزامی است." };
+    }
+    if (!item.a || typeof item.a !== "string" || !item.a.trim()) {
+      return { ok: false, message: "متن پاسخ الزامی است." };
+    }
+  }
+
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.product_faqs")).for("update");
+    if (row) {
+      await tx.update(settings).set({ value: faqs, updatedAt: new Date() }).where(eq(settings.key, "store.product_faqs"));
+    } else {
+      await tx.insert(settings).values({ key: "store.product_faqs", value: faqs, updatedAt: new Date() });
+    }
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.product_faqs_updated",
+      entityType: "settings",
+      entityId: "store.product_faqs",
+      metadata: { count: faqs.length },
+    });
+  });
+}
+
+export async function applyTrustMarks(db: Database, actorId: string, marks: TrustMarkDraft[]): Promise<CmsResult> {
+  if (!Array.isArray(marks)) {
+    return { ok: false, message: "داده‌های نماد اعتماد معتبر نیست." };
+  }
+  for (const item of marks) {
+    if (!item.title || typeof item.title !== "string" || !item.title.trim()) {
+      return { ok: false, message: "عنوان نماد اعتماد الزامی است." };
+    }
+    if (item.verifyUrl && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}/i.test(item.verifyUrl)) {
+      return { ok: false, message: "آدرس تاییدیه نماد باید یک نشانی معتبر HTTPS باشد." };
+    }
+  }
+
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.trust_marks")).for("update");
+    if (row) {
+      await tx.update(settings).set({ value: marks, updatedAt: new Date() }).where(eq(settings.key, "store.trust_marks"));
+    } else {
+      await tx.insert(settings).values({ key: "store.trust_marks", value: marks, updatedAt: new Date() });
+    }
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.trust_marks_updated",
+      entityType: "settings",
+      entityId: "store.trust_marks",
+      metadata: { count: marks.length },
+    });
   });
 }
 

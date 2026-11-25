@@ -24,7 +24,7 @@ async function collect(dir) {
 }
 
 const applicationTests = [
-  "src/lib/app-data/app-data.test.ts", "src/lib/app-data/readiness-schedule.test.ts",
+  "src/lib/app-data/app-data.test.ts", "src/lib/app-data/readiness-schedule.test.ts", "src/lib/invoice-export.test.ts",
   "src/lib/auth/gate-identity.test.ts", "src/lib/auth/sign-in-gate.test.ts",
   "src/lib/preview-path-prefix.test.ts", "src/lib/tehran-time.test.ts", "src/lib/login-throttle.test.ts",
   "src/lib/stock-release.test.ts", "src/lib/cms-rules.test.ts", "src/lib/seo.test.ts",
@@ -46,6 +46,7 @@ const migrationTests = [
   "src/server/account/addresses.test.ts", "src/server/account/account.test.ts", "src/server/catalog/admin.test.ts",
   "src/server/admin/desk.test.ts", "src/server/cms/content.test.ts", "src/server/storefront/quote-cart-rules.test.ts",
   "src/server/payments/payping-lifecycle.test.ts",
+  "scripts/test-remediation-comprehensive.mjs", "scripts/test-remediation-master.mjs",
 ];
 const scriptTests = (await collect(resolve(root, "scripts")))
   .filter((file) => platformMode ? platformScriptTests.has(file) : !platformScriptTests.has(file));

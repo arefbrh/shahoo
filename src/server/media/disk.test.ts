@@ -69,3 +69,18 @@ test("local storage refuses path traversal names", async () => {
   const storage = new LocalDiskStorage("/tmp/shahoo-media-test");
   await assert.rejects(() => storage.put("../escape.jpg", new Uint8Array([1])), /unsafe_name/);
 });
+
+
+test("S3 adapter accepts Neon Object Storage AWS-standard environment variables", () => {
+  const storage = openStorage({
+    NODE_ENV: "production",
+    STORAGE_PROVIDER: "s3",
+    STORAGE_S3_BUCKET: "shahoo-media",
+    AWS_ENDPOINT_URL_S3: "https://br-test.storage.c-1.eu-central-1.aws.neon.tech",
+    AWS_REGION: "eu-central-1",
+    AWS_ACCESS_KEY_ID: "nak_test_access",
+    AWS_SECRET_ACCESS_KEY: "nsk_test_secret",
+  } as NodeJS.ProcessEnv);
+  assert.ok(storage instanceof S3ObjectStorage);
+  assert.equal(storage.storageKey("med-12345678-abcd.jpg"), "s3:med-12345678-abcd.jpg");
+});

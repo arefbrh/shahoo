@@ -24,7 +24,8 @@
     "format": "prettier --write .",
     "build:windows": "node scripts/build-windows.mjs",
     "start:windows": "node .output/server/index.mjs",
-    "maintenance:release-expired-holds": "node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/release-expired-holds.mjs"
+    "maintenance:release-expired-holds": "node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/release-expired-holds.mjs",
+    "build:self-hosted": "node scripts/build-windows.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

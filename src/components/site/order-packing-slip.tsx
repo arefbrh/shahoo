@@ -43,7 +43,7 @@ export function OrderPackingSlip({ order }: { order: OrderView }) {
       .catch(() => { if (active) setMessage("اطلاعات قبلی بارگذاری نشد؛ دسترسی و اتصال را بررسی کنید."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [order.publicCode]);
+  }, [order.publicCode, order.lines]);
 
   function updatePicked(id: string, quantity: number) {
     setWork((current) => ({

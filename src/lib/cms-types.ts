@@ -109,6 +109,8 @@ export type CmsDesk = {
   articleCategories: Array<{ id: string; name: string }>;
   products: Array<{ id: string; name: string }>;
   media: CmsMedia[];
+  faqs?: FaqItemDraft[];
+  trustMarks?: TrustMarkDraft[];
 };
 
 export type SectionDraft = {
@@ -194,4 +196,24 @@ export type BrandSettingsDraft = {
   copyright: string;
   headerLogo: string;
   footerLogo: string;
+};
+
+export type FaqItemDraft = {
+  id?: string;
+  q: string;
+  a: string;
+  isActive: boolean;
+  sortOrder?: number;
+};
+
+export type TrustMarkDraft = {
+  id?: string;
+  provider: "enamad" | "samandehi" | "custom";
+  title: string;
+  description: string;
+  status: "unconfigured" | "draft" | "pending" | "verified" | "disabled";
+  verifyUrl?: string;
+  iconUrl?: string;
+  codeSnippet?: string;
+  sortOrder?: number;
 };

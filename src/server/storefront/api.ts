@@ -21,6 +21,8 @@ import type {
   SitePage,
   StoreProfile,
   StoreLayoutSettings,
+  TrustMarkItem,
+  FaqItem,
   VariantChoice,
 } from "@/lib/store-types";
 import { getDb } from "../db/client";
@@ -231,6 +233,25 @@ export const getShell = createServerFn({ method: "GET" }).handler(async (): Prom
     footerAlignment: layoutConfig.footerAlignment === "center" ? "center" : "start",
   };
   const promoRaw = z.object({ text: z.string() }).parse(map.get("header.promo"));
+  const rawTrustMarks = map.get("store.trust_marks");
+  const trustMarks: TrustMarkItem[] = Array.isArray(rawTrustMarks) && rawTrustMarks.length > 0
+    ? (rawTrustMarks as TrustMarkItem[])
+    : [
+        {
+          id: "mark-enamad",
+          provider: "enamad",
+          title: "نماد اعتماد الکترونیکی",
+          description: "مرکز توسعه تجارت الکترونیکی",
+          status: "pending",
+        },
+        {
+          id: "mark-samandehi",
+          provider: "samandehi",
+          title: "نشان ساماندهی",
+          description: "وزارت فرهنگ و ارشاد اسلامی",
+          status: "pending",
+        },
+      ];
   return {
     profile,
     logos,
@@ -241,7 +262,19 @@ export const getShell = createServerFn({ method: "GET" }).handler(async (): Prom
       { title: "فروشگاه", links: footerShop },
       { title: "راهنما", links: footerHelp },
     ],
+    trustMarks,
   };
+});
+
+export const getProductFaqs = createServerFn({ method: "GET" }).handler(async (): Promise<FaqItem[]> => {
+  const db = await readyDb();
+  const [row] = await db.select().from(settings).where(eq(settings.key, "store.product_faqs")).limit(1);
+  if (row && Array.isArray(row.value) && row.value.length > 0) {
+    const list = row.value as FaqItem[];
+    const active = list.filter((item) => item.isActive !== false);
+    if (active.length > 0) return active;
+  }
+  return [];
 });
 
 async function menuLinks(

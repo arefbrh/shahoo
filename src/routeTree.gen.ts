@@ -45,6 +45,7 @@ import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as ApiMediaUploadRouteImport } from './routes/api.media-upload'
+import { Route as ApiTorobProductsRouteImport } from './routes/api.torob.products'
 import { Route as MagazineIndexRouteImport } from './routes/magazine.index'
 import { Route as MagazineArticleIdRouteImport } from './routes/magazine.$articleId'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
@@ -237,6 +238,11 @@ const ApiMediaUploadRoute = ApiMediaUploadRouteImport.update({
   path: '/api/media-upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTorobProductsRoute = ApiTorobProductsRouteImport.update({
+  id: '/api/torob/products',
+  path: '/api/torob/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MagazineIndexRoute = MagazineIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -331,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
@@ -376,6 +383,7 @@ export interface FileRoutesByTo {
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
@@ -426,6 +434,7 @@ export interface FileRoutesById {
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/admin/staff'
     | '/admin/support'
     | '/api/media-upload'
+    | '/api/torob/products'
     | '/magazine/$articleId'
     | '/order/$orderId'
     | '/pages/$pageSlug'
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/admin/staff'
     | '/admin/support'
     | '/api/media-upload'
+    | '/api/torob/products'
     | '/magazine/$articleId'
     | '/order/$orderId'
     | '/pages/$pageSlug'
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/admin/staff'
     | '/admin/support'
     | '/api/media-upload'
+    | '/api/torob/products'
     | '/magazine/$articleId'
     | '/order/$orderId'
     | '/pages/$pageSlug'
@@ -606,6 +618,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
   ApiMediaUploadRoute: typeof ApiMediaUploadRoute
+  ApiTorobProductsRoute: typeof ApiTorobProductsRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   PagesPageSlugRoute: typeof PagesPageSlugRoute
   ProductProductIdRoute: typeof ProductProductIdRoute
@@ -867,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMediaUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/torob/products': {
+      id: '/api/torob/products'
+      path: '/api/torob/products'
+      fullPath: '/api/torob/products'
+      preLoaderRoute: typeof ApiTorobProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/magazine/': {
       id: '/magazine/'
       path: '/'
@@ -1059,6 +1079,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,
   ApiMediaUploadRoute: ApiMediaUploadRoute,
+  ApiTorobProductsRoute: ApiTorobProductsRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   PagesPageSlugRoute: PagesPageSlugRoute,
   ProductProductIdRoute: ProductProductIdRoute,
