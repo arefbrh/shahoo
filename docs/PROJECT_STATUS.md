@@ -1,5 +1,18 @@
 # SHAHOO — Project Status & Infrastructure Audit
 
+## Integration status — 2026-11-25
+
+PR #11 was merged into `main` at `c282747` on the owner's instruction. The merged source includes the audited self-hosted candidate and the Linux and Windows recovery fixes. The last pre-merge candidate CI passed. The owner requested that the merge and repository updates proceed without a new project test run. [PR #11](https://github.com/shahoo-workspace/shahoo/pull/11) · [Pre-merge CI](https://github.com/shahoo-workspace/shahoo/actions/runs/45683089313)
+
+| Environment | Last verified state |
+| --- | --- |
+| GitHub `main` | PR #11 source integrated. The test follow-up remains a separate draft. [PR #12](https://github.com/shahoo-workspace/shahoo/pull/12) |
+| Vercel Preview | Application build `09766d6` ready with a branch-scoped Neon Staging connection. Public smoke and admin sign-in page responded successfully. [Preview](https://shahoo-28z3v7jty-shahoo.vercel.app) |
+| PostgreSQL | Neon Staging and the disposable rehearsal branch recorded `0019`. The last Production inventory recorded `0016`. [Production upgrade](https://github.com/shahoo-workspace/shahoo/issues/13) |
+| Rollout and recovery | The remaining release decisions and evidence are tracked in GitHub. [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1) |
+
+## Historical candidate audit
+
 **Report date:** 25 November 2026  
 **Compared sources:** `SHAHOO_PROJECT_V2_FINAL_MASTER.zip` and GitHub `main`  
 **Status:** integration candidate; not Production-approved.

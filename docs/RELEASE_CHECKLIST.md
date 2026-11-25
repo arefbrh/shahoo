@@ -2,6 +2,8 @@
 
 این چک‌لیست رسمی باید قبل از معرفی عمومی وب‌سایت `organicshahoo.ir` و شروع فروش تجاری توسط مالک و تیم فنی گام‌به‌گام بررسی و تیک زده شود.
 
+نسخهٔ خودمیزبان در PR #11 ادغام شده است. شواهد فعلی و موارد باز را در گزارش وضعیت و milestone انتشار دنبال کنید. [گزارش وضعیت](PROJECT_STATUS.md) · [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
+
 ---
 
 ## فاز ۱: زیرساخت، سرور و پایداری داده (Infrastructure Gates)

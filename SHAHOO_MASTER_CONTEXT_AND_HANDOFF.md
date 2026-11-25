@@ -845,3 +845,7 @@ No migration was added. Focused deterministic tests cover the new pure/provider 
 ## Current handoff — Batch 09 remediation (2026-11-19)
 
 Batch 09 is the current stage after Batch 08 Revision 02.1. The source now contains a durable PayPing attempt lifecycle, callback verification, official Already Verified handling, and reconciliation persistence around local settlement. SMS.ir Verify remains the existing OTP integration. This package is not production-ready: PayPing amount units remain unconfirmed from official documentation, no authorized sandbox or live provider call was used, and PostgreSQL concurrency/deployment evidence is outstanding. The unresolved older-OTP challenge policy was not changed.
+
+## Follow-up after PR #11 — 2026-11-25
+
+The owner authorized source integration without a fresh test run, and GitHub recorded PR #11 merged at `c282747`. The preceding candidate CI passed Linux and Windows recovery and the project suite. The verified Preview reads Neon Staging, which recorded `0019`. The Production schema inventory recorded `0016`. Additional checks are in draft PR #12. Use the canonical [project handoff](PROJECT_HANDOFF.md) and [release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1) for current evidence and decisions.

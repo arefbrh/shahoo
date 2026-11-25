@@ -1,0 +1,21 @@
+name: بررسی انتشار
+description: یک بررسی عملیاتی یا آزمون نسخه را پیگیری کنید
+labels: [verification]
+body:
+  - type: input
+    id: candidate
+    attributes:
+      label: محیط و نسخهٔ هدف
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: معیار قبولی
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: وضعیت و شواهد
+      description: اجراشده، اجرا‌نشده یا مسدود را مشخص کنید و شواهد غیرحساس را پیوند دهید.

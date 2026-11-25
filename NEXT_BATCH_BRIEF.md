@@ -1,4 +1,10 @@
-# Historical batch briefs — superseded
+# SHAHOO work briefs
+
+## After PR #11 — 2026-11-25
+
+Review and run the follow-up schema checks when authorized, gather the remaining Preview evidence and record the approved Production migration and target recovery plan. Each item has acceptance criteria in the [release milestone](https://github.com/shahoo-workspace/shahoo/milestone/1). [Issue register](REMAINING_ISSUES.md)
+
+## Historical batch briefs
 
 This file preserves proposals and instructions from previous batches. They are not current authorization to begin work. For current priorities, blockers, and the no-repeat roadmap, read [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md) and [REMAINING_ISSUES.md](REMAINING_ISSUES.md). See [docs/README.md](docs/README.md) for the documentation map.
 

@@ -1,4 +1,15 @@
-# Historical file inventory — superseded snapshot
+# SHAHOO file inventory
+
+## Repository paths — 2026-11-25
+
+| Area | Paths |
+| --- | --- |
+| App and data | `src/`, `server/`, `public/`, `migrations/` |
+| Build and operation | `docker-compose.yml`, `Dockerfile`, `Caddyfile`, `scripts/linux/`, `scripts/windows/` |
+| Verification | `scripts/run-tests.mjs`, `scripts/test-postgres-smoke.mjs`, `.github/workflows/ci.yml`, and test files under `src/` and `scripts/` |
+| Project guides | `README.md`, `CONTRIBUTING.md`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/` |
+
+## Historical package inventory
 
 The counts and change descriptions below describe the Batch 06 archive, not the current Git repository. Do not use these figures as current repository counts. For the current file/documentation structure see [docs/README.md](docs/README.md); for current release and test evidence see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md), [BATCH_09_COMPREHENSIVE_AUDIT.md](BATCH_09_COMPREHENSIVE_AUDIT.md), and [REMAINING_ISSUES.md](REMAINING_ISSUES.md).
 
