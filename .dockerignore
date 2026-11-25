@@ -1,0 +1,25 @@
+# Never send credentials, databases, backups, or local build state to the Docker daemon.
+.git
+.github
+node_modules
+.output
+dist
+.nitro
+.tanstack
+.vercel
+.env
+.env.*
+!.env.example
+logs
+backups
+data
+storage
+*.dump
+*.backup
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store
+screenshots
+checkpoints

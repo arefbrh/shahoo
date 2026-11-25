@@ -1,0 +1,70 @@
+# -------------------------------------------------------------------
+# Caddy Reverse Proxy & Automatic SSL Configuration
+# Domain: APP_DOMAIN from the deployment environment
+# -------------------------------------------------------------------
+
+{
+    # Admin API turned off or restricted locally
+    admin off
+}
+
+{$APP_DOMAIN}, www.{$APP_DOMAIN} {
+    # Automatic HTTP to HTTPS redirect is handled natively by Caddy
+
+    # Security & Hardening Headers
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # Enable transparent compression
+    encode gzip zstd
+
+    # Immutable cache only for hashed build assets
+    @hashedAssets {
+        path_regexp shahooHashedAsset ^/assets/(?:_build/.*|[^/]+\.[a-fA-F0-9]{8,}\.[A-Za-z0-9]+)$
+    }
+    header @hashedAssets Cache-Control "public, max-age=31536000, immutable"
+
+    # Brand assets and fixed public assets get short/revalidating cache
+    @brandAssets {
+        path /assets/brand/* /favicon.ico /favicon.svg /og.jpg
+    }
+    header @brandAssets Cache-Control "public, max-age=86400, must-revalidate"
+
+    # Other assets get revalidating cache
+    @otherAssets {
+        path /assets/*
+        not path /assets/_build/*
+        not path /assets/brand/*
+        not path_regexp ^/assets/[^/]+\.[a-fA-F0-9]{8,}\.[A-Za-z0-9]+$
+    }
+    header @otherAssets Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+
+    # Forward all traffic to the Shahoo app container
+    reverse_proxy app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # Health monitoring and timeouts
+        transport http {
+            dial_timeout 5s
+            response_header_timeout 60s
+        }
+    }
+
+    # Structured access logging
+    log {
+        output file /data/caddy_access.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+        format json
+    }
+}
