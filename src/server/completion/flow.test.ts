@@ -28,7 +28,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 async function database() {
   const pg = new PGlite();
-  for (const name of ["0002_shahoo_foundation.sql", "0003_commerce_cart.sql", "0004_batch_0501.sql", "0005_batch_0502.sql", "0006_completion.sql", "0007_media_primary.sql", "0008_batch_02.sql", "0011_batch_05_customer_account.sql", "0012_batch_07_inventory_audit.sql", "0019_shipping_address_snapshots.sql"]) {
+  for (const name of ["0002_shahoo_foundation.sql", "0003_commerce_cart.sql", "0004_batch_0501.sql", "0005_batch_0502.sql", "0006_completion.sql", "0007_media_primary.sql", "0008_batch_02.sql", "0011_batch_05_customer_account.sql", "0012_batch_07_inventory_audit.sql", "0018_order_fulfillment_work.sql", "0019_shipping_address_snapshots.sql"]) {
     await pg.exec(readFileSync(join(root, "migrations", name), "utf8"));
   }
   const db = drizzle(pg, { schema });

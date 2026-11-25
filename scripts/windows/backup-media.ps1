@@ -29,6 +29,9 @@ if (Test-Path $envPath) {
 }
 if (-not (Test-Path $mediaPath)) { throw "Media directory not found: $mediaPath" }
 
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
 New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $archive = Join-Path $BackupDir "shahoo_media_$stamp.zip"
@@ -38,13 +41,11 @@ try {
     if ($mediaFiles.Count -gt 0) {
         Compress-Archive -Path (Join-Path $mediaPath "*") -DestinationPath $temp -CompressionLevel Optimal
     } else {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
         $emptyZip = [System.IO.Compression.ZipFile]::Open($temp, [System.IO.Compression.ZipArchiveMode]::Create)
         $emptyZip.Dispose()
     }
     $check = Get-Item $temp
     if ($mediaFiles.Count -gt 0 -and $check.Length -lt 100) { throw "Media archive is unexpectedly small." }
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [System.IO.Compression.ZipFile]::OpenRead($temp)
     try { if ($mediaFiles.Count -gt 0 -and $zip.Entries.Count -eq 0) { throw "Media archive contains no files." } }
     finally { $zip.Dispose() }

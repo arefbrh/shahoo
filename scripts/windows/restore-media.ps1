@@ -34,6 +34,7 @@ if (-not $ArchiveFile) {
 }
 if (-not $ArchiveFile -or -not (Test-Path $ArchiveFile)) { throw "A valid media archive is required." }
 
+Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $ArchiveFile))
 $hasEntries = $false
