@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { CheckoutContext, PlaceOrderInput, PlaceOrderResult, QuoteResult, ShippingChoice } from "@/lib/commerce-types";
-import { isUnapprovedSeedShipping } from "@/lib/public-shipping";
+import { deliveryAreas } from "../offers/delivery-area";
+import { isUnapprovedSeedShipping, servesDestination } from "@/lib/public-shipping";
 import { recordNotice } from "../notify/events";
 import { listAddresses, ownedAddress } from "../account/addresses";
 import { writeAudit } from "../auth/audit";
@@ -63,13 +64,13 @@ export async function checkoutContext(): Promise<CheckoutContext> {
   return {
     cart: cart ? await loadCart(db, cart.id) : { count: 0, lines: [], subtotalIrr: 0 },
     methods: await listMethods(db),
-    paypingEnabled: payPingConfigured(process.env),
+    paypingEnabled: Boolean(customer) && payPingConfigured(process.env),
     account: customer ? { fullName: customer.fullName, mobile: customer.mobile } : null,
     addresses: customer ? await listAddresses(db, customer.id) : [],
   };
 }
 
-export async function quoteCheckout(shippingMethodId: string, rawCoupon: string): Promise<QuoteResult> {
+export async function quoteCheckout(shippingMethodId: string, rawCoupon: string, province = "", city = ""): Promise<QuoteResult> {
   const db = await openDb();
   const cart = await resolveCart(db, false);
   const snapshot = cart ? await loadCart(db, cart.id) : { count: 0, lines: [], subtotalIrr: 0 };
@@ -78,6 +79,7 @@ export async function quoteCheckout(shippingMethodId: string, rawCoupon: string)
     .from(shippingMethods)
     .where(and(eq(shippingMethods.id, shippingMethodId), eq(shippingMethods.isActive, true)))
     .limit(1);
+  if (method && !servesDestination((await deliveryAreas(db)).get(method.id) ?? {}, province, city)) throw new CheckoutError("این روش برای مقصد انتخاب‌شده فعال نیست.");
   if (method && isUnapprovedSeedShipping(method)) {
     return {
       subtotalIrr: snapshot.subtotalIrr,
@@ -298,7 +300,7 @@ async function insertOrder(
     .from(shippingMethods)
     .where(and(eq(shippingMethods.id, input.shippingMethodId), eq(shippingMethods.isActive, true)))
     .limit(1);
-  if (!method || isUnapprovedSeedShipping(method)) throw new CheckoutError("روش ارسال معتبر نیست.");
+  if (!method || isUnapprovedSeedShipping(method) || !servesDestination((await deliveryAreas(tx)).get(method.id) ?? {}, address.province, address.city)) throw new CheckoutError("روش ارسال معتبر نیست.");
 
   let discount = 0;
   let appliedCode: string | null = null;
@@ -439,6 +441,7 @@ export async function consumeCartLines(
 }
 
 async function listMethods(db: AppDatabase): Promise<ShippingChoice[]> {
+  const areas = await deliveryAreas(db);
   const rows = await db
     .select()
     .from(shippingMethods)
@@ -448,6 +451,7 @@ async function listMethods(db: AppDatabase): Promise<ShippingChoice[]> {
     .filter((row) => !isUnapprovedSeedShipping(row))
     .map((row) => ({
       id: row.id,
+      ...areas.get(row.id),
       title: row.title,
       description: row.description,
       priceIrr: row.priceIrr,

@@ -1,0 +1,176 @@
+# SHAHOO self-hosted production stack.
+name: shahoo-production
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: shahoo_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shahoo_db}
+      POSTGRES_USER: ${POSTGRES_USER:-shahoo_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      APP_DB_USER: ${APP_DB_USER:-shahoo_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Tehran
+    volumes:
+      - shahoo_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/10-shahoo-init.sql:ro
+    networks:
+      - shahoo_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shahoo-app:latest
+    container_name: shahoo_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${APP_DB_USER:-shahoo_app}:${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env}@db:5432/${POSTGRES_DB:-shahoo_db}?sslmode=disable
+      APP_URL: ${APP_URL:?Set APP_URL in .env}
+      SHAHOO_TRUST_PROXY: ${SHAHOO_TRUST_PROXY:-1}
+      SHAHOO_ADMIN_EMAIL: ${SHAHOO_ADMIN_EMAIL:-}
+      SHAHOO_ADMIN_PASSWORD_HASH: ${SHAHOO_ADMIN_PASSWORD_HASH:-}
+      SHAHOO_ADMIN_NAME: ${SHAHOO_ADMIN_NAME:-}
+      SHAHOO_ADMIN_MOBILE: ${SHAHOO_ADMIN_MOBILE:-}
+      SHAHOO_ADMIN_ROTATE: ${SHAHOO_ADMIN_ROTATE:-}
+      SHAHOO_ADMIN_RECOVER: ${SHAHOO_ADMIN_RECOVER:-}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      ALLOW_LOCAL_STORAGE: ${ALLOW_LOCAL_STORAGE:-true}
+      STORAGE_LOCAL_DIR: /app/storage/media
+      STORAGE_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT:-}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-}
+      STORAGE_S3_REGION: ${STORAGE_S3_REGION:-}
+      STORAGE_S3_ACCESS_KEY_ID: ${STORAGE_S3_ACCESS_KEY_ID:-}
+      STORAGE_S3_SECRET_ACCESS_KEY: ${STORAGE_S3_SECRET_ACCESS_KEY:-}
+      STORAGE_S3_PREFIX: ${STORAGE_S3_PREFIX:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_PREFIX: ${S3_PREFIX:-}
+      AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
+      PAYPING_API_KEY: ${PAYPING_API_KEY:-}
+      PAYPING_LIVE: ${PAYPING_LIVE:-0}
+      PAYPING_RETURN_URL: ${PAYPING_RETURN_URL:-}
+      SMS_PROVIDER: ${SMS_PROVIDER:-}
+      SMS_MODE: ${SMS_MODE:-disabled}
+      SMS_LIVE: ${SMS_LIVE:-0}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_SENDER: ${SMS_SENDER:-}
+      SMS_IR_API_KEY: ${SMS_IR_API_KEY:-}
+      SMS_IR_OTP_TEMPLATE_ID: ${SMS_IR_OTP_TEMPLATE_ID:-}
+      SHAHOO_ALLOW_PRODUCTION_MIGRATE: ${SHAHOO_ALLOW_PRODUCTION_MIGRATE:-0}
+      TZ: Asia/Tehran
+    volumes:
+      - shahoo_media_data:/app/storage/media
+    networks:
+      - shahoo_internal
+      - shahoo_public
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health?type=ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  worker:
+    image: shahoo-app:latest
+    container_name: shahoo_worker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${APP_DB_USER:-shahoo_app}:${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env}@db:5432/${POSTGRES_DB:-shahoo_db}?sslmode=disable
+      WORKER_INTERVAL_SECONDS: ${WORKER_INTERVAL_SECONDS:-300}
+      WORKER_TASK_TIMEOUT_SECONDS: ${WORKER_TASK_TIMEOUT_SECONDS:-240}
+      TZ: Asia/Tehran
+    command: ["sh", "scripts/worker-loop.sh"]
+    networks:
+      - shahoo_internal
+    healthcheck:
+      test: ["CMD", "node", "scripts/worker-healthcheck.mjs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 6m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  proxy:
+    image: caddy:2-alpine
+    container_name: shahoo_proxy
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - shahoo_caddy_data:/data
+      - shahoo_caddy_config:/config
+    networks:
+      - shahoo_public
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+networks:
+  shahoo_internal:
+    driver: bridge
+    internal: true
+  shahoo_public:
+    driver: bridge
+
+volumes:
+  shahoo_postgres_data:
+    driver: local
+  shahoo_media_data:
+    driver: local
+  shahoo_caddy_data:
+    driver: local
+  shahoo_caddy_config:
+    driver: local

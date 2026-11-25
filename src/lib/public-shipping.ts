@@ -20,3 +20,11 @@ export function isUnapprovedSeedShipping(row: ShippingSnapshot): boolean {
     (item) => item.key === key && item.priceIrr === row.priceIrr && item.freeOverIrr === (row.freeOverIrr ?? null),
   );
 }
+
+export type DeliveryArea = { province?: string; city?: string };
+
+export function servesDestination(area: DeliveryArea, province: string, city: string) {
+  const normalize = (text: string) => text.trim().replace(/ي/g, "ی").replace(/ك/g, "ک").replace(/[\s\u200c]+/g, " ");
+  return (!area.province || normalize(area.province) === normalize(province))
+    && (!area.city || normalize(area.city) === normalize(city));
+}

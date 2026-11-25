@@ -34,7 +34,6 @@ import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountSettingsRouteImport } from './routes/account.settings'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCatalogRouteImport } from './routes/admin.catalog'
-import { Route as AdminContentPreviewEntityTypeEntityIdRouteImport } from './routes/admin.content-preview.$entityType.$entityId'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
@@ -44,6 +43,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
+import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiMediaUploadRouteImport } from './routes/api.media-upload'
 import { Route as MagazineIndexRouteImport } from './routes/magazine.index'
 import { Route as MagazineArticleIdRouteImport } from './routes/magazine.$articleId'
@@ -54,7 +54,9 @@ import { Route as AdminCustomersIndexRouteImport } from './routes/admin.customer
 import { Route as AdminCustomersCustomerIdRouteImport } from './routes/admin.customers.$customerId'
 import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.index'
 import { Route as AdminOrdersCodeRouteImport } from './routes/admin.orders.$code'
+import { Route as ApiTorobProductsRouteImport } from './routes/api.torob.products'
 import { Route as MediaFileAssetIdRouteImport } from './routes/media.file.$assetId'
+import { Route as AdminContentPreviewEntityTypeEntityIdRouteImport } from './routes/admin.content-preview.$entityType.$entityId'
 import { Route as ApiPaymentPaypingCallbackRouteImport } from './routes/api.payment.payping.callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -187,11 +189,6 @@ const AdminContentRoute = AdminContentRouteImport.update({
   path: '/content',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminContentPreviewEntityTypeEntityIdRoute = AdminContentPreviewEntityTypeEntityIdRouteImport.update({
-  id: '/content-preview/$entityType/$entityId',
-  path: '/content-preview/$entityType/$entityId',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -231,6 +228,11 @@ const AdminSupportRoute = AdminSupportRouteImport.update({
   id: '/support',
   path: '/support',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaUploadRoute = ApiMediaUploadRouteImport.update({
   id: '/api/media-upload',
@@ -283,11 +285,22 @@ const AdminOrdersCodeRoute = AdminOrdersCodeRouteImport.update({
   path: '/$code',
   getParentRoute: () => AdminOrdersRoute,
 } as any)
+const ApiTorobProductsRoute = ApiTorobProductsRouteImport.update({
+  id: '/api/torob/products',
+  path: '/api/torob/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaFileAssetIdRoute = MediaFileAssetIdRouteImport.update({
   id: '/media/file/$assetId',
   path: '/media/file/$assetId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminContentPreviewEntityTypeEntityIdRoute =
+  AdminContentPreviewEntityTypeEntityIdRouteImport.update({
+    id: '/content-preview/$entityType/$entityId',
+    path: '/content-preview/$entityType/$entityId',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const ApiPaymentPaypingCallbackRoute =
   ApiPaymentPaypingCallbackRouteImport.update({
     id: '/api/payment/payping/callback',
@@ -321,7 +334,6 @@ export interface FileRoutesByFullPath {
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -330,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
@@ -339,9 +352,11 @@ export interface FileRoutesByFullPath {
   '/magazine/': typeof MagazineIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -368,13 +383,13 @@ export interface FileRoutesByTo {
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
@@ -384,9 +399,11 @@ export interface FileRoutesByTo {
   '/magazine': typeof MagazineIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
 }
 export interface FileRoutesById {
@@ -416,7 +433,6 @@ export interface FileRoutesById {
   '/account/settings': typeof AccountSettingsRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/content': typeof AdminContentRoute
-  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/admin/customers': typeof AdminCustomersRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/offers': typeof AdminOffersRoute
@@ -425,6 +441,7 @@ export interface FileRoutesById {
   '/admin/reviews': typeof AdminReviewsRoute
   '/admin/staff': typeof AdminStaffRoute
   '/admin/support': typeof AdminSupportRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
@@ -434,9 +451,11 @@ export interface FileRoutesById {
   '/magazine/': typeof MagazineIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
+  '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
 }
 export interface FileRouteTypes {
@@ -467,7 +486,6 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/admin/catalog'
     | '/admin/content'
-    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/customers'
     | '/admin/inventory'
     | '/admin/offers'
@@ -476,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/staff'
     | '/admin/support'
+    | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
     | '/order/$orderId'
@@ -485,9 +504,11 @@ export interface FileRouteTypes {
     | '/magazine/'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
+    | '/api/torob/products'
     | '/media/file/$assetId'
     | '/admin/customers/'
     | '/admin/orders/'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -514,13 +535,13 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/admin/catalog'
     | '/admin/content'
-    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/inventory'
     | '/admin/offers'
     | '/admin/reports'
     | '/admin/reviews'
     | '/admin/staff'
     | '/admin/support'
+    | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
     | '/order/$orderId'
@@ -530,9 +551,11 @@ export interface FileRouteTypes {
     | '/magazine'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
+    | '/api/torob/products'
     | '/media/file/$assetId'
     | '/admin/customers'
     | '/admin/orders'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
   id:
     | '__root__'
@@ -561,7 +584,6 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/admin/catalog'
     | '/admin/content'
-    | '/admin/content-preview/$entityType/$entityId'
     | '/admin/customers'
     | '/admin/inventory'
     | '/admin/offers'
@@ -570,6 +592,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/staff'
     | '/admin/support'
+    | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
     | '/order/$orderId'
@@ -579,9 +602,11 @@ export interface FileRouteTypes {
     | '/magazine/'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
+    | '/api/torob/products'
     | '/media/file/$assetId'
     | '/admin/customers/'
     | '/admin/orders/'
+    | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
   fileRoutesById: FileRoutesById
 }
@@ -605,10 +630,12 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiMediaUploadRoute: typeof ApiMediaUploadRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   PagesPageSlugRoute: typeof PagesPageSlugRoute
   ProductProductIdRoute: typeof ProductProductIdRoute
+  ApiTorobProductsRoute: typeof ApiTorobProductsRoute
   MediaFileAssetIdRoute: typeof MediaFileAssetIdRoute
   ApiPaymentPaypingCallbackRoute: typeof ApiPaymentPaypingCallbackRoute
 }
@@ -790,13 +817,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCatalogRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/content-preview/$entityType/$entityId': {
-      id: '/admin/content-preview/$entityType/$entityId'
-      path: '/content-preview/$entityType/$entityId'
-      fullPath: '/admin/content-preview/$entityType/$entityId'
-      preLoaderRoute: typeof AdminContentPreviewEntityTypeEntityIdRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/content': {
       id: '/admin/content'
       path: '/content'
@@ -859,6 +879,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/support'
       preLoaderRoute: typeof AdminSupportRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/media-upload': {
       id: '/api/media-upload'
@@ -930,12 +957,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersCodeRouteImport
       parentRoute: typeof AdminOrdersRoute
     }
+    '/api/torob/products': {
+      id: '/api/torob/products'
+      path: '/api/torob/products'
+      fullPath: '/api/torob/products'
+      preLoaderRoute: typeof ApiTorobProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/file/$assetId': {
       id: '/media/file/$assetId'
       path: '/media/file/$assetId'
       fullPath: '/media/file/$assetId'
       preLoaderRoute: typeof MediaFileAssetIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/content-preview/$entityType/$entityId': {
+      id: '/admin/content-preview/$entityType/$entityId'
+      path: '/content-preview/$entityType/$entityId'
+      fullPath: '/admin/content-preview/$entityType/$entityId'
+      preLoaderRoute: typeof AdminContentPreviewEntityTypeEntityIdRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/api/payment/payping/callback': {
       id: '/api/payment/payping/callback'
@@ -995,7 +1036,6 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminCatalogRoute: typeof AdminCatalogRoute
   AdminContentRoute: typeof AdminContentRoute
-  AdminContentPreviewEntityTypeEntityIdRoute: typeof AdminContentPreviewEntityTypeEntityIdRoute
   AdminCustomersRoute: typeof AdminCustomersRouteWithChildren
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminOffersRoute: typeof AdminOffersRoute
@@ -1005,12 +1045,12 @@ interface AdminRouteChildren {
   AdminStaffRoute: typeof AdminStaffRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminContentPreviewEntityTypeEntityIdRoute: typeof AdminContentPreviewEntityTypeEntityIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCatalogRoute: AdminCatalogRoute,
   AdminContentRoute: AdminContentRoute,
-  AdminContentPreviewEntityTypeEntityIdRoute: AdminContentPreviewEntityTypeEntityIdRoute,
   AdminCustomersRoute: AdminCustomersRouteWithChildren,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminOffersRoute: AdminOffersRoute,
@@ -1020,6 +1060,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStaffRoute: AdminStaffRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminContentPreviewEntityTypeEntityIdRoute:
+    AdminContentPreviewEntityTypeEntityIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1058,10 +1100,12 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiMediaUploadRoute: ApiMediaUploadRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   PagesPageSlugRoute: PagesPageSlugRoute,
   ProductProductIdRoute: ProductProductIdRoute,
+  ApiTorobProductsRoute: ApiTorobProductsRoute,
   MediaFileAssetIdRoute: MediaFileAssetIdRoute,
   ApiPaymentPaypingCallbackRoute: ApiPaymentPaypingCallbackRoute,
 }

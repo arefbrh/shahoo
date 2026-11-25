@@ -28,6 +28,12 @@ function validReturnUrl(value: string): boolean {
 }
 
 export function payPingConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.APP_URL) {
+    try {
+      const expected = new URL("/api/payment/payping/callback", env.APP_URL);
+      if (new URL(env.PAYPING_RETURN_URL ?? "").href !== expected.href) return false;
+    } catch { return false; }
+  }
   return env.NODE_ENV === "production" && env.PAYMENT_PROVIDER?.trim().toLowerCase() === "payping" &&
     env.PAYPING_LIVE === "1" && Boolean(env.PAYPING_API_KEY?.trim()) && validReturnUrl(env.PAYPING_RETURN_URL ?? "");
 }

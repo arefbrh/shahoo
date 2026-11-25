@@ -20,7 +20,7 @@ const checkoutSchema = z.object({
   plaque: z.string().max(20).default(""),
   unit: z.string().max(20).default(""),
   customerNote: z.string().max(400).default(""),
-  shippingMethodId: z.string().min(3).max(40),
+  shippingMethodId: z.string().min(3).max(80),
   couponCode: z.string().max(40).default(""),
   idempotencyKey: z.string().uuid(),
   addressId: z.string().max(80).nullable().optional(),
@@ -55,9 +55,9 @@ export const getCheckoutContext = createServerFn({ method: "GET" }).handler(asyn
 
 export const quoteCheckoutFn = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
-    z.object({ shippingMethodId: z.string().min(3).max(40), couponCode: z.string().max(40).default("") }).parse(input),
+    z.object({ province: z.string().max(40).default(""), city: z.string().max(40).default(""), shippingMethodId: z.string().min(3).max(80), couponCode: z.string().max(40).default("") }).parse(input),
   )
-  .handler(async ({ data }): Promise<QuoteResult> => quoteCheckout(data.shippingMethodId, data.couponCode));
+  .handler(async ({ data }): Promise<QuoteResult> => quoteCheckout(data.shippingMethodId, data.couponCode, data.province, data.city));
 
 export const placeOrderFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => checkoutSchema.parse(input))

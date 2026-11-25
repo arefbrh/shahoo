@@ -21,6 +21,8 @@ import type {
   SitePage,
   StoreProfile,
   StoreLayoutSettings,
+  TrustMarkItem,
+  FaqItem,
   VariantChoice,
 } from "@/lib/store-types";
 import { getDb } from "../db/client";
@@ -51,6 +53,9 @@ const profileSchema = z.object({
   brandName: z.string(),
   tagline: z.string(),
   phone: z.string(),
+  supportHours: z.string().default(""),
+  trackingInstructions: z.string().default(""),
+  returnInstructions: z.string().default(""),
   whatsapp: z.string(),
   email: z.string(),
   address: z.string(),
@@ -231,6 +236,25 @@ export const getShell = createServerFn({ method: "GET" }).handler(async (): Prom
     footerAlignment: layoutConfig.footerAlignment === "center" ? "center" : "start",
   };
   const promoRaw = z.object({ text: z.string() }).parse(map.get("header.promo"));
+  const rawTrustMarks = map.get("store.trust_marks");
+  const trustMarks: TrustMarkItem[] = Array.isArray(rawTrustMarks) && rawTrustMarks.length > 0
+    ? (rawTrustMarks as TrustMarkItem[])
+    : [
+        {
+          id: "mark-enamad",
+          provider: "enamad",
+          title: "نماد اعتماد الکترونیکی",
+          description: "مرکز توسعه تجارت الکترونیکی",
+          status: "pending",
+        },
+        {
+          id: "mark-samandehi",
+          provider: "samandehi",
+          title: "نشان ساماندهی",
+          description: "وزارت فرهنگ و ارشاد اسلامی",
+          status: "pending",
+        },
+      ];
   return {
     profile,
     logos,
@@ -241,7 +265,19 @@ export const getShell = createServerFn({ method: "GET" }).handler(async (): Prom
       { title: "فروشگاه", links: footerShop },
       { title: "راهنما", links: footerHelp },
     ],
+    trustMarks,
   };
+});
+
+export const getProductFaqs = createServerFn({ method: "GET" }).handler(async (): Promise<FaqItem[]> => {
+  const db = await readyDb();
+  const [row] = await db.select().from(settings).where(eq(settings.key, "store.product_faqs")).limit(1);
+  if (row && Array.isArray(row.value) && row.value.length > 0) {
+    const list = row.value as FaqItem[];
+    const active = list.filter((item) => item.isActive !== false);
+    if (active.length > 0) return active;
+  }
+  return [];
 });
 
 async function menuLinks(
@@ -356,6 +392,10 @@ function toCategory(row: typeof productCategories.$inferSelect): CategoryCard {
   };
 }
 
+function catalogSearchText(value: string) {
+  return value.normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\s\u200c]+/g, "").toLowerCase();
+}
+
 export const listCatalog = createServerFn({ method: "GET" })
   .validator((input: unknown): CatalogQuery => {
     const parsed = catalogSchema.parse(input ?? {});
@@ -379,8 +419,8 @@ export const listCatalog = createServerFn({ method: "GET" })
       if (data.best && !product.isBestSeller) return false;
       if (data.available && !product.inStock) return false;
       if (data.q) {
-        const haystack = `${product.name} ${product.englishName} ${product.subtitle}`.toLowerCase();
-        if (!haystack.includes(data.q.toLowerCase())) return false;
+        const needle = catalogSearchText(data.q);
+        if (![product.name, product.englishName, product.subtitle].some((value) => catalogSearchText(value).includes(needle))) return false;
       }
       return true;
     });

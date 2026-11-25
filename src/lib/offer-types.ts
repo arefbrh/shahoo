@@ -14,6 +14,8 @@ export type OfferCoupon = {
 };
 
 export type OfferShipping = {
+  province?: string;
+  city?: string;
   id: string;
   key: string;
   title: string;

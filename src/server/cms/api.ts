@@ -19,6 +19,8 @@ import {
   applySectionUpdate,
   applySiteCopy,
   applyStoreProfile,
+  applyProductFaqs,
+  applyTrustMarks,
   loadCmsDesk,
   loadContentPreview,
   loadContentHistory,
@@ -140,6 +142,9 @@ export const saveStoreProfileFn = createServerFn({ method: "POST" })
     z
       .object({
         phone: z.string().max(40),
+        supportHours: z.string().max(600).optional(),
+        trackingInstructions: z.string().max(600).optional(),
+        returnInstructions: z.string().max(600).optional(),
         whatsapp: z.string().max(40),
         email: z.string().max(120),
         address: z.string().max(300),
@@ -212,3 +217,31 @@ export const registerMediaFn = createServerFn({ method: "POST" })
 export const retireMediaFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ id: z.string().min(2).max(80) }).parse(input))
   .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => retireMedia(db, actorId, data.id)));
+
+const faqItemSchema = z.object({
+  id: z.string().optional(),
+  q: z.string().min(1).max(500),
+  a: z.string().min(1).max(3000),
+  isActive: z.boolean(),
+  sortOrder: z.number().int().optional(),
+});
+
+const trustMarkSchema = z.object({
+  id: z.string().optional(),
+  provider: z.enum(["enamad", "samandehi", "custom"]),
+  title: z.string().min(1).max(100),
+  description: z.string().max(200).default(""),
+  status: z.enum(["unconfigured", "draft", "pending", "verified", "disabled"]),
+  verifyUrl: z.string().max(500).optional(),
+  iconUrl: z.string().max(500).optional(),
+  codeSnippet: z.string().max(1000).optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const saveProductFaqsFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ faqs: z.array(faqItemSchema) }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyProductFaqs(db, actorId, data.faqs)));
+
+export const saveTrustMarksFn = createServerFn({ method: "POST" })
+  .validator((input: unknown) => z.object({ marks: z.array(trustMarkSchema) }).parse(input))
+  .handler(async ({ data }): Promise<CmsResult> => withContentWrite((db, actorId) => applyTrustMarks(db, actorId, data.marks)));

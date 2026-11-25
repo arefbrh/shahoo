@@ -1,10 +1,10 @@
 # SHAHOO — Project Handoff & Engineering Memory
 
-> **Canonical handoff for future agents and maintainers.** Read this file before changing code, infrastructure, migrations, or release state. It consolidates repository evidence and the verified project history available on 2026-11-20. It is deliberately explicit about what was tested, what was only reviewed, and what remains blocked.
+> **Canonical handoff for future agents and maintainers.** Read this file before changing code, infrastructure, migrations, or release state. It consolidates repository evidence and the verified project history available on 2026-11-24. It is deliberately explicit about what was tested, what was only reviewed, and what remains blocked.
 >
-> **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but live provider activation, Production database setup, PostgreSQL multi-connection verification, and final release checks are still outstanding.
+> **Current release posture: NOT APPROVED FOR PUBLIC PRODUCTION LAUNCH.** The application has a working Vercel Preview path and substantial source-level remediation, but Production schema/data verification, live provider activation, PostgreSQL multi-connection verification, and final release checks are still outstanding.
 
-**Last reconciled:** 2026-11-20 (post-PR #3 merge reconciliation)
+**Last reconciled:** 2026-11-25 (Batch 10 local integration and live GitHub state check)
 
 ## 0. Latest verified repository maintenance
 
@@ -12,13 +12,31 @@
 - PR #3 ([documentation cleanup](https://github.com/arefbrh/shahoo/pull/3)) updated the agent entry point and marked superseded batch/status documents as historical. Its CI run `44713902624` completed successfully for head `a0516f65a2474a1e8cb9b60b3981f31493184401`; it was squash-merged into `main` as `ab5d3617f62b7156b2a90504d86f2e4d9409e2d3`. Documentation-only; no application source, dependencies, migrations, database data, secrets, or deployment settings changed.
 - Current documentation entry point: [docs/README.md](docs/README.md). Start with this handoff and do not treat historical batch instructions as current authorization.
 
-**Repository:** [arefbrh/shahoo](https://github.com/arefbrh/shahoo)  
+**Repository:** [shahoo-workspace/shahoo](https://github.com/shahoo-workspace/shahoo)  
 **Production branch:** `main`  
 **Primary stack:** React + TypeScript, TanStack Start, Vite, Nitro, Drizzle ORM, PostgreSQL/Neon in deployed environments, PGlite for local/test use, Vercel hosting.
 
 ---
 
-## 1. Start here — current state at a glance
+## 0.1. Latest reconciliation — 2026-11-24
+
+- Current repository is `shahoo-workspace/shahoo`; `main` head at comparison time was `9cee5faf98e010f7a366af0e28d95ed36bfaf2d5`.
+- PR #1, #8 and #9 are closed and merged. PR #10 (`fix/shahoo-pwa-branding`) is closed and **not merged** because PWA branding was outside the owner's approved request. No PWA changes from PR #10 entered `main`.
+- Some `grok-pwa` files already existed in the repository before this audit. Their presence is legacy repository content, not evidence that SHAHOO has an approved PWA product scope. Do not add or expand PWA behavior unless the owner asks.
+- The owner supplied `SHAHOO_Master_Infrastructure_Remediation_Prompt.md` and `SHAHOO_PROJECT_V2_FINAL_MASTER.zip`. The ZIP is based largely on `main`, but adds storefront source, invoice-export hardening/branding, self-hosting files, scripts and documents. The detailed comparison and corrections are recorded in `docs/PROJECT_STATUS.md`, `docs/CAPABILITY_MATRIX.md` and `REMAINING_ISSUES.md`.
+- The integration candidate corrects identified defects in the ZIP: Nitro `node-server` preset, worker runtime contents/heartbeat, exact environment names, Torob schema references and route-tree registration, safer public feed errors, and Windows service/restore behavior.
+- `docs/ADMIN_IMPLEMENTATION_TRACKER.md` now contains Batch 10, mapped to the Master Infrastructure Remediation prompt, with explicit PASS/SOURCE-CORRECTED/BLOCKED/OPEN states and Production exit criteria.
+- Actual checks completed locally: all scripts under `scripts/` pass `node --check`; Linux shell scripts pass `bash -n`; Docker Compose YAML parses with PyYAML; 109/112 script tests pass (3 blocked by missing `react`/`pg` packages); 2 invoice-export tests pass; 17 Antigravity remediation tests pass; fresh/stale worker heartbeat checks pass.
+- Full `npm ci` timed out twice. Full TypeScript, lint, project-wide test suite, production build, `docker compose config`, Docker image/runtime, Windows PowerShell, real PostgreSQL restore drill, browser E2E and Preview validation remain NOT RUN/BLOCKED.
+- Neon Production primary branch is `br-curly-dust-ba1kq0xb` in project `billowing-queen-40432154`, database `shahoo`; it was last recorded at migration 0016. The disposable test branch `br-damp-silence-ba4r9hmb` was verified through migrations 0017–0019. Separate Staging project `morning-voice-81212343`, branch `br-young-heart-b96c797x`, database `shahoo`, is at migration 0019. Do not alter the Production primary branch during this integration.
+- Vercel project `shahoo` uses `main` as its Production branch. No Production deployment, Neon migration, credential change, DNS change or live PayPing/SMS transaction was performed in this audit.
+- The Master Infrastructure Remediation prompt defines self-hosting as the target architecture. The Docker/VPS files are preparation scaffolding, not evidence that Vercel/Neon have already been replaced or that a VPS is running.
+- Live GitHub check on 2026-11-25: `feat/self-hosted-infra-remediation` exists but points to the same commit as `main` (`9cee5faf98e010f7a366af0e28d95ed36bfaf2d5`); no open PR was returned. The local integration candidate has not been uploaded or committed. Do not describe the existing branch as containing the candidate.
+- A third `npm ci` attempt on 2026-11-25 failed with DNS resolution errors (`EAI_AGAIN` for `registry.npmjs.org`); npm cache verification found zero cached packages. Full TypeScript, lint, project tests and build remain blocked, not passed.
+
+**Current release posture remains NOT APPROVED for Production cutover.** Keep code changes isolated until CI, full test/build, disposable PostgreSQL checks, backup/restore drills and owner review pass.
+
+## 1. Historical project snapshot — 2026-11-20 (superseded by section 0.1)
 
 | Area | Current state | Evidence / next action |
 |---|---|---|
@@ -29,9 +47,14 @@
 | Neon Preview database | Connected by user | `DATABASE_URL` set for **Preview only**; never copy its value into chat, source, logs, or docs |
 | Preview demo catalog | Working | `SEED_DEMO=1` is configured for Preview only; never enable it in Production |
 | Manual storefront smoke test | Passed by owner | Product detail, add-to-cart, cart quantity and price were checked by the owner and reported working |
-| PR #1 | Open, Draft, not merged; current GitHub metadata reports mergeable=false against its old base | [Fix Vercel runtime loading of PGlite adapter](https://github.com/arefbrh/shahoo/pull/1); reconcile/rebase against current `main`, rerun CI, and review before any merge |
-| Production database | Not provisioned/verified | Create a separate Neon Production database and configure Vercel Production `DATABASE_URL` before any Production deploy |
-| Production deployment | Not verified / not approved | Do not merge or promote blindly; see release gates below |
+| PR #1 | Closed and merged | PGlite adapter runtime fix; merge commit `cdaf98f8a162aa267a7ebf1f591ffe55c90e3f3a` |
+| PR #8 | Closed and merged | Admin catalog UX reliability; merge commit `ddc473caec369dd1f161c720ae8dc0a01662687b` |
+| PR #9 | Closed and merged | CMS/navigation/media/order operations; merge commit `9cee5faf98e010f7a366af0e28d95ed36bfaf2d5` |
+| PR #10 | Closed, not merged | PWA branding work was outside the approved roadmap; no changes merged or deployed |
+| Production database | Exists; primary branch remains at migration 0016 | Do not apply migrations 0017–0019 to the primary branch until the separate migration review/approval and backup gates pass |
+| Staging database | Exists; migration 0019 | Use only for non-production integration tests; preserve existing staging content |
+| Self-hosted VPS | Not provisioned/verified | Current ZIP contains scaffolding only; no live VPS or restore drill exists |
+| Production deployment | Existing Vercel production deployment was previously READY; no deployment was triggered in this audit | Keep `main` protected from unreviewed changes because it is the Production deployment branch |
 | PayPing / SMS.ir | Source integration exists; disabled pending controlled account verification | No live credentials, sandbox transaction, real SMS, or real payment was tested |
 | Real PostgreSQL concurrency and restore | Not executed in the documented Batch 09 evidence | Use the guarded disposable PostgreSQL procedure; do not target Production |
 | Full script test suite | Four platform-only tests blocked | 212/216 script tests in the latest documented run; missing private `.grok` inputs explain the four failures |
@@ -428,3 +451,28 @@ No Neon, Vercel environment, live PayPing/SMS provider or Production data was to
 PR #1 remains open and Draft. Its earlier ahead/behind snapshot is stale after these merges; at latest check it was not merge-ready against updated main. Reconcile/rebase PR #1, rerun CI and Preview smoke tests, and review before considering merge.
 
 Remaining coverage: PayPing callback HTTP route E2E, checkout racing late-payment recovery, quote/order transition and RBAC matrices, multi-process seed initialization, full fresh/upgrade migration parity and rollback injection, and production-like disaster recovery (roles/globals, media, secrets, host/network, encryption and retention).
+
+
+## Antigravity V2 integration audit — 2026-11-24
+
+The owner supplied `SHAHOO_PROJECT_V2_FINAL_MASTER.zip` and the Master Infrastructure Remediation prompt. The ZIP was compared with GitHub `main`; most existing source files and the lockfile match, while the archive adds city selection, carrier tracking, CMS FAQ/trust defaults, product FAQ display, a Torob feed, invoice branding/export changes, and self-hosting scaffolding.
+
+The integration candidate corrects identified defects in the archive before proposing it for review:
+- Nitro build preset is explicitly `node-server` for self-hosted builds.
+- Runtime image includes the production dependencies and source files required by the scheduled worker.
+- Worker failures are no longer silently looped over; the container restarts and a heartbeat health check exposes stale runs.
+- Production env names match the current code contract (`APP_URL`, `PAYPING_LIVE`, `SMS_IR_OTP_TEMPLATE_ID`, `SHAHOO_TRUST_PROXY`).
+- Torob feed schema references and route-tree registration are corrected; generic product claims and public exception details are removed.
+- Linux DB/media backup and explicit-confirmation restore scripts are present.
+- Windows service setup now requires separately installed NSSM and passes configured environment values; restore checks the native command exit code.
+
+**Evidence boundary:** the archive was inspected and statically reviewed. `npm ci` timed out twice; Docker and PowerShell were unavailable. Full typecheck, lint, tests, Docker build, browser checks, Windows execution, PostgreSQL restore drill, and Preview validation remain unverified. Do not promote this candidate to Production or mark it release-ready.
+
+
+## Latest continuation update — 2026-11-25
+
+- Vercel Sandbox retry run: 479/479 project tests passed (113 script, 236 application, 130 migration/integration); this was a main checkout plus selected overlay, not the complete ZIP.
+- Node 26.13.1 TypeScript and ESLint checks passed on that Sandbox checkout; build passed on the Sandbox checkout. No Production deployment was created.
+- Neon Staging now has a private `shahoo-media` bucket. Production Storage remains enabled but bucketless and untouched.
+- The candidate now supports Neon's AWS-standard S3 environment variables and has a dedicated regression test. A real S3 object round-trip and full candidate ZIP test remain outstanding.
+- The candidate's unsafe Vercel installCommand override was removed.

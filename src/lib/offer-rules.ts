@@ -28,6 +28,8 @@ export type ParsedCoupon = {
 };
 
 export type ShippingDraft = {
+  province?: string;
+  city?: string;
   key: string;
   title: string;
   description: string;

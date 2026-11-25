@@ -12,6 +12,21 @@ env:
   NODE_VERSION: "22.x"
 
 jobs:
+  windows:
+    name: Windows native build and recovery
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: choco install nssm caddy -y --no-progress
+      - run: npm run build:windows
+      - shell: powershell
+        run: ./scripts/windows/test-host.ps1
+
   quality:
     name: Quality
     runs-on: ubuntu-latest
@@ -65,11 +80,97 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      - name: Verify disposable Docker PostgreSQL bootstrap role separation
+        run: bash scripts/test-db-bootstrap.sh
       - run: npm run db:migrate
       - name: Verify real PostgreSQL integration
         run: node scripts/test-postgres-smoke.mjs
       - name: Verify multi-connection contention and backup/restore
         run: node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/test-postgres-concurrency-backup.mjs
+
+  self-host-docker:
+    name: Self-host Docker build and Compose validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POSTGRES_PASSWORD: ci-only-dummy-postgres
+      APP_DB_PASSWORD: ci-only-dummy-app
+      APP_URL: http://localhost:3000
+      APP_DOMAIN: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose with disposable placeholder variables
+        run: docker compose -f docker-compose.yml config --quiet
+      - name: Validate Linux and Windows Caddy reverse proxy files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for config in Caddyfile Caddyfile.windows; do
+            docker run --rm --env APP_DOMAIN=localhost --volume "$PWD/$config:/etc/caddy/Caddyfile:ro" --entrypoint caddy caddy:2-alpine validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          done
+      - name: Build complete self-hosted application image
+        run: docker build --progress=plain --tag shahoo-self-host:ci .
+      - name: Verify server and worker runtime artifacts
+        run: |
+          docker run --rm --entrypoint sh shahoo-self-host:ci -c '
+            set -eu
+            test -f .output/server/index.mjs
+            test -f scripts/worker-loop.sh
+            test -f scripts/worker-healthcheck.mjs
+            node --version
+          '
+
+      - name: Disposable self-host runtime, database restore and media restore
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker compose down -v --remove-orphans || true
+          }
+          trap cleanup EXIT
+
+          # Fresh disposable CI containers only; never use live/staging credentials.
+          docker tag shahoo-self-host:ci shahoo-app:latest
+          docker compose up -d --no-build db app
+          docker compose exec -T -e SHAHOO_ALLOW_PRODUCTION_MIGRATE=1 app node scripts/migrate.mjs
+
+          ready=0
+          for attempt in $(seq 1 60); do
+            if docker compose exec -T app curl -fsS 'http://127.0.0.1:3000/api/health?type=ready' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            docker compose logs --tail=100 db app
+            echo "Disposable application did not become ready." >&2
+            exit 1
+          fi
+
+          docker compose up -d --no-build worker
+          docker compose exec -T worker node scripts/worker-healthcheck.mjs
+          docker compose exec -T app sh -c "printf 'ci-original' > /app/storage/media/ci-test-marker.txt"
+
+          mkdir -p "$RUNNER_TEMP/shahoo-media"
+          bash scripts/linux/backup-media.sh "$RUNNER_TEMP/shahoo-media" 1
+          archive="$(find "$RUNNER_TEMP/shahoo-media" -maxdepth 1 -type f -name 'shahoo_media_*.tar.gz' -print -quit)"
+          test -n "$archive"
+          docker compose exec -T app sh -c "printf 'ci-modified' > /app/storage/media/ci-test-marker.txt"
+          printf 'RESTORE\n' | STORAGE_PROVIDER=local bash scripts/linux/restore-media.sh "$archive"
+
+          restored="$(docker compose exec -T app cat /app/storage/media/ci-test-marker.txt | tr -d '\r\n')"
+          [[ "$restored" == 'ci-original' ]]
+          docker compose exec -T app curl -fsS 'http://127.0.0.1:3000/api/health?type=ready' >/dev/null
+
+          bash scripts/linux/backup-db.sh "$RUNNER_TEMP/shahoo-db" 1
+          dump="$(find "$RUNNER_TEMP/shahoo-db" -maxdepth 1 -type f -name 'shahoo_db_*.dump' -print -quit)"
+          test -s "$dump"
+          printf 'RESTORE\n' | bash scripts/linux/restore-db.sh "$dump"
+          restored_migrations="$(docker compose exec -T db sh -c 'psql -X -U "$APP_DB_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM _migrations"')"
+          expected_migrations="$(find migrations -maxdepth 1 -type f -name '*.sql' | wc -l)"
+          [[ "$restored_migrations" -eq "$expected_migrations" ]]
+          docker compose exec -T app curl -fsS --retry 8 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:3000/api/health?type=ready' >/dev/null
 
   payment-and-sms-mocks:
     name: Payment and SMS mocks

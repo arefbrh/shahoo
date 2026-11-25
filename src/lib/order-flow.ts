@@ -1,3 +1,5 @@
+export const onlineReturnsEnabled = false;
+
 export const FULFILLMENT_STATUSES = [
   "awaiting_payment",
   "paid",
@@ -84,4 +86,8 @@ const RETURN_NEXT: Record<string, readonly string[]> = {
 
 export function canReviewReturn(from: string, to: string): boolean {
   return (RETURN_NEXT[from] ?? []).includes(to);
+}
+
+export function todayInTehran(now = new Date()): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tehran", calendar: "gregory" }).format(now);
 }

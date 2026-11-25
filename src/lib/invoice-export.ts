@@ -49,16 +49,15 @@ function xml(value: unknown) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
-function download(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+export function sanitizeSpreadsheetText(value: unknown): string {
+  const str = String(value ?? "");
+  // Mitigation for Formula Injection: prefix leading formula characters with an apostrophe
+  const firstSignificant = Array.from(str).find((char) => char.charCodeAt(0) > 0x1f && !/\s/.test(char));
+  const safe = firstSignificant !== undefined && "=+-@".includes(firstSignificant) ? `'${str}` : str;
+  return xml(safe);
 }
 
-export function downloadInvoiceXlsx(order: OrderView) {
+export function buildInvoiceSheetXml(order: OrderView): string {
   const rows: Array<Array<string | number>> = [
     ["SHAHOO", "فاکتور فروش", order.publicCode],
     ["تاریخ صدور", order.createdAtLabel],
@@ -82,16 +81,30 @@ export function downloadInvoiceXlsx(order: OrderView) {
       const cellRef = `${ref(col + 1)}${index + 1}`;
       return typeof value === "number"
         ? `<c r="${cellRef}" t="n"><v>${value}</v></c>`
-        : `<c r="${cellRef}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;
+        : `<c r="${cellRef}" t="inlineStr"><is><t xml:space="preserve">${sanitizeSpreadsheetText(value)}</t></is></c>`;
     }).join("");
     return `<row r="${index + 1}">${cells}</row>`;
   }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="22"/><sheetData>${sheetRows}</sheetData><autoFilter ref="A8:F${7 + order.lines.length + 1}"/></worksheet>`;
+}
+
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+export function downloadInvoiceXlsx(order: OrderView) {
+  const sheet1Xml = buildInvoiceSheetXml(order);
   const files = [
     { name: "[Content_Types].xml", body: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>' },
     { name: "_rels/.rels", body: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
     { name: "xl/workbook.xml", body: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="فاکتور" sheetId="1" r:id="rId1"/></sheets></workbook>' },
     { name: "xl/_rels/workbook.xml.rels", body: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>' },
-    { name: "xl/worksheets/sheet1.xml", body: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="22"/><sheetData>${sheetRows}</sheetData><autoFilter ref="A8:F${7 + order.lines.length + 1}"/></worksheet>` },
+    { name: "xl/worksheets/sheet1.xml", body: sheet1Xml },
   ];
   download(zipStore(files), `SHAHOO-invoice-${dateName(order.publicCode)}.xlsx`);
 }
@@ -109,8 +122,13 @@ export async function downloadInvoicePng(order: OrderView) {
   const pageSize = 14;
   const pages = Math.max(1, Math.ceil(order.lines.length / pageSize));
   const logo = new Image();
-  logo.src = "/assets/brand/shahoo-logo-minimal.png";
-  try { await logo.decode(); } catch { /* Keep a text-only brand mark if the optional logo is unavailable. */ }
+  logo.src = "/assets/brand/shahoo-logo-minimal.jpg";
+  try {
+    await logo.decode();
+  } catch {
+    logo.src = "/assets/brand/shahoo-logo-minimal.png";
+    try { await logo.decode(); } catch { /* Keep a text-only brand mark if the optional logo is unavailable. */ }
+  }
   for (let page = 0; page < pages; page++) {
     const start = page * pageSize;
     const lines = order.lines.slice(start, start + pageSize);

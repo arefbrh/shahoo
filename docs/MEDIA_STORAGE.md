@@ -24,9 +24,11 @@ Configure all of these server-side environment variables:
 - `STORAGE_S3_SECRET_ACCESS_KEY=<secret-access-key>`
 - Optional: `STORAGE_S3_PREFIX=shahoo-media`
 
-The adapter uses path-style requests and AWS Signature Version 4 for PUT, GET and DELETE. The bucket must be private to the application credentials; expose images through the authenticated-by-database application media route or a separately configured public CDN. Do not place credentials in client variables or commit them to Git.
+For Neon Object Storage, the adapter also accepts the standard variables `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`. Keep `STORAGE_S3_BUCKET` explicit; the endpoint and four credential values do not select a bucket by themselves.
 
-For Vercel, set the variables in the Preview environment first and redeploy the Preview before enabling uploads. Use a separate bucket/access key for Production only after owner approval and a successful Preview upload/read/delete smoke test. No storage credentials are configured by this code change.
+The adapter uses path-style requests and AWS Signature Version 4 for PUT, GET and DELETE. The bucket must be private to the application credentials; public product images are served through the app's media route, which resolves only live database asset records and never exposes S3 credentials to the browser. A separately configured public CDN is an alternative. Do not place credentials in client variables or commit them to Git.
+
+For Vercel, set the variables in the Preview environment first and redeploy the Preview before enabling uploads. Use a separate bucket/access key for Production only after owner approval and a successful Preview upload/read/delete smoke test. The Neon Staging bucket is provisioned, but the S3 credential has not been injected into Vercel Preview; no live object round-trip has been claimed.
 
 ## Operational notes
 

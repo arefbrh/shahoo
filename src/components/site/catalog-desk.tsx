@@ -585,6 +585,15 @@ function ProductEditor({
       </fieldset>
       <fieldset className="space-y-3 rounded-2xl border border-line p-3">
         <legend className="px-1 text-sm font-bold text-forest">ویژگی‌های محصول</legend>
+        {canWrite && specs.length < 12 && <label>افزودن مشخصات برچسب یا گواهی
+          <select className={fieldClass} value="" onChange={(event) => {
+            const label = event.target.value;
+            if (label) setSpecs((current) => [...current, { label, value: "" }]);
+          }}>
+            <option value="">انتخاب مشخصه…</option>
+            {["مواد حساسیت‌زا", "نوع مصرف", "ماندگاری پس از باز شدن", "شماره گواهی", "صادرکننده گواهی", "اعتبار گواهی"].filter((label) => !specs.some((spec) => spec.label === label)).map((label) => <option key={label}>{label}</option>)}
+          </select>
+        </label>}
         {specs.map((spec, index) => (
           <div key={`spec-${index}`} className="grid gap-2 sm:grid-cols-[1fr_2fr_auto]">
             <input className={fieldClass} value={spec.label} disabled={!canWrite} aria-label={`نام ویژگی ${index + 1}`} placeholder="عنوان ویژگی" onChange={(event) => setSpecs((current) => current.map((item, row) => row === index ? { ...item, label: event.target.value } : item))} />

@@ -1,9 +1,11 @@
+import { servesDestination } from "@/lib/public-shipping";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CartSnapshot, CheckoutContext, QuoteResult } from "@/lib/commerce-types";
 import { checkoutCartExpectation, checkoutIdentityReadDecision, checkoutIntentsBlocked, checkoutReadIsCurrent, sameCheckoutCart } from "@/lib/checkout-cart-safety";
 import { formatTomanFromIrr, toPersianNum } from "@/lib/format";
 import { IRAN_PROVINCES } from "@/server/commerce/pricing";
+import { getCitiesForProvince } from "@/lib/iran-cities";
 import { getCheckoutContext, placeOrderFn, quoteCheckoutFn } from "@/server/commerce/api";
 import { initiatePayPingPaymentFn } from "@/server/payments/api";
 import { adoptBrowserCartOnce, beginCartWrite, cartRevision, cartWritePending, getCartIntents, notifyCart } from "./cart-client";
@@ -26,7 +28,9 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
   const recipientNameLocked = Boolean(selectedAddress?.recipientName);
   const [customerNote, setCustomerNote] = useState("");
   const [couponCode, setCouponCode] = useState("");
-  const [shippingMethodId, setShippingMethodId] = useState(original.methods[0]?.id ?? "");
+  const [preferredMethod, setShippingMethodId] = useState(original.methods[0]?.id ?? "");
+  const availableMethods = initial.methods.filter((method) => servesDestination(method, province, city));
+  const shippingMethodId = availableMethods.find((method) => method.id === preferredMethod)?.id ?? availableMethods[0]?.id ?? "";
   const [paymentMethod, setPaymentMethod] = useState<"manual" | "payping">("manual");
   const [cart, setCart] = useState<CartSnapshot>(original.cart);
   const [identity, setIdentity] = useState<"unverified" | "verified" | "changed">("unverified");
@@ -224,7 +228,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         invalidate();
         return;
       }
-      void quoteCheckoutFn({ data: { shippingMethodId, couponCode } })
+      void quoteCheckoutFn({ data: { shippingMethodId, couponCode, province, city } })
         .then((result) => {
           if (cancelled || staleRef.current) return;
           const busyAfterRead = cartWritePending();
@@ -245,7 +249,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [shippingMethodId, couponCode, cart, identity, stale, quoteAttempt, invalidate]);
+  }, [shippingMethodId, couponCode, province, city, cart, identity, stale, quoteAttempt, invalidate]);
 
   const currentQuote = identity === "verified" && !stale && quote && quote.cart === cart && quote.method === shippingMethodId && quote.coupon === couponCode ? quote.result : null;
 
@@ -310,7 +314,15 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         return;
       }
       if (paymentMethod === "payping") {
-        const intent = await initiatePayPingPaymentFn({ data: { orderId: result.orderId, idempotencyKey: checkoutKey() } });
+        let intent;
+        try {
+          intent = await initiatePayPingPaymentFn({ data: { orderId: result.orderId, idempotencyKey: checkoutKey() } });
+        } catch {
+          succeeded = true;
+          notifyCart(0);
+          window.location.assign(`/order/${result.publicCode}`);
+          return;
+        }
         succeeded = true;
         try { sessionStorage.removeItem("shahoo-checkout-key"); } catch { /* The payment attempt is already durable. */ }
         window.location.assign(intent.redirectUrl);
@@ -361,7 +373,7 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
           <p className={pageKicker}>SHAHOO</p>
           <h1 className={pageTitle}>تسویه حساب</h1>
           <p className="mt-2 text-sm leading-8 text-muted">
-            سفارش با وضعیت «در انتظار پرداخت» ثبت می‌شود و موجودی تا ۲۴ ساعت کنار گذاشته می‌شود. در صورت فعال بودن پرداخت آنلاین، پس از ثبت سفارش به پی‌پینگ هدایت می‌شوید.
+            سفارش با وضعیت «در انتظار پرداخت» ثبت می‌شود و موجودی تا ۲۴ ساعت کنار گذاشته می‌شود. {initial.paypingEnabled ? "با انتخاب پرداخت آنلاین، به پی‌پینگ هدایت می‌شوید." : "برای پیگیری، کد سفارش را نگه دارید و از راه‌های تماس فروشگاه استفاده کنید."}
           </p>
         </div>
         {checking || stale || cartPending || hasRetry ? (
@@ -446,10 +458,18 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
             استان
             <select
               value={province}
-              onChange={(event) => setProvince(event.target.value)}
+              onChange={(event) => {
+                const nextProv = event.target.value;
+                setProvince(nextProv);
+                const availableCities = getCitiesForProvince(nextProv);
+                if (availableCities.length > 0 && !availableCities.includes(city)) {
+                  setCity(availableCities[0] ?? "");
+                }
+              }}
               disabled={savedLocked}
               className={`${fieldClass} mt-2`}
             >
+              <option value="">انتخاب استان...</option>
               {IRAN_PROVINCES.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -457,7 +477,35 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
               ))}
             </select>
           </label>
-          <Field label="شهر" value={city} onChange={setCity} readOnly={savedLocked} />
+          {province && getCitiesForProvince(province).length > 0 ? (
+            <label className="block text-sm font-bold text-forest">
+              شهر
+              <select
+                value={getCitiesForProvince(province).includes(city) ? city : (city ? "__other__" : "")}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (val === "__other__") {
+                    setCity("");
+                  } else {
+                    setCity(val);
+                  }
+                }}
+                disabled={savedLocked}
+                className={`${fieldClass} mt-2`}
+              >
+                <option value="">انتخاب شهر از لیست...</option>
+                {getCitiesForProvince(province).map((cityName) => (
+                  <option key={cityName} value={cityName}>
+                    {cityName}
+                  </option>
+                ))}
+                <option value="__other__">سایر شهرها / تایپ دستی</option>
+              </select>
+            </label>
+          ) : null}
+          {(!province || !getCitiesForProvince(province).includes(city)) ? (
+            <Field label="نام شهر (تایپ دستی)" value={city} onChange={setCity} readOnly={savedLocked} />
+          ) : null}
           <Field label="نشانی" value={addressLine} onChange={setAddressLine} readOnly={savedLocked} />
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="کد پستی" value={postalCode} onChange={setPostalCode} ltr readOnly={savedLocked} />
@@ -468,10 +516,10 @@ export function CheckoutView({ initial }: { initial: CheckoutContext }) {
         </section>
         <fieldset className={`${panelClass} space-y-3 p-5`}>
           <legend className="font-bold text-forest">روش ارسال</legend>
-          {initial.methods.length === 0 ? (
-            <p className="text-sm leading-7 text-muted">هزینه و روش ارسال هنوز توسط فروشگاه اعلام نشده است. تا تنظیم آن، مبلغ ارسال و ارسال رایگان در این صفحه نمایش داده نمی‌شود.</p>
+          {availableMethods.length === 0 ? (
+            <p className="text-sm leading-7 text-muted">برای مقصد فعلی روش ارسال فعالی وجود ندارد. استان و شهر را بررسی کنید.</p>
           ) : (
-            initial.methods.map((method) => (
+            availableMethods.map((method) => (
               <label key={method.id} className="flex min-h-11 items-start gap-3 text-sm leading-7">
                 <input
                   type="radio"

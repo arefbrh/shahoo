@@ -367,3 +367,113 @@ Owner requirement: expand order management beyond a basic status field into an e
 - CI run for source tree before this tracker-only update: `44823458336` on the same source tree; Quality, Project tests, PostgreSQL integration/migrations and Payment/SMS mocks were running at last observation. Migration inventory and Security checks had completed successfully. Do not claim the run passed until it is complete.
 - No PR merge, Vercel deployment, Production migration, Production data mutation, or Production configuration change was performed.
 - Next: poll the CI run for the source tree; fix any failures; complete remaining code-level gaps before merge. Keep carrier account setup, media bucket credentials, email delivery and real printer verification as explicit operational dependencies rather than marking them complete in code alone.
+
+
+---
+
+# Batch 10 — Master Infrastructure Remediation & Finalization
+
+**Source of scope:** `SHAHOO_Master_Infrastructure_Remediation_Prompt.md` supplied on 2026-11-24.  
+**Status:** IN PROGRESS — source integration candidate prepared; infrastructure/runtime validation remains blocked.  
+**Release posture:** NOT APPROVED for Production cutover.
+
+Batch 10 extends the existing Batch 01–09 roadmap. It does not replace earlier completed work or authorize destructive changes to existing data.
+
+## 10.1 Baseline audit and source comparison
+
+| Task | Status | Notes |
+|---|---|---|
+| Inspect latest Antigravity V2 ZIP | PASS | 480 file entries extracted and inspected |
+| Compare key source/config files with GitHub `main` | PASS (targeted) | See `docs/INTEGRATION_DIFF.md`; not a full byte-for-byte audit of every file |
+| Preserve existing migrations, schema and lockfile | PASS | No migration or schema file was rewritten; `package-lock.json` retained |
+| Reconcile current project status and open issues | PASS | `PROJECT_HANDOFF.md`, `REMAINING_ISSUES.md`, `docs/PROJECT_STATUS.md` updated |
+
+## 10.2 Self-hosted build, Docker and environment
+
+| Task | Status | Notes |
+|---|---|---|
+| Nitro `node-server` build preset | SOURCE-CORRECTED | `build:self-hosted` script and Docker build path |
+| Runtime image includes app dependencies and worker source | SOURCE-CORRECTED | Requires Docker image build to verify |
+| Docker Compose service/network/volume structure | SOURCE-CORRECTED | YAML parses; `docker compose config` and runtime not run |
+| PostgreSQL private network | SOURCE-CORRECTED | No host port published |
+| App/worker use non-superuser DB role | SOURCE-CORRECTED | Fresh-volume bootstrap uses `POSTGRES_*` admin and `APP_DB_*` runtime role |
+| Existing database role/ownership migration | OPEN | Never delete an existing volume; requires separate DBA review |
+| Environment variable parity | SOURCE-CORRECTED | PayPing, SMS.ir, APP_URL and proxy names aligned with code |
+
+## 10.3 Database, migrations and worker
+
+| Task | Status | Notes |
+|---|---|---|
+| Dynamic database bootstrap SQL | SOURCE-CORRECTED | Uses active database name and initializes extensions/timezone |
+| Production migration guard | EXISTING / DOCUMENTED | Production migration requires explicit one-time override |
+| Worker loop and timeout | SOURCE-CORRECTED | A failed or timed-out task exits rather than being hidden |
+| Worker heartbeat health check | SOURCE-CORRECTED / FOCUSED TEST PASS | Fresh/stale heartbeat behavior tested; container restart not runtime-tested |
+| Migration parity on disposable PostgreSQL | BLOCKED | No PostgreSQL service available in this execution environment |
+| Production primary branch migration 0017–0019 | NOT RUN | Production primary remains at 0016; no migration applied |
+
+## 10.4 Backup, restore and disaster recovery
+
+| Task | Status | Notes |
+|---|---|---|
+| PostgreSQL logical backup scripts | SOURCE-CORRECTED | Linux Docker and Windows native paths |
+| Media backup scripts | SOURCE-ADDED | Linux tar archive and Windows ZIP |
+| Full database restore scripts | SOURCE-CORRECTED | Explicit confirmation; admin recreates DB, app role restores objects |
+| Media restore scripts | SOURCE-ADDED | Preserve previous media directory before extraction |
+| Backup archive validation | SOURCE-CORRECTED | `pg_restore --list` / archive listing |
+| WAL/PITR | OPEN | Not configured or tested |
+| Backup encryption and off-site replication | OPEN | No encryption key or independent target configured |
+| Full restore drill | BLOCKED | Must be executed on disposable PostgreSQL and media storage |
+
+## 10.5 Monitoring, alerting and security
+
+| Task | Status | Notes |
+|---|---|---|
+| App/DB/worker/proxy health checks | SOURCE-CORRECTED | App readiness, DB health, worker heartbeat and proxy process state |
+| Disk and backup freshness checks | SOURCE-ADDED | Linux and Windows monitor scripts |
+| Telegram alert hooks | SOURCE-ADDED | Optional; delivery not tested |
+| Email alerting | OPEN | Not implemented |
+| SSL expiry monitoring | OPEN | Not implemented |
+| CPU/RAM and object-storage telemetry | PARTIAL / OPEN | Windows checks RAM; full cross-platform metrics and object-store checks remain open |
+| Security review | PARTIAL | Static source/config review only; no penetration test or live host audit |
+
+## 10.6 Storefront and provider integrations
+
+| Task | Status | Notes |
+|---|---|---|
+| Persian city selection | SOURCE-ADDED | Manual city entry remains available |
+| Carrier-specific tracking | SOURCE-ADDED | Post, Tipax and Chapar official portal destinations checked; no unverified query-prefill parameter is used. Post page itself timed out during direct check. |
+| CMS FAQ defaults and product FAQ view | SOURCE-ADDED | Existing stored CMS content is not rewritten by this integration |
+| Trust marks | SOURCE-ADDED | Defaults remain Pending; never activate without real approval |
+| Invoice minimal logo | SOURCE-ADDED | JPG with existing PNG fallback |
+| Spreadsheet formula-injection protection | SOURCE-CORRECTED / TEST PASS | Two regression tests pass |
+| Torob feed | SOURCE-CORRECTED | Schema fields and route tree corrected; provider contract/output still unverified |
+| PayPing live integration | DISABLED / NOT VERIFIED | No live transaction or credentials used |
+| SMS.ir live integration | DISABLED / NOT VERIFIED | No real OTP delivery or approved template verified |
+
+## 10.7 Validation, documentation and handoff
+
+| Task | Status | Notes |
+|---|---|---|
+| Node `.mjs` syntax | PASS | All scripts under `scripts/` |
+| Linux shell syntax | PASS | `bash -n` |
+| Docker Compose YAML parse | PASS (syntax only) | Not equivalent to `docker compose config` |
+| Focused invoice-export tests | PASS | 2 tests |
+| Antigravity remediation tests | PASS | 17 tests |
+| Existing script test subset | PARTIAL | 109/112 pass; 3 blocked by missing `react`/`pg` after dependency installation timed out |
+| `npm ci` | BLOCKED | Two attempts timed out |
+| Full TypeScript/lint/project suite/build | NOT RUN | Dependencies unavailable |
+| Docker image/compose runtime | BLOCKED | Docker CLI/daemon unavailable |
+| Windows PowerShell/service execution | NOT RUN | PowerShell unavailable |
+| Final integration ZIP and reports | PREPARED | `SHAHOO_INFRASTRUCTURE_REMEDIATED.zip` plus project status/diff documents |
+
+## Batch 10 exit criteria
+
+Batch 10 is not complete until all of the following are evidenced:
+
+1. Dependency installation succeeds and full TypeScript, lint, test and production build checks pass.
+2. `docker compose config` and the complete image build pass.
+3. A fresh disposable PostgreSQL instance passes role bootstrap, migration, app readiness and worker tests.
+4. Database and media backup/restore drills pass; encryption/off-site/PITR requirements are either implemented and tested or explicitly deferred by the owner.
+5. Preview browser/mobile checks cover checkout, account, order administration, invoice, label, FAQ and the Torob feed.
+6. PayPing/SMS.ir remain disabled until provider sandbox checks pass.
+7. The owner reviews the release candidate before any merge to the Production deployment branch or any Production database/deployment action.

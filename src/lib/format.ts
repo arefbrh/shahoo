@@ -1,5 +1,7 @@
 import { irrToToman } from "./money";
 
+export { irrToToman };
+
 const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 
 export function toPersianNum(value: string | number | null | undefined): string {

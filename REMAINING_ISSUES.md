@@ -1,8 +1,10 @@
-# SHAHOO v1.0.0 — Current issue register, Batch 09 remediation
+# SHAHOO v1.0.0 — Current issue register and release blockers
 
-**Decision: NOT READY FOR RELEASE.** Revision 02 is the latest completed remediation stage; Revision 02.1 reconciles documentation and release evidence. Final release approval has **not** been granted. Batch 09 has **not** started. This register separates source-level fixes from verification on an authorized production-equivalent environment. The original register is preserved, with a superseded-history notice, in [docs/archive/REMAINING_ISSUES_pre_revision_02_1.md](docs/archive/REMAINING_ISSUES_pre_revision_02_1.md).
+**Current stage (2026-11-25): Batch 09 remediation is complete; Batch 10 infrastructure remediation is IN PROGRESS.** The release decision remains **NOT READY FOR PRODUCTION CUTOVER**. The Batch 10 source integration candidate is prepared locally, but it has not been committed to GitHub, opened as a pull request, deployed to Preview, or validated on a running self-hosted stack. `main` remains the Vercel Production branch and must not receive unreviewed changes.
 
-Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VERIFIED; OPEN; NOT VERIFIED; BLOCKED BY ENVIRONMENT; DEFERRED TO BATCH 09**. “Verified” below means the specifically named historical verification, not a claim that a test was rerun for 02.1. Revision 02 results are historical, not fresh 02.1 results. At the time this register was reconciled, fresh install/audit and other reruns were in progress; see [BATCH_08_FINAL_RELEASE_EVIDENCE.md](BATCH_08_FINAL_RELEASE_EVIDENCE.md) for the actual 02.1 commands and outcomes. The evidence register, not old totals below, controls the release gate.
+This register preserves the Batch 09 issue findings and their evidence boundaries. Batch 09 is not “not started”: its corrective remediation was completed on 2026-11-20. The current Batch 10 status and latest environment blockers are recorded in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md), [docs/INTEGRATION_DIFF.md](docs/INTEGRATION_DIFF.md), [docs/ADMIN_IMPLEMENTATION_TRACKER.md](docs/ADMIN_IMPLEMENTATION_TRACKER.md), and [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md). The historical pre-Revision 02.1 register remains preserved in [docs/archive/REMAINING_ISSUES_pre_revision_02_1.md](docs/archive/REMAINING_ISSUES_pre_revision_02_1.md).
+
+Each issue below has exactly one of these statuses: **RESOLVED; RESOLVED — VERIFIED; OPEN; NOT VERIFIED; BLOCKED BY ENVIRONMENT; DEFERRED TO BATCH 09**. “Verified” means only the specifically named historical verification; it does not claim a fresh run for this integration candidate. The evidence register, not old totals, controls the release gate.
 
 ## Source fixes and current security state
 
@@ -125,4 +127,29 @@ Full enabled CI passed on PR #6 code head d81447976ea758c47dd9be6829f309dbea85b1
 
 Verified PostgreSQL coverage includes checkout oversell prevention, concurrent cancellation single-transition semantics, one-time expiry release, one-time verified payment capture, and PG16 backup/restore with 15 migrations plus synthetic data/index verification. These tests used disposable CI infrastructure only.
 
-Still open: PayPing callback HTTP route E2E; checkout racing late-payment recovery; quote/order transition and admin RBAC matrices; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, external media, secrets, host/network, encryption and retention. Separate Neon Production DB, Production Vercel environment, live payment/SMS providers and real order E2E remain release blockers. PR #1 remains open/Draft and must be reconciled with current main and retested before consideration.
+Still open: PayPing callback HTTP route E2E; checkout racing late-payment recovery; quote/order transition and admin RBAC matrices; multi-process seed initialization; full fresh/upgrade migration parity and rollback injection; production-like disaster recovery including roles/globals, external media, secrets, host/network, encryption and retention. Production primary branch schema/data verification, Production Vercel environment review, live payment/SMS providers and real order E2E remain release blockers. The PR #1 open/Draft note in this 2026-11-20 historical section is superseded by the 2026-11-24 reconciliation: PR #1, #8 and #9 are merged; PR #10 is closed without merge.
+
+
+## Infrastructure integration follow-up — 2026-11-24
+
+| Finding | Status | Evidence and required action | Release blocking |
+|---|---|---|---|
+| Antigravity V2 source additions | INTEGRATION CANDIDATE | ZIP compared with `main`; added city, carrier, CMS FAQ/trust, product FAQ, invoice export/branding and Torob feed changes. Torob schema and route-tree defects found and corrected in the candidate. Run typecheck, lint and all suites. | Yes until CI passes and storefront flows are reviewed. |
+| Self-hosted Docker build | SOURCE-CORRECTED / NOT VERIFIED | Nitro preset now explicitly `node-server`; runtime image includes production dependencies and source required by worker. Docker CLI/daemon unavailable here. Run `docker compose config`, image build and container smoke tests. | Yes before self-hosted cutover. |
+| Existing PostgreSQL volume role migration | OPEN | The new init SQL runs automatically only on a fresh Docker volume. Existing DB volumes must not be deleted or reinitialized; a separate reviewed role/ownership migration is required. | Yes before connecting the self-hosted app to an existing DB. |
+| Production environment contract | SOURCE-CORRECTED / NOT VERIFIED | Candidate template/Compose now use `APP_URL`, `PAYPING_LIVE`, `SMS_IR_OTP_TEMPLATE_ID`, `SMS_LIVE` and `SHAHOO_TRUST_PROXY`, matching current source. Verify on a disposable host without enabling live providers. | Yes before host provisioning. |
+| Worker scheduling and health | SOURCE-CORRECTED / NOT VERIFIED | Worker loop now exits on unhandled maintenance failure, allowing container restart; heartbeat is checked by healthcheck. Verify actual restart, stale heartbeat and DB connectivity on PostgreSQL. | Yes before self-hosted Production. |
+| PostgreSQL and media backup | PARTIALLY IMPLEMENTED | Linux scripts create/validate logical DB dumps and media archives; Windows DB backup/restore scripts check native exit codes. No runtime backup/restore has been executed. | Yes before Production data is accepted. |
+| WAL/PITR, encryption and off-site backup | OPEN | No WAL archiving, PITR, encryption key management or independent off-site replication is configured. Runbook now labels these as unimplemented. | Yes for disaster-recovery readiness. |
+| Torob product feed | SOURCE-CORRECTED / NOT VERIFIED | Feed now joins active variants, inventory and primary product images; it no longer claims every product is 100% extra virgin. Validate current Torob feed schema and sample output before submitting it. | Yes before advertising this integration as live. |
+| Windows native deployment | SOURCE-CORRECTED / NOT VERIFIED | Caddy Windows upstream, `.env` propagation to NSSM, explicit database URL and restore exit-code checks corrected. PowerShell/NSSM/Caddy execution not available here. | Yes before Windows deployment. |
+| Full validation of V2 candidate | BLOCKED BY ENVIRONMENT | `npm ci` timed out twice; no Docker or PowerShell runtime. CI must run TypeScript, lint, script/application/migration tests, production build and Docker checks. | Yes before merge to the production deployment branch. |
+
+
+## Continuation update — 2026-11-25
+
+A Vercel Sandbox retry of `npm run test:project` completed with 479/479 passing (113 script, 236 application, 130 migration/integration). TypeScript and ESLint passed on Node 26.13.1; the auth invariant passed with a live dev server; the Sandbox npm audit reported zero vulnerabilities. These checks were run against a GitHub `main` checkout plus a selected overlay, not the complete refreshed handoff ZIP.
+
+Neon Object Storage is enabled on both Staging and Production. A private `shahoo-media` bucket was created and verified on Staging only. No Production bucket, Production credential, Production database migration, or Production deployment was created. The S3 adapter now accepts Neon's AWS-standard environment variables, but application-level PUT/GET/DELETE and Vercel Preview configuration remain open.
+
+The unsafe `vercel.json` install override (`npm install --omit=dev`) was removed from the candidate. Full candidate ZIP validation, Docker/Compose, real PostgreSQL restore, PowerShell, real provider tests, and Preview smoke tests remain release gates.

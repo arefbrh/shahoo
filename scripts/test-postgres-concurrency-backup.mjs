@@ -40,7 +40,6 @@ sourceUrl.pathname = "/" + sourceDb;
 const restoreUrl = new URL(baseUrl);
 restoreUrl.pathname = "/" + restoreDb;
 const workDir = await mkdtemp(join(tmpdir(), "shahoo-pg-verify-"));
-const dumpPath = join(workDir, "shahoo-ci.dump");
 const admin = new pg.Client({ connectionString: adminUrl.toString(), connectionTimeoutMillis: 10_000 });
 let first, second, sourcePool, restorePool;
 let createdSource = false, createdRestore = false;

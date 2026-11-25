@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { DEFAULT_PRODUCT_FAQS, DEFAULT_TRUST_MARKS } from "../../lib/cms-defaults.ts";
 import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import { tehranDayKey } from "../../lib/tehran-time.ts";
@@ -15,6 +16,8 @@ import type {
   SectionConfigDraft,
   SectionDraft,
   StoreLayoutDraft,
+  FaqItemDraft,
+  TrustMarkDraft,
 } from "../../lib/cms-types.ts";
 import {
   cleanBody,
@@ -156,6 +159,8 @@ export async function loadContentPreview(db: Database, entityType: "page" | "art
   };
 }
 
+export { DEFAULT_PRODUCT_FAQS, DEFAULT_TRUST_MARKS } from "../../lib/cms-defaults.ts";
+
 export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
   const [sectionRows, bannerRows, menuRows, itemRows, pageRows, articleRows, categoryRows, productRows, mediaRows, settingRows, links] =
     await Promise.all([
@@ -179,6 +184,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
     tagline?: string;
     copyright?: string;
     phone?: string;
+    supportHours?: string;
+    trackingInstructions?: string;
+    returnInstructions?: string;
     whatsapp?: string;
     email?: string;
     address?: string;
@@ -241,6 +249,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
     storyPhilosophy: story.philosophy ?? "",
     promo: promo.text ?? "",
     phone: profile.phone ?? "",
+    supportHours: profile.supportHours ?? "",
+    trackingInstructions: profile.trackingInstructions ?? "",
+    returnInstructions: profile.returnInstructions ?? "",
     whatsapp: profile.whatsapp ?? "",
     email: profile.email ?? "",
     address: profile.address ?? "",
@@ -305,6 +316,20 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
       mimeType: row.mimeType,
       official: isOfficialBrandAsset(row.publicUrl),
     })),
+    faqs: (() => {
+      const raw = settingsMap.get("store.product_faqs");
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw as FaqItemDraft[];
+      }
+      return DEFAULT_PRODUCT_FAQS;
+    })(),
+    trustMarks: (() => {
+      const raw = settingsMap.get("store.trust_marks");
+      if (Array.isArray(raw) && raw.length > 0) {
+        return raw as TrustMarkDraft[];
+      }
+      return DEFAULT_TRUST_MARKS;
+    })(),
   };
 }
 
@@ -321,7 +346,7 @@ export async function applySiteCopy(db: Database, actorId: string, input: CopyDr
     const rows = await tx
       .select()
       .from(settings)
-      .where(or(eq(settings.key, "store.story"), eq(settings.key, "header.promo"), eq(settings.key, "brand.logos")));
+      .where(or(eq(settings.key, "store.story"), eq(settings.key, "header.promo"), eq(settings.key, "brand.logos"))).for("update");
     if (!rows.some((row) => row.key === "store.story") || !rows.some((row) => row.key === "header.promo")) {
       deny("متن معرفی فروشگاه پیدا نشد.");
     }
@@ -366,6 +391,68 @@ export async function applyStoreLayout(db: Database, actorId: string, input: Sto
   });
 }
 
+export async function applyProductFaqs(db: Database, actorId: string, faqs: FaqItemDraft[]): Promise<CmsResult> {
+  if (!Array.isArray(faqs)) {
+    return { ok: false, message: "داده‌های پرسش و پاسخ معتبر نیست." };
+  }
+  for (const item of faqs) {
+    if (!item.q || typeof item.q !== "string" || !item.q.trim()) {
+      return { ok: false, message: "متن پرسش الزامی است." };
+    }
+    if (!item.a || typeof item.a !== "string" || !item.a.trim()) {
+      return { ok: false, message: "متن پاسخ الزامی است." };
+    }
+  }
+
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.product_faqs")).for("update");
+    if (row) {
+      await tx.update(settings).set({ value: faqs, updatedAt: new Date() }).where(eq(settings.key, "store.product_faqs"));
+    } else {
+      await tx.insert(settings).values({ key: "store.product_faqs", value: faqs, updatedAt: new Date() });
+    }
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.product_faqs_updated",
+      entityType: "settings",
+      entityId: "store.product_faqs",
+      metadata: { count: faqs.length },
+    });
+  });
+}
+
+export async function applyTrustMarks(db: Database, actorId: string, marks: TrustMarkDraft[]): Promise<CmsResult> {
+  if (!Array.isArray(marks)) {
+    return { ok: false, message: "داده‌های نماد اعتماد معتبر نیست." };
+  }
+  for (const item of marks) {
+    if (!item.title || typeof item.title !== "string" || !item.title.trim()) {
+      return { ok: false, message: "عنوان نماد اعتماد الزامی است." };
+    }
+    if (item.verifyUrl && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}/i.test(item.verifyUrl)) {
+      return { ok: false, message: "آدرس تاییدیه نماد باید یک نشانی معتبر HTTPS باشد." };
+    }
+  }
+
+  return transactionResult(db, async (tx) => {
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.trust_marks")).for("update");
+    if (row) {
+      await tx.update(settings).set({ value: marks, updatedAt: new Date() }).where(eq(settings.key, "store.trust_marks"));
+    } else {
+      await tx.insert(settings).values({ key: "store.trust_marks", value: marks, updatedAt: new Date() });
+    }
+    await writeAudit(tx, {
+      actorType: "admin",
+      actorId,
+      action: "store.trust_marks_updated",
+      entityType: "settings",
+      entityId: "store.trust_marks",
+      metadata: { count: marks.length },
+    });
+  });
+}
+
 export async function applyBrandSettings(db: Database, actorId: string, input: BrandSettingsDraft): Promise<CmsResult> {
   const brandName = cleanInline(input.brandName, 2, 80);
   const tagline = cleanInline(input.tagline, 0, 180);
@@ -382,7 +469,7 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
     return { ok: false, message: "نام برند، شعار، کپی‌رایت یا نشانی لوگو معتبر نیست. لوگو باید PNG، JPG یا WebP از مسیر رسانه برند یا HTTPS باشد." };
   }
   return transactionResult(db, async (tx, deny) => {
-    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos")));
+    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos"))).for("update");
     const profileRow = rows.find((row) => row.key === "store.profile");
     const logosRow = rows.find((row) => row.key === "brand.logos");
     if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
@@ -416,7 +503,7 @@ export async function applyStoreProfile(db: Database, actorId: string, input: Pr
   const parsed = parseProfileContact(input);
   if (!parsed.ok) return parsed;
   return transactionResult(db, async (tx, deny) => {
-    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.profile")).limit(1);
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.profile")).for("update").limit(1);
     if (!row) {
       deny("اطلاعات فروشگاه پیدا نشد.");
       return;
@@ -430,6 +517,9 @@ export async function applyStoreProfile(db: Database, actorId: string, input: Pr
           tagline: typeof current.tagline === "string" ? current.tagline : "",
           copyright: typeof current.copyright === "string" ? current.copyright : "",
           phone: parsed.value.phone,
+          supportHours: input.supportHours?.trim() ?? current.supportHours ?? "",
+          trackingInstructions: input.trackingInstructions?.trim() ?? current.trackingInstructions ?? "",
+          returnInstructions: input.returnInstructions?.trim() ?? current.returnInstructions ?? "",
           whatsapp: parsed.value.whatsapp,
           email: parsed.value.email,
           address: parsed.value.address,

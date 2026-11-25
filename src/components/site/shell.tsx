@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Heart, Menu, Search, User, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import type { ShellData } from "@/lib/store-types";
+import type { ShellData, TrustMarkItem } from "@/lib/store-types";
 import { getCart } from "@/server/commerce/api";
 import { adoptBrowserCartOnce, cartRevision, cartWritePending } from "./cart-client";
 import { CartDrawer } from "./cart-drawer";
@@ -199,11 +199,73 @@ export function Shell({ shell, children }: { shell: ShellData; children: ReactNo
             </div>
           ))}
         </div>
+        {/* بخش نمادهای اعتماد الکترونیکی (قابل مدیریت از CMS) */}
+        <TrustMarksSection marks={shell.trustMarks} />
+
         <div className="border-t border-forest px-4 py-4 text-center text-xs leading-6 text-gold-soft">
           {shell.profile.copyright.trim() ? <p>{shell.profile.copyright}</p> : null}
-          <p className="mt-1 text-ivory/70">نماد اعتماد الکترونیکی تا دریافت تصویر رسمی نمایش داده نمی‌شود.</p>
+          <p className="mt-1 text-ivory/60">تمامی حقوق مادی و معنوی برای فروشگاه آنلاین محصولات طبیعی شاهو محفوظ است.</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function TrustMarksSection({ marks }: { marks?: TrustMarkItem[] }) {
+  const verifiedMarks = (marks ?? []).filter((m) => m.status === "verified" && m.verifyUrl);
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 pb-8">
+      <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl border border-gold/25 bg-forest/40 p-5 backdrop-blur-xs">
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold text-gold-soft">اصالت، مجوزها و نمادهای اعتماد</h3>
+          <p className="max-w-xl text-xs leading-6 text-ivory/80">
+            فروشگاه اینترنتی شاهو متعهد به شفافیت در عرضه، اصالت فرابکر محصولات ارگانیک و رعایت حقوق مصرف‌کنندگان است.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {verifiedMarks.length > 0 ? (
+            verifiedMarks.map((mark) => (
+              <a
+                key={mark.id}
+                id={`shahoo-${mark.provider}-container`}
+                href={mark.verifyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-20 w-20 flex-col items-center justify-center rounded-xl border border-gold/40 bg-paper/5 p-2 text-center text-gold-soft transition hover:border-gold hover:bg-paper/10"
+                title={mark.title}
+              >
+                {mark.iconUrl ? (
+                  <img src={mark.iconUrl} alt={mark.title} className="h-10 w-10 object-contain" />
+                ) : (
+                  <span className="text-xs font-bold">{mark.title}</span>
+                )}
+                <span className="mt-1 text-[9px] text-emerald-400">تأییدشده</span>
+              </a>
+            ))
+          ) : (
+            <>
+              {/* کانتینر استاندارد برای بارگذاری بعد از تأیید رسمی توسط مراجع قانونی */}
+              <div
+                id="shahoo-enamad-container"
+                className="flex h-20 w-24 flex-col items-center justify-center rounded-xl border border-gold/30 bg-paper/5 p-2 text-center text-gold-soft/80"
+                title="نماد اعتماد الکترونیکی کسب‌وکارهای اینترنتی"
+              >
+                <span className="text-xs font-bold">اینماد</span>
+                <span className="mt-1 text-[9px] text-ivory/60">در دست اقدام</span>
+              </div>
+              <div
+                id="shahoo-samandehi-container"
+                className="flex h-20 w-24 flex-col items-center justify-center rounded-xl border border-gold/30 bg-paper/5 p-2 text-center text-gold-soft/80"
+                title="نشان ملی ثبت رسانه‌های دیجیتال (ساماندهی)"
+              >
+                <span className="text-xs font-bold">ساماندهی</span>
+                <span className="mt-1 text-[9px] text-ivory/60">وزارت ارشاد</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

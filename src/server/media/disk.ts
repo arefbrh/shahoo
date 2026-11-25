@@ -57,15 +57,15 @@ type S3Config = {
 };
 
 function s3Config(env: NodeJS.ProcessEnv): S3Config | null {
-  const endpointValue = env.STORAGE_S3_ENDPOINT?.trim();
-  const bucket = env.STORAGE_S3_BUCKET?.trim();
-  const region = env.STORAGE_S3_REGION?.trim();
-  const accessKeyId = env.STORAGE_S3_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = env.STORAGE_S3_SECRET_ACCESS_KEY;
+  const endpointValue = (env.STORAGE_S3_ENDPOINT ?? env.S3_ENDPOINT ?? env.AWS_ENDPOINT_URL_S3)?.trim();
+  const bucket = (env.STORAGE_S3_BUCKET ?? env.S3_BUCKET)?.trim();
+  const region = (env.STORAGE_S3_REGION ?? env.S3_REGION ?? env.AWS_REGION)?.trim();
+  const accessKeyId = (env.STORAGE_S3_ACCESS_KEY_ID ?? env.S3_ACCESS_KEY ?? env.AWS_ACCESS_KEY_ID)?.trim();
+  const secretAccessKey = env.STORAGE_S3_SECRET_ACCESS_KEY ?? env.S3_SECRET_KEY ?? env.AWS_SECRET_ACCESS_KEY;
   if (!endpointValue || !bucket || !region || !accessKeyId || !secretAccessKey) return null;
   if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)) return null;
   if (!/^[A-Za-z0-9-]{1,64}$/.test(region)) return null;
-  const prefix = (env.STORAGE_S3_PREFIX ?? "").trim().replace(/^\/+|\/+$/g, "");
+  const prefix = (env.STORAGE_S3_PREFIX ?? env.S3_PREFIX ?? "").trim().replace(/^\/+|\/+$/g, "");
   if (prefix && !/^[A-Za-z0-9/_-]{1,180}$/.test(prefix)) return null;
   try {
     const endpoint = new URL(endpointValue);
@@ -169,7 +169,8 @@ export class S3ObjectStorage implements ObjectStorage {
  * ALLOW_LOCAL_STORAGE=true because a serverless disk is not durable.
  */
 export function localStorageAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
-  const provider = (env.STORAGE_PROVIDER ?? "").trim().toLowerCase();
+  const raw = (env.STORAGE_PROVIDER ?? "").trim().toLowerCase();
+  const provider = raw === "disk" ? "local" : raw;
   if (provider && provider !== "local") return false;
   if (env.NODE_ENV === "production") {
     const flag = (env.ALLOW_LOCAL_STORAGE ?? "").trim().toLowerCase();
@@ -179,7 +180,8 @@ export function localStorageAllowed(env: NodeJS.ProcessEnv = process.env): boole
 }
 
 export function openStorage(env: NodeJS.ProcessEnv = process.env): ObjectStorage | null {
-  const provider = (env.STORAGE_PROVIDER ?? "").trim().toLowerCase();
+  const raw = (env.STORAGE_PROVIDER ?? "").trim().toLowerCase();
+  const provider = raw === "disk" ? "local" : raw;
   if (provider === "s3") {
     const config = s3Config(env);
     return config ? new S3ObjectStorage(config) : null;
