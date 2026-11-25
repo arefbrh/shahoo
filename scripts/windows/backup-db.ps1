@@ -32,11 +32,11 @@ function Read-EnvFile([string]$Path) {
 }
 function Resolve-DbConfig($Values) {
     $config = @{
-        User = ($Values["POSTGRES_USER"] ?? "shahoo_app")
-        Name = ($Values["POSTGRES_DB"] ?? "shahoo_db")
+        User = $(if ($Values["POSTGRES_USER"]) { $Values["POSTGRES_USER"] } else { "shahoo_app" })
+        Name = $(if ($Values["POSTGRES_DB"]) { $Values["POSTGRES_DB"] } else { "shahoo_db" })
         Host = "127.0.0.1"
         Port = "5432"
-        Password = ($Values["POSTGRES_PASSWORD"] ?? "")
+        Password = [string]$Values["POSTGRES_PASSWORD"]
     }
     $raw = $Values["RESTORE_DATABASE_URL"]
     if (-not $raw) { $raw = $Values["DATABASE_URL"] }

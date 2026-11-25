@@ -299,6 +299,9 @@ function BrandSettingsForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: C
 
 function ProfileForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResult) => Promise<void> }) {
   const [phone, setPhone] = useState(desk.phone);
+  const [supportHours, setSupportHours] = useState(desk.supportHours ?? "");
+  const [trackingInstructions, setTrackingInstructions] = useState(desk.trackingInstructions ?? "");
+  const [returnInstructions, setReturnInstructions] = useState(desk.returnInstructions ?? "");
   const [whatsapp, setWhatsapp] = useState(desk.whatsapp);
   const [email, setEmail] = useState(desk.email);
   const [address, setAddress] = useState(desk.address);
@@ -310,7 +313,7 @@ function ProfileForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResu
       className={`${panelClass} space-y-3 p-4`}
       onSubmit={(event) => {
         event.preventDefault();
-        void saveStoreProfileFn({ data: { phone, whatsapp, email, address, instagram, telegram } })
+        void saveStoreProfileFn({ data: { phone, whatsapp, email, address, instagram, telegram, supportHours, trackingInstructions, returnInstructions } })
           .then(onDone)
           .catch(() => setMessage("ذخیره انجام نشد."));
       }}
@@ -318,6 +321,9 @@ function ProfileForm({ desk, onDone }: { desk: CmsDesk; onDone: (result: CmsResu
       <h2 className="font-bold text-forest">راه‌های تماس</h2><p className="text-xs leading-6 text-muted">اطلاعات واقعی پاسخ‌گویی و نشانی فروشگاه را وارد کنید؛ این داده‌ها ممکن است در فوتر و صفحه تماس نمایش داده شوند. نمونه تلفن: ۰۲۱۱۲۳۴۵۶۷۸ و نمونه شبکه اجتماعی: https://instagram.com/yourstore</p>
       <p className="text-xs leading-6 text-muted">خالی بماند تا وقتی شماره، نشانی یا شبکه واقعی را خودتان وارد کنید. مقدار نمونه منتشر نمی‌شود.</p>
       <input className={fieldClass} value={phone} onChange={(event) => setPhone(event.target.value)} aria-label="تلفن" placeholder="تلفن" />
+      <label>ساعات پاسخ‌گویی<textarea className={fieldClass} maxLength={600} value={supportHours} onChange={(event) => setSupportHours(event.target.value)} /></label>
+      <label>راهنمای پیگیری سفارش<textarea className={fieldClass} maxLength={600} value={trackingInstructions} onChange={(event) => setTrackingInstructions(event.target.value)} /></label>
+      <label>راهنمای مرجوعی تلفنی<textarea className={fieldClass} maxLength={600} value={returnInstructions} onChange={(event) => setReturnInstructions(event.target.value)} /></label>
       <input className={fieldClass} value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} aria-label="واتساپ" placeholder="واتساپ" />
       <input className={fieldClass} value={email} onChange={(event) => setEmail(event.target.value)} aria-label="ایمیل" placeholder="ایمیل" dir="ltr" />
       <textarea className={`${fieldClass} min-h-20`} value={address} onChange={(event) => setAddress(event.target.value)} aria-label="نشانی" placeholder="نشانی" />

@@ -96,6 +96,9 @@ export type CmsDesk = {
   storyPhilosophy: string;
   promo: string;
   phone: string;
+  supportHours?: string;
+  trackingInstructions?: string;
+  returnInstructions?: string;
   whatsapp: string;
   email: string;
   address: string;
@@ -179,6 +182,9 @@ export type CopyDraft = {
 
 export type ProfileDraft = {
   phone: string;
+  supportHours?: string;
+  trackingInstructions?: string;
+  returnInstructions?: string;
   whatsapp: string;
   email: string;
   address: string;

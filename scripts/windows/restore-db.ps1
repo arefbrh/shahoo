@@ -24,11 +24,11 @@ function Read-EnvFile([string]$Path) {
 }
 function Resolve-DbConfig($Values, [bool]$UseAdmin = $false) {
     $config = @{
-        User = ($Values["POSTGRES_USER"] ?? "shahoo_app")
-        Name = ($Values["POSTGRES_DB"] ?? "shahoo_db")
+        User = $(if ($Values["POSTGRES_USER"]) { $Values["POSTGRES_USER"] } else { "shahoo_app" })
+        Name = $(if ($Values["POSTGRES_DB"]) { $Values["POSTGRES_DB"] } else { "shahoo_db" })
         Host = "127.0.0.1"
         Port = "5432"
-        Password = ($Values["POSTGRES_PASSWORD"] ?? "")
+        Password = [string]$Values["POSTGRES_PASSWORD"]
     }
     $raw = if ($UseAdmin) { $Values["RESTORE_DATABASE_URL"] } else { $Values["DATABASE_URL"] }
     if ($raw) {
@@ -82,6 +82,13 @@ if (-not $CreateDb) { $candidate = "C:\Program Files\PostgreSQL\16\bin\createdb.
 if (-not $Psql) { $candidate = "C:\Program Files\PostgreSQL\16\bin\psql.exe"; if (Test-Path $candidate) { $Psql = $candidate } }
 if (-not $DropDb -or -not $CreateDb -or -not $Psql) { throw "dropdb.exe, createdb.exe and psql.exe for PostgreSQL 16 must be installed or added to PATH." }
 
+$taskName = "SHAHOO_Release_Expired_Holds"
+$workerTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+$resumeWorker = $workerTask -and $workerTask.State -ne "Disabled"
+if ($resumeWorker) {
+    Disable-ScheduledTask -TaskName $taskName | Out-Null
+    Stop-ScheduledTask -TaskName $taskName
+}
 $service = Get-Service -Name "ShahooStore" -ErrorAction SilentlyContinue
 $serviceWasRunning = $service -and $service.Status -eq "Running"
 if ($serviceWasRunning) { Stop-Service -Name "ShahooStore" -Force }
@@ -91,16 +98,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "dropdb failed with exit code $LASTEXITCODE." }
     & $CreateDb -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -O $appDb.User $adminDb.Name
     if ($LASTEXITCODE -ne 0) { throw "createdb failed with exit code $LASTEXITCODE." }
-    & $Psql -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -d $adminDb.Name -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS "pgcrypto";'
-    if ($LASTEXITCODE -ne 0) { throw "PostgreSQL extension bootstrap failed with exit code $LASTEXITCODE." }
-    & $Psql -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -d postgres -v ON_ERROR_STOP=1 -c "ALTER DATABASE `"$($adminDb.Name)`" SET timezone TO 'Asia/Tehran';"
-    if ($LASTEXITCODE -ne 0) { throw "Database timezone setup failed with exit code $LASTEXITCODE." }
-    & $Psql -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -d $adminDb.Name -v ON_ERROR_STOP=1 -c "ALTER ROLE `"$($appDb.User)`" SET timezone TO 'Asia/Tehran';"
-    if ($LASTEXITCODE -ne 0) { throw "Application role timezone setup failed with exit code $LASTEXITCODE." }
+    $setupSql = @'
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+ALTER DATABASE :"db_name" SET timezone TO 'Asia/Tehran';
+ALTER ROLE :"app_role" SET timezone TO 'Asia/Tehran';
+'@
+    $setupSql | & $Psql -X -h $adminDb.Host -p $adminDb.Port -U $adminDb.User -d $adminDb.Name -v ON_ERROR_STOP=1 -v "db_name=$($adminDb.Name)" -v "app_role=$($appDb.User)" -f -
+    if ($LASTEXITCODE -ne 0) { throw "Restored database configuration failed." }
     $env:PGPASSWORD = $appDb.Password
     & $PgRestore -h $appDb.Host -p $appDb.Port -U $appDb.User -d $appDb.Name --exit-on-error --no-owner $DumpFile
     if ($LASTEXITCODE -ne 0) { throw "pg_restore failed with exit code $LASTEXITCODE." }
     if ($serviceWasRunning) { Start-Service -Name "ShahooStore" }
+    if ($resumeWorker) { Enable-ScheduledTask -TaskName $taskName | Out-Null }
     Write-Host "Restore command completed. Run the post-restore validation checklist." -ForegroundColor Green
 }
 finally {

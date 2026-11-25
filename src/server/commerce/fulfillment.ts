@@ -1,3 +1,4 @@
+import { onlineReturnsEnabled } from "../../lib/order-flow";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { canManuallyMove, canReviewReturn, canSettlePaidCancel, orderStatusAfterRefund, refundAmount, type RefundKind } from "@/lib/order-flow";
 import { chooseRefundSourcePayment, refundCeiling } from "../../lib/commerce-integrity.ts";
@@ -516,6 +517,7 @@ export async function shipmentForAdmin(publicCode: string, input: { carrier: str
 }
 
 export async function returnForCustomer(publicCode: string, reason: string) {
+  if (!onlineReturnsEnabled) return { ok: false as const, message: "مرجوعی از طریق تماس با فروشگاه پیگیری می‌شود." };
   try {
     const { db, customer } = await requireCustomer();
     return await requestReturn(db, customer.id, publicCode, reason);
@@ -526,6 +528,7 @@ export async function returnForCustomer(publicCode: string, reason: string) {
 }
 
 export async function reviewReturnForAdmin(id: string, status: "reviewing" | "approved" | "rejected" | "received", note: string) {
+  if (!onlineReturnsEnabled) return { ok: false as const, message: "مرجوعی از طریق تماس با فروشگاه پیگیری می‌شود." };
   try {
     const { db, admin } = await requireAdmin("orders.write");
     return await reviewReturn(db, admin.id, id, status, note);
@@ -546,6 +549,7 @@ export async function settlePaidCancelForAdmin(publicCode: string, reason: strin
 }
 
 export async function refundForAdmin(id: string, kind: RefundKind, requestedIrr: number, reason: string) {
+  if (!onlineReturnsEnabled) return { ok: false as const, message: "مرجوعی از طریق تماس با فروشگاه پیگیری می‌شود." };
   try {
     const { db, admin } = await requireAdmin("orders.write");
     return await recordRefund(db, admin.id, id, kind, requestedIrr, reason);
@@ -556,6 +560,7 @@ export async function refundForAdmin(id: string, kind: RefundKind, requestedIrr:
 }
 
 export async function returnQueue() {
+  if (!onlineReturnsEnabled) return { ok: true as const, rows: [] };
   try {
     const { db } = await requireAdmin("orders.read");
     const rows = await db

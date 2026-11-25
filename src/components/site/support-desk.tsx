@@ -1,3 +1,4 @@
+import { onlineReturnsEnabled } from "@/lib/order-flow";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { adminReplyFn, adminThreadFn, adminTicketsFn, myThreadFn, myTicketsFn, openTicketFn, replyTicketFn } from "@/server/support/api";
 import { recordRefundFn, returnQueueFn, reviewReturnFn } from "@/server/commerce/fulfillment-api";
@@ -301,6 +302,7 @@ export function AdminSupport() {
           </li>
         ))}
       </ul>
+      {onlineReturnsEnabled && <>
       <h2 className="mt-8 text-xl font-bold text-forest">مرجوعی</h2>
       {returns.length === 0 ? <p className="mt-3 text-sm text-muted">درخواست مرجوعی نیست.</p> : null}
       <ul className="mt-3 space-y-3">
@@ -384,6 +386,7 @@ export function AdminSupport() {
           </li>
         ))}
       </ul>
+      </>}
     </div>
   );
 }

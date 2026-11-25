@@ -12,6 +12,9 @@ export type StoreProfile = {
   brandName: string;
   tagline: string;
   phone: string;
+  supportHours?: string;
+  trackingInstructions?: string;
+  returnInstructions?: string;
   whatsapp: string;
   email: string;
   address: string;

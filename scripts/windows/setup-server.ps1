@@ -48,6 +48,12 @@ if ($ConfigureFirewall -and $isAdmin) {
 if ($CreateScheduledTasks -and $isAdmin) {
     Write-Host "`n[2/3] ایجاد تسک‌های خودکار در Windows Task Scheduler..." -ForegroundColor Gray
 
+    $workerScript = Join-Path $ScriptDir "release-expired-holds.ps1"
+    $workerAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$workerScript`""
+    $workerTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+    $workerSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 4) -StartWhenAvailable
+    Register-ScheduledTask -TaskName "SHAHOO_Release_Expired_Holds" -Action $workerAction -Trigger $workerTrigger -Settings $workerSettings -User "SYSTEM" -Force | Out-Null
+
     $BackupScript = Join-Path $ScriptDir "backup-db.ps1"
     $MonitorScript = Join-Path $ScriptDir "monitor-health.ps1"
     $MediaBackupScript = Join-Path $ScriptDir "backup-media.ps1"

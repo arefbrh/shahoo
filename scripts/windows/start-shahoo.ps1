@@ -2,7 +2,7 @@
 param(
     [string]$EnvFile = ".env",
     [int]$Port = 3000,
-    [string]$HostAddress = "0.0.0.0"
+    [string]$HostAddress = "127.0.0.1"
 )
 $ErrorActionPreference = "Stop"
 
@@ -15,11 +15,10 @@ if (-not (Test-Path $EnvPath)) {
     Copy-Item (Join-Path $ProjectRoot ".env.production.example") $EnvPath
     Write-Error "Created .env from the template. Configure DATABASE_URL and secrets, then run this script again."
 }
-foreach ($raw in Get-Content $EnvPath) {
-    $line = $raw.Trim()
-    if ($line -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
-        [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim().Trim('"').Trim("'"), "Process")
-    }
+. (Join-Path $ScriptDir "runtime-env.ps1")
+$envMap = Read-ShahooRuntimeEnv $EnvPath
+foreach ($name in $envMap.Keys) {
+    [Environment]::SetEnvironmentVariable($name, $envMap[$name], "Process")
 }
 if (-not $env:DATABASE_URL -or $env:DATABASE_URL -like "*replace_with_*") {
     throw "DATABASE_URL must point to the intended PostgreSQL database before starting SHAHOO."

@@ -1,3 +1,5 @@
+export const onlineReturnsEnabled = false;
+
 export const FULFILLMENT_STATUSES = [
   "awaiting_payment",
   "paid",

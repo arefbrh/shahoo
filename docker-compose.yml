@@ -76,7 +76,7 @@ services:
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
       PAYPING_API_KEY: ${PAYPING_API_KEY:-}
       PAYPING_LIVE: ${PAYPING_LIVE:-0}
-      PAYPING_RETURN_URL: ${PAYPING_RETURN_URL:-https://organicshahoo.ir/api/payment/payping/callback}
+      PAYPING_RETURN_URL: ${PAYPING_RETURN_URL:-}
       SMS_PROVIDER: ${SMS_PROVIDER:-}
       SMS_MODE: ${SMS_MODE:-disabled}
       SMS_LIVE: ${SMS_LIVE:-0}

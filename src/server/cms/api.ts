@@ -142,6 +142,9 @@ export const saveStoreProfileFn = createServerFn({ method: "POST" })
     z
       .object({
         phone: z.string().max(40),
+        supportHours: z.string().max(600).optional(),
+        trackingInstructions: z.string().max(600).optional(),
+        returnInstructions: z.string().max(600).optional(),
         whatsapp: z.string().max(40),
         email: z.string().max(120),
         address: z.string().max(300),

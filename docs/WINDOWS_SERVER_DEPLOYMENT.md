@@ -110,3 +110,9 @@ Use `-Force` only when an operator deliberately chooses to bypass the interactiv
 - PostgreSQL migration and concurrent workload on Windows
 - Backup/restore drill and media backup
 - Real PayPing, SMS.ir, shipping-provider and Torob integrations
+
+### Windows operator settings
+
+Keep the app account limited to its database, logs and media directory. Put restore/bootstrap credentials in an administrator-only file and pass its name with `-EnvFile` to the corresponding scripts. The web service imports only runtime settings. Set the local media path to an absolute Windows directory. Run `scripts/windows/setup-server.ps1` to schedule the independent inventory worker. Its five-minute task ignores overlapping runs. A failed database restore leaves the worker disabled and the web service stopped until an operator verifies recovery.
+
+In the content panel enter public contact details, support hours, order follow-up and telephone return instructions when known. Empty details are valid. In the offers panel set delivery methods, charges and delivery estimates (method description). Publish the shipping, terms, returns and privacy pages from the content panel. Online return submissions and online return processing are disabled. Product specifications can hold verified ingredients, allergens, origin, lot information and shelf-life details from the actual label. Use the natural-product filter only for the corresponding catalog classification.

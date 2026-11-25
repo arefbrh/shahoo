@@ -32,7 +32,7 @@ if (-not (Test-Path $mediaPath)) { throw "Media directory not found: $mediaPath"
 New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $archive = Join-Path $BackupDir "shahoo_media_$stamp.zip"
-$temp = "$archive.tmp"
+$temp = Join-Path $BackupDir ("media-" + [guid]::NewGuid() + ".zip")
 try {
     $mediaFiles = @(Get-ChildItem -Path $mediaPath -Force)
     if ($mediaFiles.Count -gt 0) {

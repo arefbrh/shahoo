@@ -12,6 +12,20 @@ env:
   NODE_VERSION: "22.x"
 
 jobs:
+  windows:
+    name: Windows native build and recovery
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build:windows
+      - shell: powershell
+        run: ./scripts/windows/test-host.ps1
+
   quality:
     name: Quality
     runs-on: ubuntu-latest

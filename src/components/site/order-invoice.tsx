@@ -2,6 +2,7 @@ import type { OrderView } from "@/lib/commerce-types";
 import { formatTomanFromIrr, toPersianNum } from "@/lib/format";
 import { downloadInvoicePng, downloadInvoiceXlsx } from "@/lib/invoice-export";
 
+import { contactRows } from "@/lib/public-profile";
 import { getRouteApi } from "@tanstack/react-router";
 
 const rootRoute = getRouteApi("__root__");
@@ -53,9 +54,9 @@ export function OrderInvoice({ order }: { order: OrderView }) {
           <section className="invoice-panel">
             <h2>اطلاعات فروشگاه</h2>
             <p><strong>نام فروشگاه:</strong> {profile.brandName}</p>
-            {profile.phone && <p>تلفن: <bdi>{profile.phone}</bdi></p>}
-            {profile.address && <p>نشانی: {profile.address}</p>}
-            {profile.email && <p>ایمیل: <bdi>{profile.email}</bdi></p>}
+            {contactRows(profile).filter((row) => ["phone", "address", "email"].includes(row.key)).map((row) => (
+              <p key={row.key}>{row.label}: <bdi>{row.text}</bdi></p>
+            ))}
           </section>
           <section className="invoice-panel">
             <h2>اطلاعات خریدار</h2>

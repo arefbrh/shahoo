@@ -184,6 +184,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
     tagline?: string;
     copyright?: string;
     phone?: string;
+    supportHours?: string;
+    trackingInstructions?: string;
+    returnInstructions?: string;
     whatsapp?: string;
     email?: string;
     address?: string;
@@ -246,6 +249,9 @@ export async function loadCmsDesk(db: Database): Promise<CmsDesk> {
     storyPhilosophy: story.philosophy ?? "",
     promo: promo.text ?? "",
     phone: profile.phone ?? "",
+    supportHours: profile.supportHours ?? "",
+    trackingInstructions: profile.trackingInstructions ?? "",
+    returnInstructions: profile.returnInstructions ?? "",
     whatsapp: profile.whatsapp ?? "",
     email: profile.email ?? "",
     address: profile.address ?? "",
@@ -340,7 +346,7 @@ export async function applySiteCopy(db: Database, actorId: string, input: CopyDr
     const rows = await tx
       .select()
       .from(settings)
-      .where(or(eq(settings.key, "store.story"), eq(settings.key, "header.promo"), eq(settings.key, "brand.logos")));
+      .where(or(eq(settings.key, "store.story"), eq(settings.key, "header.promo"), eq(settings.key, "brand.logos"))).for("update");
     if (!rows.some((row) => row.key === "store.story") || !rows.some((row) => row.key === "header.promo")) {
       deny("متن معرفی فروشگاه پیدا نشد.");
     }
@@ -463,7 +469,7 @@ export async function applyBrandSettings(db: Database, actorId: string, input: B
     return { ok: false, message: "نام برند، شعار، کپی‌رایت یا نشانی لوگو معتبر نیست. لوگو باید PNG، JPG یا WebP از مسیر رسانه برند یا HTTPS باشد." };
   }
   return transactionResult(db, async (tx, deny) => {
-    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos")));
+    const rows = await tx.select().from(settings).where(or(eq(settings.key, "store.profile"), eq(settings.key, "brand.logos"))).for("update");
     const profileRow = rows.find((row) => row.key === "store.profile");
     const logosRow = rows.find((row) => row.key === "brand.logos");
     if (!profileRow || !logosRow) deny("تنظیمات برند پیدا نشد.");
@@ -497,7 +503,7 @@ export async function applyStoreProfile(db: Database, actorId: string, input: Pr
   const parsed = parseProfileContact(input);
   if (!parsed.ok) return parsed;
   return transactionResult(db, async (tx, deny) => {
-    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.profile")).limit(1);
+    const [row] = await tx.select().from(settings).where(eq(settings.key, "store.profile")).for("update").limit(1);
     if (!row) {
       deny("اطلاعات فروشگاه پیدا نشد.");
       return;
@@ -511,6 +517,9 @@ export async function applyStoreProfile(db: Database, actorId: string, input: Pr
           tagline: typeof current.tagline === "string" ? current.tagline : "",
           copyright: typeof current.copyright === "string" ? current.copyright : "",
           phone: parsed.value.phone,
+          supportHours: input.supportHours?.trim() ?? current.supportHours ?? "",
+          trackingInstructions: input.trackingInstructions?.trim() ?? current.trackingInstructions ?? "",
+          returnInstructions: input.returnInstructions?.trim() ?? current.returnInstructions ?? "",
           whatsapp: parsed.value.whatsapp,
           email: parsed.value.email,
           address: parsed.value.address,

@@ -66,7 +66,7 @@ $service = Get-Service -Name "ShahooStore" -ErrorAction SilentlyContinue
 $serviceWasRunning = $service -and $service.Status -eq "Running"
 if ($serviceWasRunning) { Stop-Service -Name "ShahooStore" -Force }
 if (Test-Path $mediaPath) {
-    $previous = "$mediaPath.pre-restore-$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    $previous = "$mediaPath.pre-restore-$([guid]::NewGuid())"
     Move-Item -Path $mediaPath -Destination $previous
 }
 New-Item -ItemType Directory -Path $mediaPath -Force | Out-Null

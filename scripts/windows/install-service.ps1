@@ -28,19 +28,14 @@ if (-not (Test-Path $NssmPath) -and -not (Get-Command $NssmPath -ErrorAction Sil
     throw "NSSM is not installed. Install and verify NSSM separately, then rerun with -NssmPath."
 }
 
-$envMap = @{}
-foreach ($raw in Get-Content $EnvPath) {
-    $line = $raw.Trim()
-    if ($line -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
-        $envMap[$matches[1]] = $matches[2].Trim().Trim('"').Trim("'")
-    }
-}
+. (Join-Path $ScriptDir "runtime-env.ps1")
+$envMap = Read-ShahooRuntimeEnv $EnvPath
 if (-not $envMap["DATABASE_URL"] -or $envMap["DATABASE_URL"] -like "*replace_with_*") {
     throw "DATABASE_URL must be configured before registering the service."
 }
 $envMap["NODE_ENV"] = "production"
 $envMap["PORT"] = [string]$Port
-$envMap["HOST"] = "0.0.0.0"
+$envMap["HOST"] = "127.0.0.1"
 $envMap["TZ"] = "Asia/Tehran"
 
 $nodeExe = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
@@ -55,7 +50,7 @@ New-Item -ItemType Directory -Path $logs -Force | Out-Null
 
 function Invoke-Nssm([string[]]$Arguments) {
     & $NssmPath @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "NSSM command failed: $($Arguments -join ' ')" }
+    if ($LASTEXITCODE -ne 0) { throw "NSSM operation failed with exit code $LASTEXITCODE." }
 }
 
 $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue

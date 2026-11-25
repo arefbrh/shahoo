@@ -80,7 +80,7 @@ export function OrderDetail({ order }: { order: OrderView | null }) {
       })() : null}
       <OrderActions order={order} />
       {order.canManagePayments && order.paymentRecovery?.length ? <PaymentRecovery attempts={order.paymentRecovery} /> : null}
-      <p className="mt-4 rounded-3xl border border-gold/40 bg-cream p-4 text-sm leading-8">{order.paymentNote}</p>
+      <p className="mt-4 rounded-3xl border border-gold/40 bg-cream p-4 text-sm leading-8">{order.paymentNote} <Link className="underline" to="/contact">تماس و راهنمای پیگیری</Link></p>
       {order.holdUntilLabel ? (
         <p className="mt-3 text-sm leading-7 text-muted">موجودی تا {order.holdUntilLabel} کنار گذاشته شده است.</p>
       ) : null}

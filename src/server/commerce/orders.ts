@@ -10,7 +10,7 @@ import type { AppDatabase } from "../db/client";
 import { orderEvents, orderItems, orders, paymentAttempts } from "../db/schema";
 import { releaseExpiredHolds, timeValue } from "./holds";
 import { orderStatusLabel, paymentStatusLabel } from "./pricing";
-import { canSettlePaidCancel, manualNextStatuses } from "@/lib/order-flow";
+import { canSettlePaidCancel, manualNextStatuses, onlineReturnsEnabled } from "@/lib/order-flow";
 import { latestShipment } from "./fulfillment";
 
 export async function customerOrderSummaries(db: AppDatabase, customerId: string): Promise<OrderSummary[]> {
@@ -108,7 +108,7 @@ export async function loadOrder(publicCode: string): Promise<OrderView | null> {
     trackingCode: shipment?.trackingCode ?? order.trackingCode,
     carrier: shipment?.carrier ?? "",
     shipmentNote: staffOnlyOrderNote(shipment?.note, staff),
-    canRequestReturn: Boolean(owns && order.status === "delivered"),
+    canRequestReturn: Boolean(onlineReturnsEnabled && owns && order.status === "delivered"),
     canSettleCancel: Boolean(admin?.permissions.includes("orders.write") && canSettlePaidCancel(order.status, order.paymentStatus)),
     nextStatuses: staff && admin?.permissions.includes("orders.write") ? manualNextStatuses(order.status, order.paymentStatus) : [],
     lines: lines.map((line) => ({
