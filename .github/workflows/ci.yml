@@ -65,6 +65,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      - name: Verify disposable Docker PostgreSQL bootstrap role separation
+        run: bash scripts/test-db-bootstrap.sh
       - run: npm run db:migrate
       - name: Verify real PostgreSQL integration
         run: node scripts/test-postgres-smoke.mjs
