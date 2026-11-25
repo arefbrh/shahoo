@@ -73,6 +73,31 @@ jobs:
       - name: Verify multi-connection contention and backup/restore
         run: node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/test-postgres-concurrency-backup.mjs
 
+  self-host-docker:
+    name: Self-host Docker build and Compose validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POSTGRES_PASSWORD: ci-only-dummy-postgres
+      APP_DB_PASSWORD: ci-only-dummy-app
+      APP_URL: http://localhost:3000
+      APP_DOMAIN: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose with disposable placeholder variables
+        run: docker compose -f docker-compose.yml config --quiet
+      - name: Build complete self-hosted application image
+        run: docker build --progress=plain --tag shahoo-self-host:ci .
+      - name: Verify server and worker runtime artifacts
+        run: |
+          docker run --rm --entrypoint sh shahoo-self-host:ci -c '
+            set -eu
+            test -f .output/server/index.mjs
+            test -f scripts/worker-loop.sh
+            test -f scripts/worker-healthcheck.mjs
+            node --version
+          '
+
   payment-and-sms-mocks:
     name: Payment and SMS mocks
     runs-on: ubuntu-latest
