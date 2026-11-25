@@ -91,7 +91,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           for config in Caddyfile Caddyfile.windows; do
-            docker run --rm --env APP_DOMAIN=localhost --volume "$PWD/$config:/etc/caddy/Caddyfile:ro" caddy:2-alpine validate --config /etc/caddy/Caddyfile --adapter caddyfile
+            docker run --rm --env APP_DOMAIN=localhost --volume "$PWD/$config:/etc/caddy/Caddyfile:ro" --entrypoint caddy caddy:2-alpine validate --config /etc/caddy/Caddyfile --adapter caddyfile
           done
       - name: Build complete self-hosted application image
         run: docker build --progress=plain --tag shahoo-self-host:ci .
