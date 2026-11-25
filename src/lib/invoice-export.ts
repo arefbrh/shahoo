@@ -52,7 +52,8 @@ function xml(value: unknown) {
 export function sanitizeSpreadsheetText(value: unknown): string {
   const str = String(value ?? "");
   // Mitigation for Formula Injection: prefix leading formula characters with an apostrophe
-  const safe = /^[\s\u0000-\u001f]*[=+\-@]/.test(str) ? `'${str}` : str;
+  const firstSignificant = Array.from(str).find((char) => char.charCodeAt(0) > 0x1f && !/\s/.test(char));
+  const safe = firstSignificant !== undefined && "=+-@".includes(firstSignificant) ? `'${str}` : str;
   return xml(safe);
 }
 
