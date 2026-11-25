@@ -25,7 +25,8 @@ try {
         "STORAGE_PROVIDER=local"
         "STORAGE_LOCAL_DIR=$media"
         "ALLOW_LOCAL_STORAGE=true"
-        "APP_URL=http://127.0.0.1:3000"
+        "APP_URL=https://localhost"
+        "APP_DOMAIN=localhost"
     ) | Set-Content -Encoding ascii .env
     . "$PSScriptRoot\runtime-env.ps1"
     $config = Read-ShahooRuntimeEnv ".env"
@@ -34,6 +35,20 @@ try {
     $env:NODE_ENV = "test"
     & node scripts/migrate.mjs
     if ($LASTEXITCODE) { throw "Migration failed" }
+    & "$PSScriptRoot\install-service.ps1"
+    & "$PSScriptRoot\setup-server.ps1" -ConfigureFirewall:$false
+    & "$PSScriptRoot\install-caddy-service.ps1" -ServiceName "ShahooCaddy"
+    function Assert-Ready {
+        foreach ($try in 1..30) {
+            $body = curl.exe --noproxy "*" -kfs --max-time 5 "https://localhost/api/health?type=ready"
+            if ($LASTEXITCODE -eq 0 -and ($body | ConvertFrom-Json).db -eq "connected") { return }
+            Start-Sleep -Seconds 1
+        }
+        throw "Store failed its HTTPS readiness check"
+    }
+    Assert-Ready
+    Restart-Service ShahooStore
+    Assert-Ready
     & "$PSScriptRoot\release-expired-holds.ps1"
     if ($LASTEXITCODE) { throw "Worker failed" }
     & "$PSScriptRoot\backup-media.ps1" -BackupDir $backup
@@ -46,6 +61,7 @@ try {
     if ((Get-FileHash "$media\sample.txt").Hash -ne $expected) { throw "Media bytes differ" }
     & "$PSScriptRoot\backup-db.ps1" -BackupDir $backup
     & "$PSScriptRoot\restore-db.ps1" -BackupDir $backup -Force
+    Assert-Ready
     $count = & psql.exe $env:DATABASE_URL -Atc "SELECT COUNT(*) FROM _migrations"
     if ($LASTEXITCODE -or [int]$count -ne @(Get-ChildItem migrations\*.sql).Count) { throw "Restored migration history differs" }
     & "$PSScriptRoot\restore-media.ps1" -ArchiveFile $empty.FullName -Force

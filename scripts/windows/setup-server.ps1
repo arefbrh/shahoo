@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     اسکریپت نصب و آماده‌سازی خودکار سرور ویندوز برای شاهو (Windows Server Setup & Automation)
 .DESCRIPTION
