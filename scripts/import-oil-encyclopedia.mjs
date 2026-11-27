@@ -342,6 +342,7 @@ LEFT JOIN LATERAL (
    AND approved_map.oil_id = source_map.oil_id
   JOIN oil_encyclopedia.guide_concerns n
     ON n.id = m.concern_id
+   AND n.category_id = m.category_id
    AND n.source_app_id = source_map.app_id
    AND n.review_status = 'approved'
    AND n.display_status = 'published'
