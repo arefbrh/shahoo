@@ -35,3 +35,12 @@ All agents must extend the existing Project Master Report and focused runbooks; 
 Never use Production data/credentials in tests, migrations, restore drills or local builds. Use synthetic fixtures and disposable PostgreSQL. Do not modify Production environment settings, deploy, enable live providers, rotate secrets, rewrite public Git history or delete production data without a separate explicit owner authorization.
 
 The previous Batch reports and point-in-time handoffs are retained under [docs/archive](docs/archive/README.md). They are historical evidence, not competing instructions. For current status, this file, the master report and GitHub Issues supersede any older status banner.
+
+ 
+## Current active integration work — 2026-11-27
+
+- Security/legal documentation and the no-new-report-file policy were merged in PR #38. Issues #35 (DDoS/WAF/bot), #36 (licensing/third-party rights) and #37 (oil recommendation integration) are open.
+- Oil recommendation integration is under review in PR #41. It is limited to the existing oil guide; the encyclopedia is not being exposed as a public section of the shop.
+- Neon integration branch: `oil-encyclopedia-v32-integration`. Migration #0020 exists there and the mapping table is empty. `pg_trgm` and the NOLOGIN group role `shahoo_oil_encyclopedia_reader` are provisioned there; the full v3.2 bank import has not run.
+- Keep `OIL_ENCYCLOPEDIA_ENABLED=false` until the full import, read-only role, explicit product mappings and data signoff are complete.
+- Continue updating [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) and the relevant GitHub Issues. Do not create new report/status/handoff files.
