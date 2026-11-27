@@ -275,7 +275,7 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 ### Staging / branch state
 
 - Created isolated Neon branch `oil-encyclopedia-v32-integration` from Staging after aggregate checks found no customer or order rows in the source Staging branch.
-- Applied and verified migration #0020 (`oil_product_links`) on that isolated branch only. The table and indexes exist; mapping row count is **0**.
+- Applied and verified migration #0020 (`oil_product_links`) on that isolated branch only. The table and indexes exist; mapping row count is **0**. The `pg_trgm` extension and NOLOGIN group role `shahoo_oil_encyclopedia_reader` were also created/verified there; no encyclopedia tables or views have been imported yet.
 - The full v3.2 encyclopedia schema and data have **not** yet been imported into this branch. The dedicated importer has not yet been run against Neon.
 - Integration remains disabled by default. No Vercel environment variable, shared Staging configuration, Production database, Production migration, or deployment was changed.
 
