@@ -61,6 +61,7 @@ export function namespaceSchemaSql(source) {
   }
   ddl = ddl.replace(/(\bCREATE\s+VIEW\s+)([a-z_][a-z0-9_]*)/gi, "$1" + SCHEMA + ".$2");
   ddl = ddl.replace(/ON\s+SCHEMA\s+public\b/gi, "ON SCHEMA " + SCHEMA);
+  ddl = ddl.replace(/IN SCHEMA\s+public\b/gi, "IN SCHEMA " + SCHEMA);
   ddl = ddl.replace(
     /(\bGRANT\s+SELECT\s+ON\s+)([\s\S]*?)(\s+TO\s+shahoo_web_reader\b)/i,
     (full, prefix, list, suffix) => prefix + list.split(",").map((name) => SCHEMA + "." + name.trim()).join(", ") + suffix,
