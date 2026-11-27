@@ -45,7 +45,7 @@ test("active JSON filenames map to SQL table names", () => {
 test("v3.2 import DDL reconciles the table_decisions JSON columns", () => {
   const ddl = buildImportDdl(sample.replace("CREATE TABLE oils", "-- SHAHOO Oil Encyclopedia v3.1\nCREATE TABLE oils"));
   assert.match(ddl, /SHAHOO Oil Encyclopedia v3.2/);
-  assert.doesNotMatch(ddl, /ALTER TABLE oil_encyclopedia\\.table_decisions ADD COLUMN/);
+  assert.equal(ddl.includes("ALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN"), false);
 });
 
 test("legacy Table_Decisions keys normalize to the v3.2 SQL columns", () => {
