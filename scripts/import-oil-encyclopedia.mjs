@@ -413,9 +413,9 @@ async function populateRecordSources(client, imported) {
 
 async function seedGuideTaxonomy(client) {
   const areas = [
-    ["hair", "hair", "Hair", "مو", "کشف اطلاعات تأییدشده مربوط به ساقه مو و ناحیه ریشه و پوست سر.", 10],
-    ["skin", "skin", "Skin", "پوست", "کشف اطلاعات تأییدشده مربوط به کاربردهای پوستی.", 20],
-    ["topical", "topical-use", "Topical use", "کاربرد موضعی", "کشف اطلاعات تأییدشده مربوط به کاربرد موضعی و ماساژ.", 30],
+    ["hair", "hair", "Hair", "مو", "مرور موضوعات ثبت‌شده در دانشنامه درباره ساقه مو و ناحیه ریشه و پوست سر.", 10],
+    ["skin", "skin", "Skin", "پوست", "مرور موضوعات ثبت‌شده در دانشنامه درباره کاربردهای پوستی.", 20],
+    ["topical", "topical-use", "Topical use", "کاربرد موضعی", "مرور موضوعات ثبت‌شده در دانشنامه درباره کاربرد موضعی و ماساژ.", 30],
   ];
   for (const row of areas) {
     await client.query(
