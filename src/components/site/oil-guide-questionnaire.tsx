@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
   ChevronLeft,
   CircleAlert,
@@ -235,13 +234,13 @@ function RecommendationCard({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
           <span className="text-xs text-muted">{commerceLabel}</span>
           {recommendation.commerce.productHref ? (
-            <Link
-              to={recommendation.commerce.productHref}
+            <a
+              href={recommendation.commerce.productHref}
               className="inline-flex items-center gap-2 rounded-xl bg-forest px-4 py-2.5 text-xs font-semibold text-white hover:bg-forest/90"
             >
               {recommendation.commerce.availability === "available" ? "مشاهده و خرید" : "مشاهده محصول"}
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            </a>
           ) : null}
         </div>
         {recommendation.commerce.availability !== "available" ? (
