@@ -422,7 +422,7 @@ export function OilGuideOilProfilePage({
     { title: "هویت گیاه‌شناسی", fields: [["نام علمی", "scientific_name"], ["نام INCI", "inci_name"], ["خانواده گیاهی", "family"], ["بخش گیاه", "plant_part"]] },
     { title: "ویژگی‌های عمومی", fields: [["نوع روغن", "oil_kind"], ["ظاهر", "appearance"], ["رنگ", "color"], ["رایحه", "odor"], ["بافت", "texture"], ["ترکیبات شاخص", "key_components"], ["اسیدهای چرب شاخص", "key_fatty_acids"], ["مواد فعال شناخته‌شده", "known_actives"], ["پایداری اکسیداتیو", "oxidation_stability"]] },
     { title: "استخراج و نگهداری", fields: [["اطلاعات کلی استخراج", "general_extraction"], ["شرایط نگهداری", "general_storage"]] },
-    { title: "کاربردهای تأییدشده", fields: [["ساقه مو", "use_hair_shaft"], ["ریشه مو و پوست سر", "use_scalp"], ["نوع مو", "use_hair_types"], ["صورت", "use_face"], ["بدن", "use_body"], ["ماساژ", "use_massage"], ["کاربردهای سنتی", "use_traditional"]] },
+    { title: "کاربردهای تأییدشده", fields: [["ساقه مو", "use_hair_shaft"], ["پوست سر", "use_scalp"], ["نوع مو", "use_hair_types"], ["صورت", "use_face"], ["بدن", "use_body"], ["ماساژ", "use_massage"], ["کاربردهای سنتی", "use_traditional"]] },
   ];
   return (
     <main className="mx-auto max-w-5xl space-y-9 px-4 py-10">
