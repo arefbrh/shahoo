@@ -66,3 +66,14 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 - Use source-backed areas/categories/concerns and progressively ask relevant customer questions. Do not invent concerns, unsupported subcategories, benefits, safety statements or protocols. Roots/scalp are one source category in v3.2.
 - The score is a compatibility score, not a clinically proven efficacy percentage or probability. Safety exclusions are hard gates; missing data is not a positive match. Return exactly three only when at least three eligible oils exist; never fabricate or pad results.
 - Full product/design, data, API, UX and acceptance criteria are in [Oil Guide Product & Design Handoff](docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md). This owner-requested focused handoff is an explicit exception to the general no-new-handoff-file rule in AGENTS.md.
+
+
+## Oil Guide guided recommender follow-up — 2026-11-27
+
+- Follow-up branch: `feat/oil-guide-guided-recommendations`, created from PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`. PR #45 remains unchanged and unmerged.
+- The primary `/oil-guide` flow is now a Persian RTL, mobile-first staged questionnaire with three ranked compatibility results when at least three eligible oils exist. The taxonomy browser is secondary.
+- Candidate data starts from every canonical encyclopedia oil, not storefront products. A separate pending-by-default recommendation review controls the limited customer-facing profile projection; approved safety and source-provenanced concern relationships are hard gates. Full profile publication remains separate.
+- Storefront mapping/availability is looked up only after ranking and cannot affect candidate eligibility, score or rank.
+- New focused tests cover the 41-oil pool with only three mapped shop products, unlisted recommendations, safety, missing data, deduplication and deterministic scoring. CI status is pending; do not claim tests passed until the new branch's checks complete.
+- The v3.2 import and all recommendation/concern/mapping approvals remain outstanding. The customer flow must remain fail-closed and show insufficient approved data until at least three candidates are legitimately eligible. No Neon import, Vercel configuration, Staging activation, merge or Production action was performed.
+- Detailed implementation and review-gate notes are in [Oil Guide Product & Design Handoff](docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md) and section 13 of [Project Master Report](docs/PROJECT_MASTER_REPORT.md).
