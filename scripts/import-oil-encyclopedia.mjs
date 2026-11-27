@@ -102,6 +102,8 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
   oil_id TEXT PRIMARY KEY REFERENCES oil_encyclopedia.oils(oil_id),
   review_status TEXT NOT NULL DEFAULT 'needs_human_review'
     CHECK (review_status IN ('needs_human_review','approved','rejected')),
+  recommendation_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (recommendation_status IN ('pending','eligible','excluded')),
   safety_decision TEXT NOT NULL DEFAULT 'pending'
     CHECK (safety_decision IN ('pending','eligible','eligible_with_caution','excluded')),
   display_status TEXT NOT NULL DEFAULT 'hidden'
@@ -126,15 +128,21 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
   review_note TEXT NOT NULL DEFAULT '',
   CONSTRAINT guide_recommendation_review_check CHECK (
     review_status <> 'approved' OR
-    (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND safety_decision <> 'pending')
+    (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+      AND recommendation_status <> 'pending' AND safety_decision <> 'pending')
+  ),
+  CONSTRAINT guide_recommendation_status_check CHECK (
+    recommendation_status <> 'eligible' OR
+    (review_status = 'approved' AND safety_decision IN ('eligible','eligible_with_caution'))
   ),
   CONSTRAINT guide_recommendation_name_check CHECK (
-    review_status <> 'approved' OR safety_decision = 'excluded'
+    review_status <> 'approved' OR recommendation_status <> 'eligible'
     OR (name_fa IS NOT NULL AND btrim(name_fa) <> '')
   ),
   CONSTRAINT guide_recommendation_publish_check CHECK (
     display_status <> 'published' OR
-    (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+    (review_status = 'approved' AND recommendation_status = 'eligible'
+      AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
       AND safety_decision IN ('eligible','eligible_with_caution')
       AND name_fa IS NOT NULL AND btrim(name_fa) <> '')
   )
@@ -217,61 +225,97 @@ GROUP BY n.id, n.category_id, c.slug, a.slug, n.slug, n.name_en, n.name_fa,
 CREATE VIEW oil_encyclopedia.public_guide_recommendation_candidates AS
 SELECT
   o.oil_id,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.name_fa END AS oil_name_fa,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.name_en END AS oil_name_en,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.scientific_name END AS scientific_name,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.oil_kind END AS oil_kind,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.texture END AS texture,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_face END AS use_face,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_body END AS use_body,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_massage END AS use_massage,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_hair_shaft END AS use_hair_shaft,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_scalp END AS use_scalp,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_traditional END AS use_traditional,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_hair_types END AS use_hair_types,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(mapped.concern_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS concern_ids,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(mapped.category_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS category_ids,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(mapped.area_slugs, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS area_slugs,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(r.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+  CASE WHEN r.review_status = 'approved' AND r.recommendation_status = 'eligible'
+         AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(safety.safety_warnings, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS safety_warnings,
-  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
-       THEN r.safety_decision ELSE NULL END AS safety_decision,
+  CASE WHEN r.review_status = 'approved' THEN r.recommendation_status ELSE NULL END AS recommendation_status,
+  CASE WHEN r.review_status = 'approved' THEN r.safety_decision ELSE NULL END AS safety_decision,
   COALESCE((
     r.review_status = 'approved'
+    AND r.recommendation_status = 'eligible'
+    AND r.safety_decision IN ('eligible','eligible_with_caution')
+    AND COALESCE(cardinality(mapped.concern_ids), 0) > 0
+    AND (
+      r.safety_decision <> 'eligible_with_caution'
+      OR COALESCE(cardinality(safety.safety_warnings), 0) > 0
+    )
+  ), FALSE) AS recommendation_candidate_eligible,
+  COALESCE((
+    r.review_status = 'approved'
+    AND r.recommendation_status = 'eligible'
+    AND r.display_status = 'published'
+    AND r.safety_decision IN ('eligible','eligible_with_caution')
+    AND r.name_fa IS NOT NULL
+    AND btrim(r.name_fa) <> ''
+  ), FALSE) AS customer_display_approved,
+  COALESCE((
+    r.review_status = 'approved'
+    AND r.recommendation_status = 'eligible'
     AND r.display_status = 'published'
     AND r.safety_decision IN ('eligible','eligible_with_caution')
     AND r.name_fa IS NOT NULL
