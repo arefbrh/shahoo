@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -22,6 +23,7 @@ const areaIcons = {
   hair: Waves,
   skin: Droplets,
   topical: Hand,
+  "topical-use": Hand,
 } as const;
 
 function SourceNotice({ status, empty = false }: { status: GuideSourceStatus; empty?: boolean }) {
@@ -64,30 +66,66 @@ function SectionHeading({ eyebrow, title, description }: { eyebrow: string; titl
 }
 
 function OilCards({ oils }: { oils: GuideOilCard[] }) {
+  const [kind, setKind] = useState("");
+  const [texture, setTexture] = useState("");
+  const kinds = useMemo(() => [...new Set(oils.map((oil) => oil.oilKind).filter((value): value is string => Boolean(value)))].sort(), [oils]);
+  const textures = useMemo(() => [...new Set(oils.map((oil) => oil.texture).filter((value): value is string => Boolean(value)))].sort(), [oils]);
+  const filtered = useMemo(
+    () => oils.filter((oil) => (!kind || oil.oilKind === kind) && (!texture || oil.texture === texture)),
+    [kind, oils, texture],
+  );
   if (oils.length === 0) return null;
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {oils.map((oil) => (
-        <Link
-          key={oil.oilId}
-          to="/oil-guide/oils/$oilSlug"
-          params={{ oilSlug: oil.slug }}
-          className="group rounded-2xl border border-line bg-paper p-4 transition-colors hover:border-gold/60"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-forest">{oil.nameFa || oil.nameEn}</h3>
-              {oil.nameEn ? <p className="mt-1 text-xs text-muted" dir="ltr">{oil.nameEn}</p> : null}
-            </div>
-            <ArrowLeft className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform group-hover:-translate-x-1" aria-hidden="true" />
-          </div>
-          {oil.scientificName ? <p className="mt-3 text-xs text-muted" dir="ltr">{oil.scientificName}</p> : null}
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
-            <span className="rounded-full bg-cream px-2.5 py-1">{oil.categoryNameFa}</span>
-            {oil.concernNameFa ? <span className="rounded-full bg-cream px-2.5 py-1">{oil.concernNameFa}</span> : null}
-          </div>
-        </Link>
-      ))}
+    <div className="space-y-4">
+      {(kinds.length > 1 || textures.length > 1) ? (
+        <div className="flex flex-wrap gap-2">
+          {kinds.length > 1 ? (
+            <label className="flex items-center gap-2 rounded-xl border border-line bg-paper px-3 py-2 text-xs text-muted">
+              نوع روغن
+              <select value={kind} onChange={(event) => setKind(event.target.value)} className="max-w-40 bg-transparent text-forest outline-none">
+                <option value="">همه انواع</option>
+                {kinds.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {textures.length > 1 ? (
+            <label className="flex items-center gap-2 rounded-xl border border-line bg-paper px-3 py-2 text-xs text-muted">
+              بافت
+              <select value={texture} onChange={(event) => setTexture(event.target.value)} className="max-w-40 bg-transparent text-forest outline-none">
+                <option value="">همه بافت‌ها</option>
+                {textures.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+      {filtered.length ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {filtered.map((oil) => (
+            <Link
+              key={oil.oilId}
+              to="/oil-guide/oils/$oilSlug"
+              params={{ oilSlug: oil.slug }}
+              className="group rounded-2xl border border-line bg-paper p-4 transition-colors hover:border-gold/60"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-forest">{oil.nameFa || oil.nameEn}</h3>
+                  {oil.nameEn ? <p className="mt-1 text-xs text-muted" dir="ltr">{oil.nameEn}</p> : null}
+                </div>
+                <ArrowLeft className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform group-hover:-translate-x-1" aria-hidden="true" />
+              </div>
+              {oil.scientificName ? <p className="mt-3 text-xs text-muted" dir="ltr">{oil.scientificName}</p> : null}
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
+                <span className="rounded-full bg-cream px-2.5 py-1">{oil.categoryNameFa}</span>
+                {oil.concernNameFa ? <span className="rounded-full bg-cream px-2.5 py-1">{oil.concernNameFa}</span> : null}
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-line bg-paper p-4 text-sm text-muted">با این فیلترها روغنی پیدا نشد.</p>
+      )}
     </div>
   );
 }
