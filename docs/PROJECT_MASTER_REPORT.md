@@ -355,8 +355,8 @@ This section supersedes any earlier implication that the final Oil Guide should 
 
 - Replaced the primary `/oil-guide` customer journey with a Persian RTL, mobile-first staged questionnaire. The old product-only recommender is no longer the primary flow; the existing taxonomy/search pages remain secondary browse paths.
 - Added validated server functions for questionnaire data and recommendation submission. Encyclopedia reads use the separate connection in read-only transactions and only the dedicated guide views. The browser never connects to Neon.
-- Added an explicit recommendation review table, seeded pending for every canonical oil. A new candidate view starts from all canonical `oils` rows and has no storefront/product/inventory join. Names and structured recommendation facts are returned only after a separate recommendation-specific human review and limited display approval.
-- Recommendation relationship approval and questionnaire concern approval are separate from the existing full encyclopedia profile/public-content approval. The existing detailed profile/browse gates remain unchanged.
+- Added an explicit recommendation review table, seeded pending for every canonical oil. Its limited customer-facing name/attribute snapshot is NULL by default and must be transcribed from source and approved by an authorized reviewer; import does not auto-fill it. A new candidate view starts from all canonical `oils` rows and has no storefront/product/inventory join. Names and facts are returned only after separate recommendation-specific human review and limited display approval.
+- Recommendation snapshot approval and questionnaire concern approval are separate from full encyclopedia profile/public-content approval. Every scored concern relationship must still pass its human mapping review and the source `public_problem_oils` final-signoff view. The existing detailed profile/browse gates remain unchanged.
 - Added deterministic scoring (initial weights: concern 60, category 25, area 10, texture 5), reason codes, factor breakdown, canonical-ID deduplication, deterministic tie-breaks and hard safety eligibility gates. Scores are compatibility scores, not clinical efficacy or probability.
 - Added post-ranking storefront availability enrichment. Approved product mapping, product publication and stock are never candidate filters or scoring inputs.
 
@@ -368,6 +368,6 @@ This section supersedes any earlier implication that the final Oil Guide should 
 
 ### Data and release limitations
 
-- The v3.2 source still has no final-approved full oil profiles or public problem-oil mappings. The recommendation-specific review rows and concern/mapping approvals are created as pending/hidden; no approval is fabricated.
+- The v3.2 source still has no final-approved full oil profiles or public problem-oil mappings. The recommendation-specific snapshot rows and concern/mapping approvals are pending/hidden; no source approval is bypassed or fabricated.
 - The full source import and SQL execution against the isolated Neon branch remain outstanding. The new customer flow therefore correctly shows an insufficient-approved-data state until at least three oils and their source-backed relationships pass the separate recommendation/safety review.
 - PR #45's Staging preview, disabled source state and all existing production/release boundaries remain untouched.
