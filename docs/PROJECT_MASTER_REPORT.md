@@ -203,3 +203,48 @@ Likewise, logo files that share content hashes may be compatibility aliases/fall
 The documentation index is [docs/README.md](README.md). Keep the technical guides there as focused references: production, release checklist, self-hosting, Windows/VPS, backup/restore, PostgreSQL verification, payment state machine, provider status, media storage and security hardening.
 
 **Supersession rule:** for current implementation and release status, this report and the current GitHub Issues supersede old “current status” wording inside archived batch reports. Archived reports remain useful for historical context and the exact scope of the corresponding phase, not for current readiness claims.
+
+
+## 10. Security, licensing and documentation roadmap — 2026-11-27
+
+### Evidence-based findings
+
+The following are engineering review findings and open verification items, not a penetration-test certificate or legal opinion.
+
+| Area | Finding | Tracking / release consequence |
+|---|---|---|
+| Historical credential | A shared Preview OAuth credential was present in an earlier source snapshot. Current-source removal is recorded, but revocation/rotation and full-history scan are not verified. | [#33](https://github.com/shahoo-workspace/shahoo/issues/33); do not rewrite public history or rotate without owner/provider authorization. |
+| DDoS / bots / WAF | Selected application rate limits exist, but end-to-end edge protection, WAF/bot policy, upstream DDoS coverage, distributed abuse resistance and bounded load results have not been established. | [#35](https://github.com/shahoo-workspace/shahoo/issues/35); no claim of DDoS immunity. No volumetric testing against Production. |
+| Repository licensing | No root `LICENSE` or `NOTICE` file was found in the reviewed snapshot. `package.json` has `private: true`, which is not a license or proof of rights. This is not by itself proof of infringement. | [#36](https://github.com/shahoo-workspace/shahoo/issues/36); owner/legal decision required before publishing distribution terms. |
+| Third-party dependencies and fonts | Exact license/notice obligations for locked direct/transitive dependencies, Vazirmatn, Cinzel and other bundled assets have not been fully inventoried. | [#36](https://github.com/shahoo-workspace/shahoo/issues/36); SBOM and license review required. |
+| Grok/platform-preview/PWA assets | The repository contains related scaffold and asset paths, including `public/__grok/`, `server/middleware/grok-pwa.ts` and `scripts/install-page.html`. Their provenance, permitted use, branding/trademark implications and commercial redistribution rights need owner/legal review. Their presence alone does not establish infringement. | [#36](https://github.com/shahoo-workspace/shahoo/issues/36); do not remove files before checking references and provenance. |
+| Legal/customer-facing content | Rights to logos, photography, product copy, scientific excerpts and published terms/privacy/returns content require documented provenance and qualified review. | [#36](https://github.com/shahoo-workspace/shahoo/issues/36); engineering review is not legal advice. |
+
+### Security verification boundaries
+
+- Existing application controls such as OTP/admin throttles and guest checkout limits are targeted controls, not a substitute for network/edge DDoS mitigation.
+- The current repository review did not establish a configured WAF, CDN bot-management policy, provider-side DDoS profile, or measured load capacity.
+- No authorized dynamic penetration test, volumetric DDoS simulation, full-history secret scan, or real-host security validation was performed in this review.
+- The current CI secret check and `npm audit` evidence are scoped checks; neither proves the entire Git history or every deployed environment is free of secrets/vulnerabilities.
+- The security hardening guide is a checklist/reference, not a certification against OWASP ASVS or proof that every described host control is active. Verify the actual host, proxy, firewall, headers and service permissions.
+
+### Ordered remediation roadmap
+
+| Priority / phase | Work | Exit condition |
+|---|---|---|
+| P0 — credential containment | Resolve #33: identify the credential owner privately, revoke/rotate at provider, inspect provider logs, scan all refs/history, decide whether an approved history rewrite is necessary. | Provider confirms revocation; scan evidence and recovery decision recorded. |
+| P0 — distribution/rights decision | Resolve #36: owner/legal reviewer defines proprietary/public-viewable/open-source posture and copyright owner; inventory dependency/font/asset licenses and Grok/PWA provenance. | Approved distribution posture, SBOM/license evidence and notices/asset decisions recorded. |
+| P1 — edge and abuse protection | Resolve #35: map actual traffic path; define WAF/DDoS/bot policy, proxy trust, endpoint-specific rate limits, telemetry and bounded Staging load tests. | Controls configured or explicitly deferred with risk acceptance; tests and residual limits documented. |
+| P1 — application security backlog | Reconcile #29–#32 and relevant #23–#28 items against current `main`; split independently verified defects, preserve existing fail-closed and least-privilege behavior. | Each Issue has current source evidence, focused fix and executed tests. |
+| P1 — operational release gates | Resolve #13–#18 and payment recovery #20–#22; Production migration and live providers remain separately authorized operations. | Backup/restore, provider sandbox, Preview and target-host evidence meet their Issues. |
+| P2 — controlled oil recommendation integration | Resolve #37 only: connect the v3.2 knowledge source to the existing recommendation engine through isolated, read-only access and explicit product mapping. | Approved/signoff data only influences recommendations; tests pass in disposable Neon/Staging. |
+
+### Documentation policy for all agents
+
+The repository's existing files remain the documentation system of record. Do not create a new report, audit report, batch summary, status file, handoff file, or duplicate issue register for each agent session. Extend this report and the existing focused runbooks; update the compact `REMAINING_ISSUES.md` index and the corresponding GitHub Issue. Keep `PROJECT_HANDOFF.md` concise. New documentation files require explicit owner approval when no existing document can reasonably be extended.
+
+### Current decisions and boundaries
+
+- Production release remains **NOT APPROVED**.
+- No Production database import/migration, live provider activation, DNS/firewall/WAF change, destructive test, credential rotation, or public Git-history rewrite is authorized by this roadmap alone.
+- The oil encyclopedia is a reusable future knowledge source for agents and content workflows. Its only current runtime integration scope is the existing oil recommendation system; public encyclopedia pages, broad CMS/product integration, automatic content generation and manufacturing/formulation are out of scope. See [#37](https://github.com/shahoo-workspace/shahoo/issues/37).
