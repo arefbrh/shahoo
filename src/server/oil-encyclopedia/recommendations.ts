@@ -4,10 +4,53 @@ import {
   buildRecommendationCandidatePool,
   rankOilRecommendations,
 } from "./recommendation-engine.mjs";
-import { readOilGuideCommerceAvailability } from "@/server/oil-guide/commerce";
+import { readOilGuideCommerceAvailability, type OilGuideCommerceStatus } from "@/server/oil-guide/commerce";
 
 type DbRow = Record<string, unknown>;
 type GuideStatus = "ready" | "disabled" | "unavailable";
+
+type EngineCandidate = {
+  oilId: string;
+  nameFa: string;
+  nameEn: string;
+  scientificName: string | null;
+  recommendationEligible: boolean;
+  safetyDecision: string | null;
+  concernIds: string[];
+  categoryIds: string[];
+  areaSlugs: string[];
+  oilKind: string | null;
+  texture: string | null;
+  evidenceLevels: string[];
+  safetyWarnings: string[];
+};
+
+type EngineFactor = {
+  key: string;
+  weight: number;
+  selectedCount: number;
+  matchedCount: number;
+  points: number;
+  matchedIds: string[];
+};
+
+type EngineRanked = EngineCandidate & {
+  score: number;
+  breakdown: EngineFactor[];
+  reasonCodes: Array<{ key: string; matchedIds: string[] }>;
+};
+
+type RankedOilRecommendation = Omit<OilGuideRecommendation, "commerce">;
+
+type RecommendationReadData = {
+  state: "results" | "insufficient_approved_data" | "invalid_answers" | "no_match" | "unavailable";
+  totalCanonicalOils: number;
+  eligibleOilCount: number;
+  recommendations: RankedOilRecommendation[];
+  areas: Array<{ slug: string; nameFa: string }>;
+  categories: Array<{ id: string; areaSlug: string; nameFa: string }>;
+  concerns: Array<{ id: string; categoryId: string; nameFa: string }>;
+};
 
 export type QuestionnaireArea = {
   id: string;
@@ -74,15 +117,12 @@ export type OilGuideRecommendation = {
   evidenceLevels: string[];
   safetyDecision: "eligible" | "eligible_with_caution";
   safetyWarnings: string[];
-  commerce: {
-    availability: "not_mapped" | "available" | "out_of_stock" | "unavailable";
-    productHref: string | null;
-  };
+  commerce: OilGuideCommerceStatus;
 };
 
 export type OilGuideRecommendationResult = {
   status: GuideStatus;
-  state: "results" | "insufficient_approved_data" | "invalid_answers" | "unavailable";
+  state: "results" | "insufficient_approved_data" | "invalid_answers" | "no_match" | "unavailable";
   totalCanonicalOils: number;
   eligibleOilCount: number;
   recommendations: OilGuideRecommendation[];
@@ -97,6 +137,16 @@ const emptyQuestionnaire: OilGuideQuestionnaireData = {
   textureOptions: [],
 };
 
+const emptyReadData: RecommendationReadData = {
+  state: "unavailable",
+  totalCanonicalOils: 0,
+  eligibleOilCount: 0,
+  recommendations: [],
+  areas: [],
+  categories: [],
+  concerns: [],
+};
+
 function valueText(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
@@ -104,10 +154,6 @@ function valueText(value: unknown): string {
 function valueNumber(value: unknown): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
-}
-
-function valueStrings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
 }
 
 function mapArea(row: DbRow): QuestionnaireArea {
@@ -203,36 +249,18 @@ export async function readOilGuideQuestionnaire() {
   });
 }
 
-function validAnswers(
-  answers: OilGuideAnswers,
-  areas: QuestionnaireArea[],
-  categories: QuestionnaireCategory[],
-  concerns: QuestionnaireConcern[],
-  textureOptions: string[],
-) {
-  const areaSet = new Set(areas.map((item) => item.slug));
-  const categoryMap = new Map(categories.map((item) => [item.id, item]));
-  const concernMap = new Map(concerns.map((item) => [item.id, item]));
-  if (!answers.areaSlugs.length || !answers.categoryIds.length) return false;
-  if (answers.areaSlugs.some((slug) => !areaSet.has(slug))) return false;
-  if (answers.categoryIds.some((id) => !categoryMap.has(id) || !answers.areaSlugs.includes(categoryMap.get(id)!.areaSlug))) return false;
-  if (answers.concernIds.some((id) => !concernMap.has(id) || !answers.categoryIds.includes(concernMap.get(id)!.categoryId))) return false;
-  if (answers.texture && !textureOptions.includes(answers.texture)) return false;
-  return true;
-}
-
 function buildReasons(
-  item: Record<string, any>,
-  areas: QuestionnaireArea[],
-  categories: QuestionnaireCategory[],
-  concerns: QuestionnaireConcern[],
+  item: EngineRanked,
+  areas: Array<{ slug: string; nameFa: string }>,
+  categories: Array<{ id: string; areaSlug: string; nameFa: string }>,
+  concerns: Array<{ id: string; categoryId: string; nameFa: string }>,
   texture: string,
 ) {
   const areaBySlug = new Map(areas.map((value) => [value.slug, value]));
   const categoryById = new Map(categories.map((value) => [value.id, value]));
   const concernById = new Map(concerns.map((value) => [value.id, value]));
   const reasons: string[] = [];
-  for (const reason of item.reasonCodes ?? []) {
+  for (const reason of item.reasonCodes) {
     if (reason.key === "concern") {
       for (const id of reason.matchedIds) {
         const concern = concernById.get(id);
@@ -270,7 +298,7 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
     eligibleOilCount: 0,
     recommendations: [],
   };
-  const read = await withReadOnly(fallback, async (client) => {
+  const read = await withReadOnly(emptyReadData, async (client) => {
     const areaRows = await client.query(
       "SELECT slug, name_fa FROM oil_encyclopedia.public_guide_areas ORDER BY sort_order",
     );
@@ -312,7 +340,7 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
         state: "invalid_answers" as const,
         totalCanonicalOils: 0,
         eligibleOilCount: 0,
-        recommendations: [] as OilGuideRecommendation[],
+        recommendations: [],
         areas,
         categories,
         concerns,
@@ -324,25 +352,43 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
       "concern_ids, category_ids, area_slugs, oil_kind, texture, evidence_levels, safety_warnings " +
       "FROM oil_encyclopedia.public_guide_recommendation_candidates ORDER BY oil_id",
     );
-    const candidates = buildRecommendationCandidatePool(candidateRows.rows as DbRow[]);
-    const eligibleOilCount = candidates.filter((item: Record<string, any>) => item.recommendationEligible === true).length;
-    const ranked = rankOilRecommendations(candidates, answers);
-    const recommendations = ranked.map((item: Record<string, any>) => ({
-      ...item,
-      reasons: buildReasons(item, areas as QuestionnaireArea[], categories as QuestionnaireCategory[], concerns as QuestionnaireConcern[], answers.texture),
-      scoreBreakdown: (item.breakdown ?? []).map((factor: Record<string, any>) => ({
+    const candidates = buildRecommendationCandidatePool(candidateRows.rows as DbRow[]) as EngineCandidate[];
+    const eligibleOilCount = candidates.filter((item) => item.recommendationEligible === true).length;
+    const ranked = rankOilRecommendations(candidates, answers) as EngineRanked[];
+    const recommendations: RankedOilRecommendation[] = ranked.map((item) => ({
+      oilId: item.oilId,
+      nameFa: item.nameFa,
+      nameEn: item.nameEn,
+      scientificName: item.scientificName,
+      score: item.score,
+      reasons: buildReasons(item, areas, categories, concerns, answers.texture),
+      scoreBreakdown: item.breakdown.map((factor) => ({
         label: factorLabels[factor.key] ?? factor.key,
         matchedCount: factor.matchedCount,
         selectedCount: factor.selectedCount,
         points: factor.points,
         weight: factor.weight,
       })),
+      oilKind: item.oilKind,
+      texture: item.texture,
+      evidenceLevels: item.evidenceLevels,
+      safetyDecision: item.safetyDecision as "eligible" | "eligible_with_caution",
+      safetyWarnings: item.safetyWarnings,
     }));
+    const totalCanonicalOils = candidates.length;
+    const state = recommendations.length === 3
+      ? "results" as const
+      : eligibleOilCount < 3
+        ? "insufficient_approved_data" as const
+        : "no_match" as const;
     return {
-      state: recommendations.length === 3 ? "results" as const : "insufficient_approved_data" as const,
-      totalCanonicalOils: candidates.length,
+      state,
+      totalCanonicalOils,
       eligibleOilCount,
       recommendations,
+      areas,
+      categories,
+      concerns,
     };
   });
 
@@ -359,25 +405,25 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
   if (read.data.recommendations.length !== 3) {
     return {
       status: "ready",
-      state: "insufficient_approved_data",
+      state: read.data.state,
       totalCanonicalOils: read.data.totalCanonicalOils,
       eligibleOilCount: read.data.eligibleOilCount,
       recommendations: [],
     };
   }
 
-  let commerceByOil = new Map();
+  let commerceByOil = new Map<string, OilGuideCommerceStatus>();
   try {
-    commerceByOil = await readOilGuideCommerceAvailability(read.data.recommendations.map((item: Record<string, any>) => item.oilId));
+    commerceByOil = await readOilGuideCommerceAvailability(read.data.recommendations.map((item) => item.oilId));
   } catch {
     // Storefront status is optional and must not block or alter knowledge ranking.
   }
-  const recommendations = attachCommerceMetadata(read.data.recommendations, commerceByOil);
+  const recommendations = attachCommerceMetadata(read.data.recommendations, commerceByOil) as OilGuideRecommendation[];
   return {
     status: "ready",
     state: "results",
     totalCanonicalOils: read.data.totalCanonicalOils,
     eligibleOilCount: read.data.eligibleOilCount,
-    recommendations: recommendations as OilGuideRecommendation[],
+    recommendations,
   };
 }
