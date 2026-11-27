@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
 import { OilGuideAreaPage } from "@/components/site/oil-guide-discovery";
 import { getOilGuideArea } from "@/server/oil-guide/api";
 
@@ -19,5 +19,10 @@ export const Route = createFileRoute("/oil-guide/$areaSlug")({
 
 function AreaPage() {
   const result = Route.useLoaderData();
-  return <OilGuideAreaPage status={result.status} area={result.data.area} categories={result.data.categories} oils={result.data.oils} />;
+  return (
+    <>
+      <OilGuideAreaPage status={result.status} area={result.data.area} categories={result.data.categories} oils={result.data.oils} />
+      <Outlet />
+    </>
+  );
 }
