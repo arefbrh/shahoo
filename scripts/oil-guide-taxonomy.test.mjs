@@ -24,7 +24,8 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_oils/);
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_areas/);
   assert.match(ddl, /TO shahoo_oil_encyclopedia_reader/);
-  assert.match(ddl, /'needs_human_review', 'hidden'/);
+  assert.match(ddl, /review_status TEXT NOT NULL DEFAULT 'needs_human_review'/);
+  assert.match(ddl, /display_status TEXT NOT NULL DEFAULT 'hidden'/);
   assert.match(ddl, /display_status <> 'published' OR \(review_status = 'approved'/);
   assert.doesNotMatch(ddl, /GRANT SELECT ON ALL TABLES IN SCHEMA oil_encyclopedia TO shahoo_oil_encyclopedia_reader/i);
 });
