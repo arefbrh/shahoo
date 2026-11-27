@@ -53,8 +53,8 @@ export function namespaceSchemaSql(source) {
   ddl = ddl.replace(/(\bCREATE\s+VIEW\s+)([a-z_][a-z0-9_]*)/gi, "$1" + SCHEMA + ".$2");
   ddl = ddl.replace(/ON\s+SCHEMA\s+public\b/gi, "ON SCHEMA " + SCHEMA);
   ddl = ddl.replace(
-    /\b(public_claims|public_protocols|public_faq|public_problem_oils|public_oil_profiles|public_oil_qa|public_safety_warnings)\b/g,
-    SCHEMA + ".$1",
+    /(\\bGRANT\\s+SELECT\\s+ON\\s+)([\\s\\S]*?)(\\s+TO\\s+shahoo_web_reader\\b)/i,
+    (full, prefix, list, suffix) => prefix + list.split(",").map((name) => SCHEMA + "." + name.trim()).join(", ") + suffix,
   );
   ddl = ddl.replace(/shahoo_web_reader/g, "shahoo_oil_encyclopedia_reader");
   return "CREATE SCHEMA IF NOT EXISTS " + SCHEMA + ";\n" + ddl;
