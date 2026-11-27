@@ -104,12 +104,19 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
     CHECK (review_status IN ('needs_human_review','approved','rejected')),
   safety_decision TEXT NOT NULL DEFAULT 'pending'
     CHECK (safety_decision IN ('pending','eligible','eligible_with_caution','excluded')),
+  display_status TEXT NOT NULL DEFAULT 'hidden'
+    CHECK (display_status IN ('hidden','published','disabled')),
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
   review_note TEXT NOT NULL DEFAULT '',
   CONSTRAINT guide_recommendation_review_check CHECK (
     review_status <> 'approved' OR
     (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND safety_decision <> 'pending')
+  ),
+  CONSTRAINT guide_recommendation_publish_check CHECK (
+    display_status <> 'published' OR
+    (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
+      AND safety_decision IN ('eligible','eligible_with_caution'))
   )
 );
 CREATE INDEX guide_recommendation_reviews_status_idx
@@ -193,34 +200,46 @@ GROUP BY n.id, n.category_id, c.slug, a.slug, n.slug, n.name_en, n.name_fa,
 CREATE VIEW oil_encyclopedia.public_guide_recommendation_candidates AS
 SELECT
   o.oil_id,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.name_fa END AS oil_name_fa,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.name_en END AS oil_name_en,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.scientific_name END AS scientific_name,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.oil_kind END AS oil_kind,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.texture END AS texture,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_face END AS use_face,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_body END AS use_body,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_massage END AS use_massage,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_hair_shaft END AS use_hair_shaft,
-  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_scalp END AS use_scalp,
   COALESCE(mapped.concern_ids, ARRAY[]::text[]) AS concern_ids,
   COALESCE(mapped.category_ids, ARRAY[]::text[]) AS category_ids,
   COALESCE(mapped.area_slugs, ARRAY[]::text[]) AS area_slugs,
   COALESCE(mapped.evidence_levels, ARRAY[]::text[]) AS evidence_levels,
   COALESCE(safety.safety_warnings, ARRAY[]::text[]) AS safety_warnings,
-  CASE WHEN r.review_status = 'approved' THEN r.safety_decision ELSE NULL END AS safety_decision,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+       THEN r.safety_decision ELSE NULL END AS safety_decision,
   (
     r.review_status = 'approved'
+    AND r.display_status = 'published'
     AND r.safety_decision IN ('eligible','eligible_with_caution')
     AND p.oil_id IS NOT NULL
     AND COALESCE(cardinality(mapped.concern_ids), 0) > 0
@@ -231,18 +250,37 @@ SELECT
   ) AS recommendation_eligible
 FROM oil_encyclopedia.oils o
 LEFT JOIN oil_encyclopedia.guide_recommendation_reviews r ON r.oil_id = o.oil_id
-LEFT JOIN oil_encyclopedia.public_oil_profiles p
+-- This is a narrow, separately reviewed recommender projection from the source
+-- profile table. It does not depend on the full public_oil_profiles sign-off.
+LEFT JOIN oil_encyclopedia.oil_profiles p
   ON p.oil_id = o.oil_id
  AND r.review_status = 'approved'
+ AND r.display_status = 'published'
  AND r.safety_decision IN ('eligible','eligible_with_caution')
 LEFT JOIN LATERAL (
   SELECT
-    array_agg(DISTINCT go.concern_id) FILTER (WHERE go.concern_id IS NOT NULL) AS concern_ids,
-    array_agg(DISTINCT go.category_id) FILTER (WHERE go.category_id IS NOT NULL) AS category_ids,
-    array_agg(DISTINCT go.area_slug) FILTER (WHERE go.area_slug IS NOT NULL) AS area_slugs,
-    array_agg(DISTINCT go.evidence_level) FILTER (WHERE COALESCE(go.evidence_level, '') <> '') AS evidence_levels
-  FROM oil_encyclopedia.public_guide_oils go
-  WHERE go.oil_id = o.oil_id
+    array_agg(DISTINCT n.id) FILTER (WHERE n.id IS NOT NULL) AS concern_ids,
+    array_agg(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) AS category_ids,
+    array_agg(DISTINCT a.slug) FILTER (WHERE a.slug IS NOT NULL) AS area_slugs,
+    array_agg(DISTINCT m.evidence_status) FILTER (WHERE COALESCE(m.evidence_status, '') <> '') AS evidence_levels
+  FROM oil_encyclopedia.oil_guide_mappings m
+  JOIN oil_encyclopedia.problem_oil_map source_map
+    ON source_map.map_id = m.supporting_record_id
+   AND source_map.oil_id = m.oil_id
+  JOIN oil_encyclopedia.guide_concerns n
+    ON n.id = m.concern_id
+   AND n.source_app_id = source_map.app_id
+   AND n.review_status = 'approved'
+   AND n.display_status = 'published'
+   AND n.reviewed_by IS NOT NULL
+   AND n.reviewed_at IS NOT NULL
+  JOIN oil_encyclopedia.guide_categories c ON c.id = n.category_id AND c.is_active IS TRUE
+  JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
+  WHERE m.oil_id = o.oil_id
+    AND m.supporting_record_type = 'problem_oil_map'
+    AND m.review_status = 'approved'
+    AND m.reviewed_by IS NOT NULL
+    AND m.reviewed_at IS NOT NULL
 ) mapped ON TRUE
 LEFT JOIN LATERAL (
   SELECT array_agg(DISTINCT warning.customer_text)
