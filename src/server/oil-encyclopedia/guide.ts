@@ -193,19 +193,32 @@ export async function readOilGuideLanding() {
 }
 
 export async function readOilGuideArea(areaSlug: string) {
-  return readGuide<{ area: GuideArea | null; categories: GuideCategory[] }>({ area: null, categories: [] }, async (client) => {
+  return readGuide<{ area: GuideArea | null; categories: GuideCategory[]; oils: GuideOilCard[] }>({ area: null, categories: [], oils: [] }, async (client) => {
     const areaResult = await client.query(
       "SELECT " + areaColumns + " FROM oil_encyclopedia.public_guide_areas WHERE slug = $1 LIMIT 1",
       [areaSlug],
     );
-    if (!areaResult.rows[0]) return { area: null, categories: [] };
-    const categoriesResult = await client.query(
-      "SELECT " + categoryColumns + " FROM oil_encyclopedia.public_guide_categories WHERE area_slug = $1 ORDER BY sort_order, name_fa",
-      [areaSlug],
-    );
+    if (!areaResult.rows[0]) return { area: null, categories: [], oils: [] };
+    const [categoriesResult, oilsResult] = await Promise.all([
+      client.query(
+        "SELECT " + categoryColumns + " FROM oil_encyclopedia.public_guide_categories WHERE area_slug = $1 ORDER BY sort_order, name_fa",
+        [areaSlug],
+      ),
+      client.query(
+        "SELECT " + oilColumns + " FROM oil_encyclopedia.public_guide_oils WHERE area_slug = $1 ORDER BY sort_order, oil_name_fa",
+        [areaSlug],
+      ),
+    ]);
+    const seen = new Set<string>();
+    const oils = oilsResult.rows.map(mapOil).filter((oil) => {
+      if (seen.has(oil.oilId)) return false;
+      seen.add(oil.oilId);
+      return true;
+    });
     return {
       area: mapArea(areaResult.rows[0]),
       categories: categoriesResult.rows.map(mapCategory),
+      oils,
     };
   });
 }
