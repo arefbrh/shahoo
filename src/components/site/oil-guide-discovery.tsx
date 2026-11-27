@@ -152,7 +152,6 @@ export function OilGuideLanding({ result }: { result: Result<GuideArea[]> }) {
           </div>
         ) : <SourceNotice status={result.status} empty={result.status === "ready"} />}
       </section>
-      {result.status !== "ready" ? <SourceNotice status={result.status} /> : null}
     </main>
   );
 }
@@ -210,7 +209,7 @@ export function OilGuideCategoryPage({
   if (!category) return <main className="mx-auto max-w-5xl px-4 py-12"><SourceNotice status="ready" empty /></main>;
   return (
     <main className="mx-auto max-w-5xl space-y-9 px-4 py-10">
-      <Link to={"/oil-guide/" + category.areaSlug} className="text-sm text-muted hover:text-forest">بازگشت به {category.areaSlug}</Link>
+      <Link to="/oil-guide/$areaSlug" params={{ areaSlug: category.areaSlug }} className="text-sm text-muted hover:text-forest">بازگشت به ناحیه</Link>
       <header>
         <p className="text-xs font-bold text-gold" dir="ltr">{category.nameEn || "OIL GUIDE CATEGORY"}</p>
         <h1 className="mt-2 text-3xl font-bold text-forest">{category.nameFa}</h1>
@@ -249,7 +248,7 @@ export function OilGuideConcernPage({
   if (!concern) return <main className="mx-auto max-w-5xl px-4 py-12"><SourceNotice status="ready" empty /></main>;
   return (
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-10">
-      <Link to={"/oil-guide/" + concern.areaSlug + "/" + concern.categorySlug} className="text-sm text-muted hover:text-forest">بازگشت به دسته‌بندی</Link>
+      <Link to="/oil-guide/$areaSlug/$categorySlug" params={{ areaSlug: concern.areaSlug, categorySlug: concern.categorySlug }} className="text-sm text-muted hover:text-forest">بازگشت به دسته‌بندی</Link>
       <header>
         <p className="text-xs font-bold text-gold">موضوع راهنما</p>
         <h1 className="mt-2 text-3xl font-bold text-forest">{concern.nameFa}</h1>
