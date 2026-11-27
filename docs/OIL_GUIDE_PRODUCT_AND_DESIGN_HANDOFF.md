@@ -271,3 +271,59 @@ The next agent should verify these facts against the live GitHub/Neon/Vercel sta
 9. Keep work on a feature branch and open/update a PR. Do not merge or deploy Production.
 
 **Most important acceptance statement:** A customer must be able to answer relevant, source-backed questions and receive three distinct, transparently ranked oil recommendations from the encyclopedia's 41-oil knowledge base, regardless of whether those oils are currently listed or in stock in the SHAHOO shop. The customer experience should be redesigned around this outcome.
+
+
+---
+
+## 11. Guided recommender implementation — 2026-11-27
+
+The implementation is being continued on `feat/oil-guide-guided-recommendations`, created from the inspected PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`. PR #45 remains open and unchanged.
+
+### Customer experience
+
+- `/oil-guide` now leads with a Persian RTL, mobile-first progressive questionnaire rather than the old product-only recommender or a taxonomy directory.
+- The customer selects one or more source-backed areas, then relevant categories, optionally approved concerns, and an optional texture only when reviewed candidate data actually supplies texture values.
+- Answers survive back/edit navigation. The flow has progress, multi-select, optional steps, loading, disabled/unavailable-source, insufficient-approved-data and no-match states.
+- The result component is designed for exactly three distinct ranked oils. It displays a 0–100 compatibility score, answer-linked reasons, factor breakdown, reviewed profile facts, approved safety warnings, evidence labels where present, and separate commerce availability.
+- The existing taxonomy pages/search remain a secondary browse path. The old storefront-only recommender component is retained in the repository but is no longer the primary Oil Guide experience.
+
+### Recommendation candidate and review architecture
+
+The importer now creates two additional read-only guide views and an explicit review table:
+
+- `guide_recommendation_reviews`: one pending review row is seeded for every canonical row in `oil_encyclopedia.oils`. Defaults are `review_status=needs_human_review`, `safety_decision=pending`, and `display_status=hidden`. No row is automatically approved.
+- `public_guide_questionnaire_concerns`: exposes only concern labels whose separate taxonomy review is approved and published.
+- `public_guide_recommendation_candidates`: starts from the full canonical `oils` table and LEFT JOINs the recommendation review. It returns the canonical oil ID for every source oil, but returns names and structured profile fields only after the separate recommender review is approved and published.
+
+A recommendation candidate becomes eligible only when all of the following are true:
+
+1. The oil's recommendation-specific review is approved, has a reviewer and timestamp, and its explicit safety decision is `eligible` or `eligible_with_caution`.
+2. The limited recommendation display is published; the approved projection is restricted to the name and structured fields used by the questionnaire/result.
+3. At least one source-provenanced `oil_guide_mappings` relationship has human review approval and joins to an approved/published questionnaire concern and its source `Problem_Oil_Map` row.
+4. A caution decision has at least one approved customer-facing safety warning.
+
+This is deliberately separate from full `public_oil_profiles` publication. The detailed encyclopedia browse/profile pages continue to require their existing full profile and public mapping sign-offs; those gates are not bypassed. The read-only web role receives SELECT only on the approved guide views, never on the review table, base profile/research tables, or raw taxonomy tables.
+
+The candidate view has no join to storefront products, `oil_product_links`, variants or inventory. Therefore it can return all 41 canonical IDs even if the shop has only three products (or none). The storefront lookup is a separate post-ranking enrichment for the three selected results only.
+
+### Scoring behavior
+
+The initial configurable weights are:
+
+| Answer factor | Weight |
+|---|---:|
+| Exact approved concern relationship | 60 |
+| Approved category relationship | 25 |
+| Approved area relationship | 10 |
+| Exact reviewed texture preference | 5 |
+
+Only factors the customer actually answered participate in the denominator. For multi-select factors, the earned fraction is the number of selected values matched by the oil divided by the number selected. Missing oil attributes earn zero for that answered factor; missing data is never a positive match. Scores are rounded to an integer and normalized across answered factors.
+
+Safety is an eligibility gate, not a score bonus. Oils are deduplicated by canonical ID. Results sort by score descending and then canonical oil ID for deterministic ties. The engine returns three only when at least three eligible oils have a positive match; it never pads the list. The displayed value is a rule-based compatibility score, not clinical efficacy or probability.
+
+### Tests and current operational boundary
+
+- `scripts/oil-guide-recommendations.test.mjs` covers the 41-candidate/three-store-products scenario, a recommended oil with no storefront mapping, deduplication, hard safety exclusions, missing attributes, deterministic ranking and the fewer-than-three case.
+- `scripts/oil-guide-taxonomy.test.mjs` covers the isolated review tables/views, publication gates, canonical-oil-rooted candidate view and absence of storefront/inventory dependencies.
+- The v3.2 import, recommendation review approvals, questionnaire concern approvals and recommendation mapping approvals have not been run or granted in a live database. The current source snapshot has no final-approved full oil profiles or public problem-oil mappings. Until the separate recommender fields/relationships are explicitly reviewed, the live customer flow must show the honest insufficient-approved-data state rather than fabricate results.
+- No shared database import, Vercel secret/flag change, Staging feature activation, Production change, merge or Production deployment is part of this implementation.
