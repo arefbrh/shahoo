@@ -289,6 +289,9 @@ LEFT JOIN LATERAL (
   JOIN oil_encyclopedia.problem_oil_map source_map
     ON source_map.map_id = m.supporting_record_id
    AND source_map.oil_id = m.oil_id
+  JOIN oil_encyclopedia.public_problem_oils approved_map
+    ON approved_map.map_id = source_map.map_id
+   AND approved_map.oil_id = source_map.oil_id
   JOIN oil_encyclopedia.guide_concerns n
     ON n.id = m.concern_id
    AND n.source_app_id = source_map.app_id
