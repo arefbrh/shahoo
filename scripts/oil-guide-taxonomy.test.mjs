@@ -30,6 +30,8 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.match(ddl, /LEFT JOIN oil_encyclopedia\.guide_recommendation_reviews r/);
   assert.match(ddl, /safety_decision IN \('eligible','eligible_with_caution'\)/);
   assert.match(ddl, /display_status TEXT NOT NULL DEFAULT 'hidden'/);
+  assert.match(ddl, /recommendation_status TEXT NOT NULL DEFAULT 'pending'/);
+
   assert.match(ddl, /name_fa TEXT/);
   assert.match(ddl, /evidence_levels TEXT\[\] NOT NULL DEFAULT ARRAY\[\]::text\[\]/);
   assert.match(ddl, /review_note TEXT NOT NULL DEFAULT ''/);
@@ -40,6 +42,10 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.doesNotMatch(candidateView, /public_oil_profiles|oil_encyclopedia\.oil_profiles/i);
   assert.match(candidateView, /FROM oil_encyclopedia\.oil_guide_mappings m/);
   assert.match(candidateView, /JOIN oil_encyclopedia\.public_problem_oils approved_map/);
+  assert.match(candidateView, /recommendation_candidate_eligible/);
+  assert.match(candidateView, /customer_display_approved/);
+  assert.match(candidateView, /recommendation_eligible/);
+
 
   assert.match(ddl, /TO shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /review_status TEXT NOT NULL DEFAULT 'needs_human_review'/);
