@@ -291,14 +291,14 @@ The implementation is being continued on `feat/oil-guide-guided-recommendations`
 
 The importer now creates two additional read-only guide views and an explicit review table:
 
-- `guide_recommendation_reviews`: one pending review row is seeded for every canonical row in `oil_encyclopedia.oils`. Defaults are `review_status=needs_human_review`, `safety_decision=pending`, and `display_status=hidden`. Its narrow name/attribute snapshot fields are NULL by default and must be copied from source and reviewed by an authorized human; import never auto-populates or approves them.
+- `guide_recommendation_reviews`: one pending review row is seeded for every canonical row in `oil_encyclopedia.oils`. Defaults are `review_status=needs_human_review`, `recommendation_status=pending`, `safety_decision=pending`, and `display_status=hidden`. Its narrow name/attribute snapshot fields are NULL by default and must be copied from source and reviewed by an authorized human; import never auto-populates or approves them.
 - `public_guide_questionnaire_concerns`: exposes only concern labels whose separate taxonomy review is approved and published.
 - `public_guide_recommendation_candidates`: starts from the full canonical `oils` table and LEFT JOINs the recommendation review. It returns the canonical oil ID for every source oil, but returns names and structured profile fields only after the separate recommender review is approved and published.
 
-A recommendation candidate becomes eligible only when all of the following are true:
+Recommendation eligibility, safety approval, customer display approval and commerce availability are separate states:
 
-1. The oil's recommendation-specific review is approved, has a reviewer and timestamp, and its explicit safety decision is `eligible` or `eligible_with_caution`.
-2. The limited recommendation display is published; the approved projection is restricted to the name and structured fields used by the questionnaire/result.
+1. `review_status=approved` plus reviewer/timestamp and `recommendation_status=eligible` records the human recommendation review. `safety_decision` must independently be `eligible` or `eligible_with_caution`; excluded or pending safety decisions never score.
+2. The limited customer-facing snapshot is published separately through `display_status=published`. It contains only the manually transcribed/reviewed name and structured facts used by the questionnaire/result. The view exposes `recommendation_candidate_eligible` and `customer_display_approved` independently; final `recommendation_eligible` is true only when both are true.
 3. At least one source-provenanced `oil_guide_mappings` relationship has human review approval, joins to an approved/published questionnaire concern and its source `Problem_Oil_Map` row, and also passes the source `public_problem_oils` final-signoff view.
 4. A caution decision has at least one approved customer-facing safety warning.
 
@@ -343,6 +343,7 @@ Illustrative one-oil SQL template (replace every placeholder with source-verifie
 ```sql
 UPDATE oil_encyclopedia.guide_recommendation_reviews
 SET review_status = 'approved',
+    recommendation_status = 'eligible', -- or excluded after review
     safety_decision = 'eligible', -- or eligible_with_caution / excluded after review
     display_status = 'published', -- keep hidden for excluded or not-yet-published items
     name_fa = '<verified Persian name>',
