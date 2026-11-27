@@ -75,9 +75,29 @@ export function buildImportDdl(source) {
     /^-- SHAHOO Oil Encyclopedia v3\.1\b/m,
     "-- SHAHOO Oil Encyclopedia v3.2",
   );
-  return namespaceSchemaSql(correctedHeader) +
-    "\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS location TEXT;" +
-    "\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS row_count INTEGER;\n";
+  return namespaceSchemaSql(correctedHeader);
+}
+
+export function normalizeTableRows(tableName, rows) {
+  if (tableName !== "table_decisions") return rows;
+  return rows.map((row) => {
+    const normalized = { ...row };
+    if (Object.hasOwn(normalized, "row_count")) {
+      if (Object.hasOwn(normalized, "rows_v3") && normalized.rows_v3 !== normalized.row_count) {
+        throw new Error("Conflicting row_count and rows_v3 values in Table_Decisions.json.");
+      }
+      normalized.rows_v3 ??= normalized.row_count;
+      delete normalized.row_count;
+    }
+    if (Object.hasOwn(normalized, "location")) {
+      if (Object.hasOwn(normalized, "location_v31") && normalized.location_v31 !== normalized.location) {
+        throw new Error("Conflicting location and location_v31 values in Table_Decisions.json.");
+      }
+      normalized.location_v31 ??= normalized.location;
+      delete normalized.location;
+    }
+    return normalized;
+  });
 }
 export function dataFileToTable(fileName) {
   return basename(fileName, ".json")
@@ -278,8 +298,9 @@ async function main() {
       const imported = [];
       for (const file of files) {
         const tableName = dataFileToTable(file);
-        const rows = JSON.parse(await readFile(join(dataDir, file), "utf8"));
-        if (!Array.isArray(rows)) throw new Error("Expected an array in " + file + ".");
+        const rawRows = JSON.parse(await readFile(join(dataDir, file), "utf8"));
+        if (!Array.isArray(rawRows)) throw new Error("Expected an array in " + file + ".");
+        const rows = normalizeTableRows(tableName, rawRows);
         const metadata = await getTableMetadata(client, tableName);
         await insertRows(client, tableName, rows, metadata);
         imported.push({ tableName, rows, primaryKey: metadata.primaryKey[0] });
