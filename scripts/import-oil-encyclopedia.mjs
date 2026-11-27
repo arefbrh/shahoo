@@ -293,7 +293,7 @@ async function main() {
   } catch {
     throw new Error("OIL_ENCYCLOPEDIA_IMPORT_URL must be a valid PostgreSQL URL.");
   }
-  const actualDatabase = decodeURIComponent(importUrl.pathname.replace(/^\\//, ""));
+  const actualDatabase = decodeURIComponent(importUrl.pathname.replace(/^\//, ""));
   if (importUrl.hostname.toLowerCase() !== expectedHost || actualDatabase !== expectedDatabase) {
     throw new Error("Import URL host/database do not match the explicitly allowlisted non-production target.");
   }
