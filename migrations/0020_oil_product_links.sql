@@ -6,7 +6,8 @@
 CREATE TABLE oil_product_links (
   product_id TEXT PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
   oil_id TEXT NOT NULL,
-  mapping_status TEXT NOT NULL DEFAULT 'pending'
+  mapping_status TEXT NOT NULL DEFAULT 'pending',
+  CONSTRAINT oil_product_links_mapping_status_check
     CHECK (mapping_status IN ('pending', 'approved', 'disabled')),
   mapping_note TEXT NOT NULL DEFAULT '',
   verified_by TEXT REFERENCES admin_users(id) ON DELETE SET NULL,
