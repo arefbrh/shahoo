@@ -275,7 +275,7 @@ export async function searchOilGuideRecords(query: string) {
       " FROM oil_encyclopedia.public_guide_oils " +
       "WHERE oil_name_fa ILIKE $1 OR oil_name_en ILIKE $1 OR COALESCE(scientific_name, '') ILIKE $1 " +
       "OR COALESCE(inci_name, '') ILIKE $1 OR COALESCE(other_names::text, '') ILIKE $1 " +
-      "OR category_name_fa ILIKE $1 OR concern_name_fa ILIKE $1 " +
+      "OR area_name_fa ILIKE $1 OR category_name_fa ILIKE $1 OR concern_name_fa ILIKE $1 " +
       "ORDER BY oil_name_fa, sort_order LIMIT 80",
       ["%" + normalized + "%"],
     );
@@ -304,8 +304,8 @@ export async function readOilGuideProfile(oilSlug: string) {
       return { profile: null, claims: [], protocols: [], faqs: [], qa: [], warnings: [] };
     }
     const [claims, protocols, faqs, qa, warnings] = await Promise.all([
-      client.query("SELECT claim_id, app_id, relation_id, customer_text, evidence_level FROM oil_encyclopedia.public_claims WHERE oil_id = $1 ORDER BY claim_id", [oilId]),
-      client.query("SELECT protocol_id, app_id, purpose, area, method, amount_per_use, frequency, leave_on_time, customer_text, cautions FROM oil_encyclopedia.public_protocols WHERE oil_id = $1 ORDER BY protocol_id", [oilId]),
+      client.query("SELECT claim_id, app_id, customer_text FROM oil_encyclopedia.public_claims WHERE oil_id = $1 ORDER BY claim_id", [oilId]),
+      client.query("SELECT protocol_id, app_id, purpose, area, customer_text FROM oil_encyclopedia.public_protocols WHERE oil_id = $1 ORDER BY protocol_id", [oilId]),
       client.query("SELECT faq_id, category, question, answer FROM oil_encyclopedia.public_faq WHERE oil_id = $1 ORDER BY faq_id", [oilId]),
       client.query("SELECT qa_id, question_key, answer FROM oil_encyclopedia.public_oil_qa WHERE oil_id = $1 ORDER BY qa_id", [oilId]),
       client.query("SELECT customer_text, customer_display_scope FROM oil_encyclopedia.public_safety_warnings WHERE oil_id = $1", [oilId]),
