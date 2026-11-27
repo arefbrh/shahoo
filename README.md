@@ -1,27 +1,37 @@
 <div align="center" dir="rtl">
-  <img src="public/assets/brand/shahoo-logo-primary.webp" alt="نشان شاهو" width="200">
+  <img src="public/assets/brand/shahoo-logo-primary.webp" alt="نشان شاهو" width="190">
   <h1>شاهو · SHAHOO</h1>
   <p>فروشگاه فارسی و راست‌چین محصولات طبیعی و ارگانیک</p>
   <p>
+    <a href="#امکانات">امکانات</a> ·
     <a href="#شروع-سریع">شروع سریع</a> ·
     <a href="#مستندات">مستندات</a> ·
     <a href="https://github.com/shahoo-workspace/shahoo/issues">پیگیری کارها</a>
   </p>
 </div>
 
+## معرفی
+
+SHAHOO یک فروشگاه اینترنتی فارسی برای عرضهٔ محصولات طبیعی و ارگانیک است. کدبیس شامل فروشگاه، پنل مدیریت، گردش‌کار سفارش و موجودی، CMS، پایگاه داده و ابزارهای استقرار و نگهداری است.
+
+**وضعیت فعلی:** پروژه در حال توسعه و آمادهٔ ادامهٔ کار مهندسی است، اما انتشار تجاری Production هنوز تأیید نشده است. اتصال واقعی درگاه پرداخت، پیامک، ارتقای دیتابیس Production و تمرین بازیابی روی میزبان هدف از دروازه‌های انتشار هستند. جزئیات و شواهد در [گزارش جامع پروژه](docs/PROJECT_MASTER_REPORT.md) ثبت شده‌اند.
+
 ## امکانات
 
-| بخش | امکانات |
+| بخش | قابلیت‌ها |
 | --- | --- |
-| فروشگاه | کاتالوگ و صفحهٔ محصول، سبد خرید، تسویهٔ مهمان و پیگیری سفارش |
-| مدیریت | کاتالوگ، محتوا و رسانه، سفارش‌ها، بسته‌بندی، موجودی و گزارش‌ها |
-| عملیات | PostgreSQL، بررسی سلامت برنامه، نگه‌داری موجودی، پشتیبان‌گیری و بازیابی |
+| فروشگاه | کاتالوگ، صفحهٔ محصول و متغیرها، سبد خرید، ثبت سفارش، پیگیری سفارش |
+| حساب مشتری | ورود OTP، پروفایل، نشانی‌ها، تاریخچه سفارش و علاقه‌مندی‌ها |
+| مدیریت | کالا و موجودی، سفارش و مشتری، کارکنان و سطح دسترسی، گزارش‌ها |
+| محتوا | صفحه‌ها، منو، بنر، صفحهٔ اصلی، مجله و تنظیمات برند |
+| عملیات | PostgreSQL، migration، health checks، worker، backup/restore و self-hosting |
+| اتصال‌ها | adapterهای آماده برای PayPing، SMS.ir و ذخیره‌سازی S3؛ اتصال عملیاتی آن‌ها نیازمند تأیید و آزمون جداگانه است |
 
-قیمت‌ها در دیتابیس به ریال و به‌صورت عدد صحیح ثبت می‌شوند و فروشگاه آن‌ها را به تومان نمایش می‌دهد.
+مبالغ در پایگاه داده به‌صورت عدد صحیح ریال ذخیره می‌شوند؛ تبدیل به تومان فقط برای نمایش است.
 
 ## شروع سریع
 
-به Node.js نسخهٔ ۲۲، npm و Git نیاز دارید.
+پیش‌نیاز: Node.js نسخهٔ ۲۲، npm و Git.
 
 ```sh
 git clone https://github.com/shahoo-workspace/shahoo.git
@@ -30,39 +40,38 @@ npm ci
 npm run dev
 ```
 
-نشانی محلی فروشگاه `http://localhost:8080` است. برای اجرای محلی با دادهٔ نمونه، `DATABASE_URL` را تنظیم نکنید تا برنامه از PGlite استفاده کند. برای تنظیمات دلخواه، الگوی محیط توسعه را ببینید. [.env.example](.env.example)
+نشانی محلی: `http://localhost:8080`
+
+برای اجرای محلی بدون پایگاه دادهٔ خارجی، `DATABASE_URL` را تنظیم نکنید تا مسیر PGlite مخصوص توسعه استفاده شود. برای تنظیمات محیط، از [.env.example](.env.example) استفاده کنید. مقادیر واقعی، رمزها و توکن‌ها را هرگز داخل مخزن قرار ندهید.
 
 | فرمان | کاربرد |
 | --- | --- |
-| `npm run typecheck` | بررسی نوع‌ها |
-| `npm run lint` | بررسی قواعد کد |
-| `npm run test:project` | اجرای آزمون‌های پروژه |
-| `npm run build` | ساخت نسخهٔ Vercel |
-| `npm run build:self-hosted` | ساخت سرور مستقل Node.js |
+| `npm run typecheck` | بررسی TypeScript |
+| `npm run lint` | بررسی ESLint |
+| `npm run test:project` | اجرای مجموعهٔ آزمون پروژه |
+| `npm run build` | ساخت خروجی Vercel |
+| `npm run build:self-hosted` | ساخت خروجی مستقل Node.js |
 
-## معماری
-
-React و TanStack Start مسیرهای فروشگاه و پنل را اجرا می‌کنند. Nitro خروجی Vercel و سرور مستقل را می‌سازد. Drizzle به PostgreSQL متصل می‌شود و فایل‌های SQL در `migrations/` نسخه‌بندی شده‌اند. [معماری خودمیزبان](docs/SELF_HOSTING_ARCHITECTURE.md)
+## ساختار پروژه
 
 | مسیر | محتوا |
 | --- | --- |
-| `src/routes/` و `src/components/` | مسیرها و رابط فروشگاه و مدیریت |
-| `src/server/` | منطق سرور، دسترسی و مدل‌های داده |
-| `migrations/` | تغییرات ترتیبی طرح PostgreSQL |
-| `scripts/` و `.github/workflows/` | آزمون‌ها، CI و ابزارهای عملیاتی |
-| `public/assets/brand/` | نشان رسمی و دارایی‌های برند |
-
-## وضعیت انتشار
-
-نسخهٔ خودمیزبان در PR #11 وارد `main` شد. شواهد CI پیش از ادغام، وضعیت Preview و کارهای باقی‌مانده جداگانه ثبت شده‌اند. آخرین بررسی Neon، طرح Production را روی `0016` و Staging را روی `0019` نشان داد. آزمون‌های تکمیلی در یک PR جداگانه آمادهٔ بازبینی‌اند. [گزارش ادغام](docs/PROJECT_STATUS.md) · [PR آزمون‌ها](https://github.com/shahoo-workspace/shahoo/pull/12)
+| `src/routes/`, `src/components/` | مسیرها و رابط فروشگاه/مدیریت |
+| `src/server/` | منطق سرور، احراز هویت، مجوزها و تراکنش‌ها |
+| `migrations/` | تاریخچهٔ ترتیبی PostgreSQL |
+| `scripts/` | ابزارهای build، آزمون، مهاجرت و عملیات |
+| `server/` | middleware سمت سرور |
+| `public/assets/brand/` | دارایی‌های رسمی برند |
+| `.github/workflows/` | GitHub Actions و CI |
+| `docs/` | راهنماهای فنی و گزارش جامع پروژه |
 
 ## مستندات
 
-| موضوع | پیوند |
-| --- | --- |
-| وضعیت جاری و انتقال کار | [Project handoff](PROJECT_HANDOFF.md) |
-| نتیجه و دامنهٔ آزمون‌ها | [گزارش آزمون](TEST_REPORT.md) |
-| کارهای باقی‌مانده | [فهرست موارد باز](REMAINING_ISSUES.md) · [GitHub Issues](https://github.com/shahoo-workspace/shahoo/issues) |
-| انتشار، پشتیبان‌گیری و بازگشت | [Production](docs/PRODUCTION.md) · [Backup & restore](docs/BACKUP_RESTORE_RUNBOOK.md) |
-| راه‌اندازی سرور | [VPS](docs/VPS_DEPLOYMENT.md) · [Windows Server](docs/WINDOWS_SERVER_DEPLOYMENT.md) |
-| مشارکت و مستندات کامل | [راهنمای مشارکت](CONTRIBUTING.md) · [نقشهٔ مستندات](docs/README.md) · [تاریخچهٔ تغییرات](CHANGELOG.md) |
+- **[گزارش جامع پروژه](docs/PROJECT_MASTER_REPORT.md)** — تاریخچهٔ Batchهای ۰۰ تا ۱۰، امکانات اضافه‌شده، اصلاحات، نتایج آزمون، بررسی امنیت و موانع فعلی انتشار.
+- **[راهنمای ایجنت‌ها](AGENTS.md)** — قواعد کار برای Claude، Codex، Grok و سایر ایجنت‌ها.
+- **[تحویل پروژه](PROJECT_HANDOFF.md)** — نقطهٔ شروع سریع برای ادامهٔ کار.
+- **[GitHub Issues](https://github.com/shahoo-workspace/shahoo/issues)** — مرجع رسمی مشکلات، وظایف و معیار پذیرش.
+- **[نقشهٔ مستندات](docs/README.md)** — راهنماهای Production، PostgreSQL، Windows، VPS، پشتیبان‌گیری، پرداخت و رسانه.
+- **[تاریخچهٔ تغییرات](CHANGELOG.md)** و [تصمیم‌های مهندسی](DECISIONS.md).
+
+> تاریخچهٔ گزارش‌های Batch و handoffهای پیشین حذف نشده؛ آن‌ها در `docs/archive/` نگهداری می‌شوند و مرجع وضعیت جاری نیستند.

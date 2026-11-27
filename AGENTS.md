@@ -1,39 +1,69 @@
-# AGENTS.md — SHAHOO project instructions (portable)
+# AGENTS.md — SHAHOO contributor and agent rules
 
-For any coding agent (Claude, Grok, Codex or similar) and for human contributors. It contains no platform-specific tooling. The original scaffold-specific file is kept as history in `docs/archive/AGENTS.grok-platform-original.md`; ignore it for current work.
+These rules apply to human contributors and AI coding agents (Claude, Codex, Grok and similar).
 
-## 1. Read first, in this order
-1. `PROJECT_HANDOFF.md` — canonical, current cross-agent handoff, verified infrastructure history, test evidence, release gates, and next actions.
-2. `REMAINING_ISSUES.md` and `BATCH_09_COMPREHENSIVE_AUDIT.md` — current issue register and detailed audit evidence.
-3. `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md` — long-form historical continuity; consult relevant sections, but do not treat old embedded status/next-step text as current.
-4. `docs/README.md` — documentation map; open older batch reports only when investigating their specific change.
-Where documents disagree, use current source and the canonical `PROJECT_HANDOFF.md`, then the current issue/evidence registers. Older batch reports are historical claims to verify, not current instructions.
+## 1. Mandatory reading
 
-## 2. Project
-SHAHOO is a Persian (RTL) online store for natural and organic products. Stack: React 19, TanStack React Start (server functions), Nitro/Vercel, Vite, TypeScript, Drizzle ORM on PostgreSQL (embedded PGlite only for local development and tests), Tailwind, Zod, Zustand. Money is stored as integer IRR (shown as toman, ÷10). Single currency `IRR`.
+1. [Project Master Report](docs/PROJECT_MASTER_REPORT.md) — single consolidated project history, implemented features, verification evidence, security review and current release status.
+2. [Project Handoff](PROJECT_HANDOFF.md) — fast-start instructions and current repository boundaries.
+3. [GitHub Issues](https://github.com/shahoo-workspace/shahoo/issues) — source of truth for active tasks, ownership, discussion and acceptance criteria.
+4. [Documentation map](docs/README.md) — current technical runbooks and retained historical archive.
 
-## 3. Hard constraints (from the owner; do not violate)
-- No real payment gateway, SMS/OTP provider, carrier or shipping API unless a batch explicitly says so. Payment, SMS and shipping stay disconnected; mock paths must be impossible in production.
-- Never connect to a production or hosted database from tests, scripts or builds. Never commit or print secrets; only `.env.example` is allowed in the repository.
-- Preserve the SHAHOO brand, palette, RTL layout and working behaviour. No rewrites, no redesign, no unrelated refactoring.
-- Do not delete customer, order, payment, inventory or media data, and do not delete or weaken tests to obtain a green run.
-- Prices, stock, totals and permissions are decided on the server. The client never supplies authoritative prices or inventory.
-- Work in the batch scope you are given. Do not start the next batch; stop and wait for owner approval.
+Do not use archived Batch reports as current status instructions. They exist only for phase-specific historical context.
+
+## 2. Product and architecture
+
+SHAHOO is a Persian-first (RTL) store for natural and organic products. The stack includes React 19, TypeScript, TanStack Start, Vite, Nitro, Drizzle, PostgreSQL, PGlite for local/test use, Tailwind, Zod and Zustand. Money is stored as integer IRR. Preserve the existing architecture and official SHAHOO visual identity.
+
+## 3. Non-negotiable safety rules
+
+- Never commit real secrets, tokens, passwords, database URLs, OAuth credentials, OTP codes, customer data or private payment/provider payloads.
+- Never use Production or customer data in tests, builds, migrations, restore drills or scripts. Use synthetic data and disposable databases.
+- Do not connect/enable live PayPing, SMS.ir, shipping or other providers without explicit owner approval for that task.
+- Do not deploy, modify Production, run Production migrations, rotate provider credentials or rewrite public Git history without separate explicit authorization.
+- Never weaken or delete tests merely to obtain a green CI result.
+- Do not delete customer, order, payment, inventory or media data.
+- Preserve fail-closed provider gates, server-side authorization, server pricing, transaction boundaries and idempotency.
+- Preserve Persian copy, RTL, approved brand assets and existing storefront/admin behavior. No unrelated redesign or rewrite.
+- Keep changes within the requested Issue/PR scope. Do not begin additional unrelated work.
 
 ## 4. Engineering rules
-- Environment policy fails closed: development-only behaviour needs an explicit flag and a development-like `NODE_ENV`; production without `DATABASE_URL` must fail, never fall back to PGlite. `npm run build` must not run migrations.
-- Stock and coupon changes use single conditional `UPDATE`s inside a transaction; do not replace them with read-then-write. Money, order, payment, refund and inventory-ledger changes are transactional and idempotent.
-- Serialize competing writers with row locks (`SELECT … FOR UPDATE`) or conditional updates, and prove a race with real separate connections where possible. A sequential or single-connection test is not race proof.
-- Do not clear persisted client data before the server has confirmed the operation that replaces it. Do not swallow errors silently; show a Persian message and offer a retry where appropriate. Never show raw technical errors to customers.
-- User-facing text is Persian and RTL. Keep new UI inside the existing design language, with labels, focus states and keyboard access.
-- Use existing project conventions and types; avoid `any`. Comments only where behaviour is non-obvious.
-- Migrations are additive and ordered under `migrations/`; the optional auth schema lives in `migrations/auth/` and is not applied by the shop migrator.
 
-## 5. Commands
-`npm ci`, `npx tsc --noEmit`, `npx eslint . --quiet`, `npm test`, `npm run build`. Run the build with `DATABASE_URL` unset or pointing at a disposable local database. Pure tests also run with `node --experimental-strip-types --test <file>` (some need `--import ./scripts/ts-alias-register.mjs`). Real-PostgreSQL media race check: `PG_RACE_CONFIRM=disposable PGHOST=<local throwaway server> scripts/pg-media-race.sh`.
+- Production requires a valid `DATABASE_URL`; a failed configured PostgreSQL connection must not fall back to PGlite.
+- `npm run build` must not run migrations. Production migrations require the explicit protected migration procedure.
+- Inventory, coupon, payment, refund, order and ledger writes must remain transactional and idempotent. Use row locks or conditional updates for competing writers.
+- Do not trust client prices, inventory counts, permissions, callback data or account IDs.
+- Do not log or return raw technical exceptions to customers. Keep logs useful but redact credentials and personal data.
+- Migrations are additive and ordered under `migrations/`. Review the optional `migrations/auth/` separately; it is outside the shop migration glob.
+- Do not delete a file because it appears old or duplicated. Search imports, route registrations, scripts, tests, workflows, runtime reads and compatibility fallbacks first. If historical, archive it rather than erasing unique evidence.
 
-## 6. Verification and reporting
-Run what the environment allows and report each check with exactly one status: EXECUTED — PASS, EXECUTED — FAIL, NOT EXECUTED — ENVIRONMENT LIMITATION, NOT APPLICABLE, or STATIC REVIEW ONLY. Never claim a check passed unless it was executed; never call a source inspection an automated test; never claim PostgreSQL concurrency was tested unless a real PostgreSQL server was used. For failures give the command and error summary, and say whether it is pre-existing only when a baseline run supports that.
+## 5. Commands and verification
 
-## 7. Delivery
-At the end of a batch: update `SHAHOO_MASTER_CONTEXT_AND_HANDOFF.md` (append, keep history), the batch report, `PROJECT_STATE.md`, `LATEST_HANDOFF.md`, `REMAINING_ISSUES.md`, `NEXT_BATCH_BRIEF.md`, `TEST_REPORT.md`, `CHANGELOG.md` and `FILE_INVENTORY.md`. Ship one clean ZIP: source, public assets, migrations, tests, package files and lockfile, docs; exclude `node_modules`, build output, caches, temp files, real `.env` files, secrets and duplicate archives. Verify the ZIP extracts, then wait for review.
+Use the repository's current scripts:
+```sh
+npm ci
+npm run typecheck
+npm run lint
+npm run test:project
+npm run build
+```
+
+Use only local or disposable databases for tests. Distinguish actual PostgreSQL from PGlite. A single-connection PGlite test does not prove PostgreSQL concurrency. A CI Windows runner is not an owner VPS rehearsal. Provider mocks are not live Sandbox verification.
+
+Every check must be labelled accurately:
+- `EXECUTED — PASS`
+- `EXECUTED — FAIL`
+- `NOT EXECUTED — ENVIRONMENT LIMITATION`
+- `NOT APPLICABLE`
+- `STATIC REVIEW ONLY`
+
+Never claim a test passed unless it ran on the identified source snapshot. Do not combine counts from different Batch snapshots.
+
+## 6. GitHub workflow and handoff
+
+- Read the relevant open Issue first; check for duplicates and dependencies.
+- Create a feature branch from the latest `main`; do not commit directly to `main`.
+- Make one focused PR with summary, risk, linked Issues, checks actually executed and checks deferred.
+- Update the relevant Issue with source paths, evidence and remaining limitations. Close it only after acceptance criteria are met.
+- Update [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) when a meaningful implementation, test, release or security fact changes. Do not create another Batch status/handoff document for each iteration.
+- Keep `PROJECT_HANDOFF.md` short and current. Technical details belong in focused runbooks; historical Batch files belong in `docs/archive/`.
