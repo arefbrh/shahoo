@@ -51,6 +51,14 @@ export function namespaceSchemaSql(source) {
     /^(\s*CREATE\s+(?:UNIQUE\s+)?INDEX\b[^\n]*?\bON\s+)([a-z_][a-z0-9_]*)/gim,
     (full, prefix, table) => tables.includes(table.toLowerCase()) ? prefix + SCHEMA + "." + table : full,
   );
+  for (const view of extractViewNames(source)) {
+    const escaped = view.replace(/[.*+?^$()|[\\]\\\\]/g, "\\\\$&");
+    const refs = [
+      new RegExp("(\\\\bFROM\\\\s+)" + escaped + "\\\\b", "gi"),
+      new RegExp("(\\\\bJOIN\\\\s+)" + escaped + "\\\\b", "gi"),
+    ];
+    for (const ref of refs) ddl = ddl.replace(ref, "$1" + SCHEMA + "." + view);
+  }
   ddl = ddl.replace(/(\bCREATE\s+VIEW\s+)([a-z_][a-z0-9_]*)/gi, "$1" + SCHEMA + ".$2");
   ddl = ddl.replace(/ON\s+SCHEMA\s+public\b/gi, "ON SCHEMA " + SCHEMA);
   ddl = ddl.replace(
