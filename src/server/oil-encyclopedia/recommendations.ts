@@ -1,6 +1,5 @@
 import { getOilEncyclopediaPool, isOilEncyclopediaEnabled } from "./client.ts";
 import {
-  attachCommerceMetadata,
   buildRecommendationCandidatePool,
   rankOilRecommendations,
 } from "./recommendation-engine.mjs";
@@ -436,7 +435,10 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
       { availability: "unavailable" as const, productHref: null },
     ]));
   }
-  const recommendations = attachCommerceMetadata(read.data.recommendations, commerceByOil) as OilGuideRecommendation[];
+  const recommendations: OilGuideRecommendation[] = read.data.recommendations.map((item) => ({
+    ...item,
+    commerce: commerceByOil.get(item.oilId) ?? { availability: "not_mapped", productHref: null },
+  }));
   return {
     status: "ready",
     state: "results",
