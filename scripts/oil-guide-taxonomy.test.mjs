@@ -30,6 +30,11 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.match(ddl, /LEFT JOIN oil_encyclopedia\.guide_recommendation_reviews r/);
   assert.match(ddl, /safety_decision IN \('eligible','eligible_with_caution'\)/);
   assert.match(ddl, /display_status TEXT NOT NULL DEFAULT 'hidden'/);
+  assert.match(ddl, /name_fa TEXT/);
+  assert.match(ddl, /evidence_levels TEXT\[\] NOT NULL DEFAULT ARRAY\[\]::text\[\]/);
+  assert.match(ddl, /review_note TEXT NOT NULL DEFAULT ''/);
+  assert.match(ddl, /name_fa IS NOT NULL AND btrim\(name_fa\) <> ''/);
+
   const candidateView = ddl.split("CREATE VIEW oil_encyclopedia.public_guide_recommendation_candidates AS")[1]?.split("GRANT SELECT ON")[0] ?? "";
   assert.doesNotMatch(candidateView, /oil_product_links|product_variants|inventory|oil_encyclopedia\.products/i);
   assert.doesNotMatch(candidateView, /public_oil_profiles|oil_encyclopedia\.oil_profiles/i);
