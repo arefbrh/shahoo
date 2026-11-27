@@ -198,6 +198,7 @@ export function OilGuideAreaPage({
   status,
   area,
   categories,
+  oils,
 }: {
   status: GuideSourceStatus;
   area: GuideArea | null;
