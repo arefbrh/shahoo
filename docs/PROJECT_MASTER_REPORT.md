@@ -369,5 +369,5 @@ This section supersedes any earlier implication that the final Oil Guide should 
 ### Data and release limitations
 
 - The v3.2 source still has no final-approved full oil profiles or public problem-oil mappings. The recommendation-specific snapshot rows and concern/mapping approvals are pending/hidden; no source approval is bypassed or fabricated.
-- The full source import and SQL execution against the isolated Neon branch remain outstanding. The new customer flow therefore correctly shows an insufficient-approved-data state until at least three oils and their source-backed relationships pass the separate recommendation/safety review.
+- The full source import and SQL execution against the isolated Neon branch remain outstanding. The customer questionnaire remains closed and shows an insufficient-approved-data readiness notice until at least three oils and their source-backed relationships pass the separate recommendation, safety and display reviews.
 - PR #45's Staging preview, disabled source state and all existing production/release boundaries remain untouched.
