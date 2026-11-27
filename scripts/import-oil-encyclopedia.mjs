@@ -103,47 +103,51 @@ async function getTableMetadata(client, tableName) {
 
 async function insertRows(client, tableName, rows, metadata) {
   if (rows.length === 0) return;
-  const keys = Object.keys(rows[0]);
-  const allowed = new Set(metadata.columns.keys());
-  const unknown = keys.filter((key) => !allowed.has(key));
-  if (unknown.length) throw new Error("Unexpected columns in " + tableName + ".json: " + unknown.join(", "));
-  const signature = [...keys].sort().join("|");
+  const groups = new Map();
   for (const row of rows) {
-    if (Object.keys(row).sort().join("|") !== signature) {
-      throw new Error("Inconsistent JSON row shape in " + tableName + ".json.");
-    }
+    const keys = Object.keys(row).sort();
+    const signature = keys.join("|");
+    if (!groups.has(signature)) groups.set(signature, { keys, rows: [] });
+    groups.get(signature).rows.push(row);
   }
 
-  const updates = keys.filter((key) => !metadata.primaryKey.includes(key));
-  const conflict = updates.length
-    ? "DO UPDATE SET " + updates.map((key) => quoteIdentifier(key) + " = EXCLUDED." + quoteIdentifier(key)).join(", ")
-    : "DO NOTHING";
-  const batchSize = 100;
+  for (const group of groups.values()) {
+    const keys = group.keys;
+    const allowed = new Set(metadata.columns.keys());
+    const unknown = keys.filter((key) => !allowed.has(key));
+    if (unknown.length) throw new Error("Unexpected columns in " + tableName + ".json: " + unknown.join(", "));
 
-  for (let offset = 0; offset < rows.length; offset += batchSize) {
-    const batch = rows.slice(offset, offset + batchSize);
-    const values = [];
-    let parameter = 0;
-    const tuples = batch.map((row) => {
-      const placeholders = keys.map((key) => {
-        parameter += 1;
-        const column = metadata.columns.get(key);
-        let value = row[key];
-        let cast = "";
-        if (column?.data_type === "jsonb" && value !== null && value !== undefined) {
-          value = JSON.stringify(value);
-          cast = "::jsonb";
-        }
-        values.push(value ?? null);
-        return "$" + parameter + cast;
+    const updates = keys.filter((key) => !metadata.primaryKey.includes(key));
+    const conflict = updates.length
+      ? "DO UPDATE SET " + updates.map((key) => quoteIdentifier(key) + " = EXCLUDED." + quoteIdentifier(key)).join(", ")
+      : "DO NOTHING";
+    const batchSize = 100;
+
+    for (let offset = 0; offset < group.rows.length; offset += batchSize) {
+      const batch = group.rows.slice(offset, offset + batchSize);
+      const values = [];
+      let parameter = 0;
+      const tuples = batch.map((row) => {
+        const placeholders = keys.map((key) => {
+          parameter += 1;
+          const column = metadata.columns.get(key);
+          let value = row[key];
+          let cast = "";
+          if (column?.data_type === "jsonb" && value !== null && value !== undefined) {
+            value = JSON.stringify(value);
+            cast = "::jsonb";
+          }
+          values.push(value ?? null);
+          return "$" + parameter + cast;
+        });
+        return "(" + placeholders.join(", ") + ")";
       });
-      return "(" + placeholders.join(", ") + ")";
-    });
-    const statement =
-      "INSERT INTO " + SCHEMA + "." + quoteIdentifier(tableName) +
-      " (" + keys.map(quoteIdentifier).join(", ") + ") VALUES " + tuples.join(", ") +
-      " ON CONFLICT (" + metadata.primaryKey.map(quoteIdentifier).join(", ") + ") " + conflict;
-    await client.query(statement, values);
+      const statement =
+        "INSERT INTO " + SCHEMA + "." + quoteIdentifier(tableName) +
+        " (" + keys.map(quoteIdentifier).join(", ") + ") VALUES " + tuples.join(", ") +
+        " ON CONFLICT (" + metadata.primaryKey.map(quoteIdentifier).join(", ") + ") " + conflict;
+      await client.query(statement, values);
+    }
   }
 }
 
@@ -187,8 +191,19 @@ async function main() {
   }
   const sourceDir = process.env.OIL_ENCYCLOPEDIA_SOURCE_DIR?.trim();
   const connectionString = process.env.OIL_ENCYCLOPEDIA_IMPORT_URL?.trim();
+  const configuredTarget = process.env.OIL_ENCYCLOPEDIA_TARGET_BRANCH?.trim();
   if (!sourceDir || !connectionString) {
     throw new Error("Set OIL_ENCYCLOPEDIA_SOURCE_DIR and OIL_ENCYCLOPEDIA_IMPORT_URL. DATABASE_URL is never used.");
+  }
+
+  if (!configuredTarget || configuredTarget !== targetBranch) {
+    throw new Error("OIL_ENCYCLOPEDIA_TARGET_BRANCH must exactly match --target-branch.");
+  }
+  if (connectionString === process.env.DATABASE_URL?.trim()) {
+    throw new Error("The encyclopedia importer must not use the storefront DATABASE_URL.");
+  }
+  if (!/^(staging|test|dev|.*integration.*)$/i.test(targetBranch)) {
+    throw new Error("Import target must be a clearly named Staging, test, dev or integration branch.");
   }
 
   const root = resolve(sourceDir);
