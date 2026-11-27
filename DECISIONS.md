@@ -106,3 +106,10 @@ No new product or security policy decision was approved. In particular, the OTP 
 - Adopt **latest-issued OTP wins**: a new login challenge atomically consumes prior unconsumed login challenges for the same mobile/purpose; exhausted latest challenges do not reveal older codes.
 - Treat PayPing verification network/5xx/202 outcomes as `provider_outcome_unknown`, persist the original verification reference, and retry only the same owned attempt; never create a replacement payment automatically.
 - Keep real provider and PostgreSQL verification deferred; the source verdict is **READY WITH DOCUMENTED LIMITATIONS** for controlled provider sandbox configuration, not live release approval.
+
+
+## Decisions — 2026-11-27
+
+- The oil encyclopedia is a reusable knowledge source for future agent-assisted product work, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation engine; public encyclopedia pages, broad CMS/product/API integration and automatic content generation are out of scope for this phase. Track the implementation in GitHub Issue #37.
+- Agent documentation must be maintained in the existing files. Do not create per-session reports, audit files, batch status files, parallel handoffs or duplicate issue registers unless the owner explicitly approves a new document.
+- Security and licensing findings are tracked as evidence-based follow-ups in GitHub Issues #33, #35 and #36. Do not infer legal rights, claim DDoS immunity, rotate credentials, rewrite public Git history or change Production configuration without the applicable explicit authorization.
