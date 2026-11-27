@@ -36,7 +36,7 @@ export function namespaceSchemaSql(source) {
   let ddl = source;
 
   for (const table of tables) {
-    const escaped = table.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+    const escaped = table;
     const refs = [
       new RegExp("(\\bCREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?)" + escaped + "\\b", "gi"),
       new RegExp("(\\bALTER\\s+TABLE\\s+)" + escaped + "\\b", "gi"),
@@ -52,7 +52,7 @@ export function namespaceSchemaSql(source) {
     (full, prefix, table) => tables.includes(table.toLowerCase()) ? prefix + SCHEMA + "." + table : full,
   );
   for (const view of extractViewNames(source)) {
-    const escaped = view.replace(/[.*+?^$()|[\\]\\\\]/g, "\\\\$&");
+    const escaped = view;
     const refs = [
       new RegExp("(\\\\bFROM\\\\s+)" + escaped + "\\\\b", "gi"),
       new RegExp("(\\\\bJOIN\\\\s+)" + escaped + "\\\\b", "gi"),
@@ -62,7 +62,7 @@ export function namespaceSchemaSql(source) {
   ddl = ddl.replace(/(\bCREATE\s+VIEW\s+)([a-z_][a-z0-9_]*)/gi, "$1" + SCHEMA + ".$2");
   ddl = ddl.replace(/ON\s+SCHEMA\s+public\b/gi, "ON SCHEMA " + SCHEMA);
   ddl = ddl.replace(
-    /(\\bGRANT\\s+SELECT\\s+ON\\s+)([\\s\\S]*?)(\\s+TO\\s+shahoo_web_reader\\b)/i,
+    /(\bGRANT\s+SELECT\s+ON\s+)([\s\S]*?)(\s+TO\s+shahoo_web_reader\b)/i,
     (full, prefix, list, suffix) => prefix + list.split(",").map((name) => SCHEMA + "." + name.trim()).join(", ") + suffix,
   );
   ddl = ddl.replace(/shahoo_web_reader/g, "shahoo_oil_encyclopedia_reader");
