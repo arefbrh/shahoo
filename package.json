@@ -26,7 +26,8 @@
     "start:windows": "node .output/server/index.mjs",
     "maintenance:release-expired-holds": "node --experimental-transform-types --import ./scripts/ts-alias-register.mjs scripts/release-expired-holds.mjs",
     "build:self-hosted": "node scripts/build-windows.mjs",
-    "db:import-oil-encyclopedia": "node scripts/import-oil-encyclopedia.mjs"
+    "db:import-oil-encyclopedia": "node scripts/import-oil-encyclopedia.mjs",
+    "pretypecheck": "tsr generate"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
