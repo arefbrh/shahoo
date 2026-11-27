@@ -205,7 +205,7 @@ export function OilGuideLanding({
       <section>
         <SectionHeading
           eyebrow={compact ? "BROWSE THE ENCYCLOPEDIA" : "EXPLORE BY AREA"}
-          title={compact ? "مرور موضوعی دانشنامه" : "از کجا می‌خواهید شروع کنید؟"
+          title={compact ? "مرور موضوعی دانشنامه" : "از کجا می‌خواهید شروع کنید؟"}
           description="هر روغن فقط در دسته‌هایی نمایش داده می‌شود که ارتباط آن در داده‌های دانشنامه ثبت شده و مجوز انتشار عمومی گرفته باشد."
         />
         {areas.length ? (
