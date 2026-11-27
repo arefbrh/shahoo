@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql } from "./import-oil-encyclopedia.mjs";
+import { buildImportDdl, dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql } from "./import-oil-encyclopedia.mjs";
 
 const sample = [
   "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
@@ -36,4 +36,11 @@ test("active JSON filenames map to SQL table names", () => {
   assert.equal(dataFileToTable("Oil_Profiles.json"), "oil_profiles");
   assert.equal(dataFileToTable("FAQ.json"), "faq");
   assert.equal(dataFileToTable("SHAHOO_Product_Catalog.json"), "shahoo_product_catalog");
+});
+
+test("v3.2 import DDL reconciles the table_decisions JSON columns", () => {
+  const ddl = buildImportDdl(sample.replace("CREATE TABLE oils", "-- SHAHOO Oil Encyclopedia v3.1\\nCREATE TABLE oils"));
+  assert.match(ddl, /SHAHOO Oil Encyclopedia v3.2/);
+  assert.match(ddl, /ALTER TABLE oil_encyclopedia\.table_decisions ADD COLUMN IF NOT EXISTS location TEXT/);
+  assert.match(ddl, /ALTER TABLE oil_encyclopedia\.table_decisions ADD COLUMN IF NOT EXISTS row_count INTEGER/);
 });
