@@ -55,3 +55,14 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 - Current v3.2 import and Vercel reader configuration are still absent. Therefore the new pages intentionally show a disabled/unavailable/empty state; they do not fabricate categories, oil counts or approved content. No Neon import, Vercel secret, Production migration or feature activation is part of PR #45.
 - Latest Vercel Staging deployment for PR #45: `dpl_BBvx9Qsi7p4HCi1gsfBLctpQX1Y7` is READY at commit `9b31e20af170158324ad1cedb7ced19a06cba118`: https://shahoo-1hhyw2nyh-shahoo.vercel.app/oil-guide. The deployment has no encyclopedia DB connection; its disabled-source state is expected.
 - PR #44 was merged as `97fc3db151394beb50cc92f8043b96f232cd2336`; its guarded Windows importer helper remains unexecuted because the owner currently has only an iPhone and no network-capable Windows/VPS environment.
+
+
+## Owner's clarified Oil Guide product/design brief — 2026-11-27
+
+- The current PR #45 design is a preserved technical baseline, **not the owner's desired final customer experience**. Keep it in GitHub; the next agent should redesign the customer journey rather than discard the taxonomy/data work.
+- The primary outcome is a guided, Persian RTL questionnaire that returns **three unique, ranked oil recommendations** (best match, second, third) with a transparent 0–100 compatibility score and reasons.
+- The candidate pool is the full **41 canonical oils** in Encyclopedia v3.2, independent of whether an oil has a storefront SKU, explicit product mapping, active product, or inventory. Store availability affects only the purchase CTA/status, never candidate eligibility or rank.
+- Keep recommendation eligibility, customer-content publication approval, canonical oil identity, and commerce availability as separate concepts. Never bypass source publication/safety gates. The 41 source profiles and 793 problem-oil mappings are not customer-approved in the current snapshot; review/approval remains a real dependency.
+- Use source-backed areas/categories/concerns and progressively ask relevant customer questions. Do not invent concerns, unsupported subcategories, benefits, safety statements or protocols. Roots/scalp are one source category in v3.2.
+- The score is a compatibility score, not a clinically proven efficacy percentage or probability. Safety exclusions are hard gates; missing data is not a positive match. Return exactly three only when at least three eligible oils exist; never fabricate or pad results.
+- Full product/design, data, API, UX and acceptance criteria are in [Oil Guide Product & Design Handoff](docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md). This owner-requested focused handoff is an explicit exception to the general no-new-handoff-file rule in AGENTS.md.
