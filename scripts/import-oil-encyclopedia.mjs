@@ -130,7 +130,7 @@ export function sortTablesByDependencies(tableNames, foreignKeys) {
 
 async function getForeignKeyDependencies(client) {
   const result = await client.query(
-    "SELECT parent.relname AS parent_table, child.relname AS child_table " +
+    'SELECT parent.relname AS "parentTable", child.relname AS "childTable" ' +
       "FROM pg_constraint constraint_row " +
       "JOIN pg_class child ON child.oid = constraint_row.conrelid " +
       "JOIN pg_namespace child_schema ON child_schema.oid = child.relnamespace " +
