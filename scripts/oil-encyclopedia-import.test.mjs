@@ -9,13 +9,14 @@ const sample = [
   "CREATE TABLE claims (claim_id TEXT PRIMARY KEY, oil_id TEXT REFERENCES oils(oil_id));",
   "CREATE INDEX claims_oil_idx ON claims (oil_id);",
   "CREATE VIEW public_oil_profiles AS SELECT oil_id FROM oils JOIN claims USING (oil_id);",
+  "CREATE VIEW public_problem_oils AS SELECT oil_id FROM oils LEFT JOIN public_oil_profiles USING (oil_id);",
   "GRANT USAGE ON SCHEMA public TO shahoo_web_reader;",
   "GRANT SELECT ON public_oil_profiles TO shahoo_web_reader;",
 ].join("\n");
 
 test("v3.2 table and view discovery is deterministic", () => {
   assert.deepEqual(extractTableNames(sample), ["oils", "scientific_sources", "claims"]);
-  assert.deepEqual(extractViewNames(sample), ["public_oil_profiles"]);
+  assert.deepEqual(extractViewNames(sample), ["public_oil_profiles", "public_problem_oils"]);
 });
 
 test("DDL namespacing keeps encyclopedia relations isolated", () => {
