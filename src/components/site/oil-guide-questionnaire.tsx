@@ -110,14 +110,14 @@ function ReadinessNotice({
     return (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-white px-4 py-3 text-xs text-muted">
         <span><strong className="text-forest">{total.toLocaleString("fa-IR")}</strong> روغن در بانک دانشنامه</span>
-        <span><strong className="text-forest">{eligible.toLocaleString("fa-IR")}</strong> روغن دارای شرایط پیشنهاددهی تأییدشده</span>
+        <span><strong className="text-forest">{eligible.toLocaleString("fa-IR")}</strong> روغن دارای شرایط و مجوز نمایش در نتیجه</span>
       </div>
     );
   }
   return (
     <div className="rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">
       <strong>{total.toLocaleString("fa-IR")} روغن</strong> در مجموعه کاندیداهای دانشنامه قرار دارند؛ اما در حال حاضر فقط{" "}
-      <strong>{eligible.toLocaleString("fa-IR")}</strong> روغن از نظر اطلاعات ساختاریافته و بررسی ایمنی مجوز پیشنهاددهی دارند.
+      <strong>{eligible.toLocaleString("fa-IR")}</strong> روغن از نظر اطلاعات ساختاریافته، ایمنی، ارتباط‌های منبع‌دار و نمایش مشتری تأیید شده‌اند.
       تا تأیید حداقل سه روغن، نتیجه‌ای ساخته یا با داده ساختگی تکمیل نمی‌شود.
     </div>
   );
@@ -281,7 +281,7 @@ function ResultPanel({
       <div className="rounded-3xl border border-amber-300/70 bg-amber-50 p-6">
         <h3 className="font-bold text-amber-950">هنوز سه پیشنهاد قابل اتکا وجود ندارد</h3>
         <p className="mt-2 text-sm leading-7 text-amber-950">
-          از {result.totalCanonicalOils.toLocaleString("fa-IR")} روغن موجود در مجموعه کاندیداها، فعلاً {result.eligibleOilCount.toLocaleString("fa-IR")} روغن شرایط تأییدشده پیشنهاددهی را دارند.
+          از {result.totalCanonicalOils.toLocaleString("fa-IR")} روغن موجود در مجموعه کاندیداها، فعلاً {result.eligibleOilCount.toLocaleString("fa-IR")} روغن شرایط و مجوز نمایش در نتیجه مشتری را دارند.
           تا تکمیل بررسی انسانی اطلاعات و ایمنی، پیشنهاد ناقص یا ساختگی نمایش داده نمی‌شود.
         </p>
         <button type="button" onClick={onEdit} className="mt-4 rounded-xl border border-amber-900/20 px-4 py-2 text-sm font-semibold text-amber-950">ویرایش پاسخ‌ها</button>
