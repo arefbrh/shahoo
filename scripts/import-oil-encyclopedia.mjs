@@ -275,8 +275,10 @@ async function main() {
   const sourceDir = process.env.OIL_ENCYCLOPEDIA_SOURCE_DIR?.trim();
   const connectionString = process.env.OIL_ENCYCLOPEDIA_IMPORT_URL?.trim();
   const configuredTarget = process.env.OIL_ENCYCLOPEDIA_TARGET_BRANCH?.trim();
-  if (!sourceDir || !connectionString) {
-    throw new Error("Set OIL_ENCYCLOPEDIA_SOURCE_DIR and OIL_ENCYCLOPEDIA_IMPORT_URL. DATABASE_URL is never used.");
+  const expectedHost = process.env.OIL_ENCYCLOPEDIA_IMPORT_EXPECTED_HOST?.trim().toLowerCase();
+  const expectedDatabase = process.env.OIL_ENCYCLOPEDIA_IMPORT_EXPECTED_DATABASE?.trim();
+  if (!sourceDir || !connectionString || !expectedHost || !expectedDatabase) {
+    throw new Error("Set OIL_ENCYCLOPEDIA_SOURCE_DIR, OIL_ENCYCLOPEDIA_IMPORT_URL, OIL_ENCYCLOPEDIA_IMPORT_EXPECTED_HOST and OIL_ENCYCLOPEDIA_IMPORT_EXPECTED_DATABASE. DATABASE_URL is never used.");
   }
 
   if (!configuredTarget || configuredTarget !== targetBranch) {
@@ -284,6 +286,16 @@ async function main() {
   }
   if (connectionString === process.env.DATABASE_URL?.trim()) {
     throw new Error("The encyclopedia importer must not use the storefront DATABASE_URL.");
+  }
+  let importUrl;
+  try {
+    importUrl = new URL(connectionString);
+  } catch {
+    throw new Error("OIL_ENCYCLOPEDIA_IMPORT_URL must be a valid PostgreSQL URL.");
+  }
+  const actualDatabase = decodeURIComponent(importUrl.pathname.replace(/^\\//, ""));
+  if (importUrl.hostname.toLowerCase() !== expectedHost || actualDatabase !== expectedDatabase) {
+    throw new Error("Import URL host/database do not match the explicitly allowlisted non-production target.");
   }
   if (!/^(staging|test|dev|.*integration.*)$/i.test(targetBranch)) {
     throw new Error("Import target must be a clearly named Staging, test, dev or integration branch.");
