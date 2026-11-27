@@ -8,6 +8,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 import pg from "pg";
 
 const SCHEMA = "oil_encyclopedia";
@@ -207,6 +208,27 @@ async function main() {
   }
 
   const root = resolve(sourceDir);
+  const validatorPath = join(root, "validation", "validate_v32.py");
+  const validatorCommands = process.platform === "win32" ? [["py", ["-3", validatorPath]], ["python", [validatorPath]]] : [["python3", [validatorPath]], ["python", [validatorPath]]];
+  let validatorResult = null;
+  for (const [command, commandArgs] of validatorCommands) {
+    const result = spawnSync(command, commandArgs, { cwd: root, encoding: "utf8", windowsHide: true });
+    if (!result.error) {
+      validatorResult = result;
+      break;
+    }
+  }
+  if (!validatorResult) throw new Error("Python 3 is required to run validation/validate_v32.py before import.");
+  if (validatorResult.status !== 0) {
+    throw new Error("The v3.2 dataset validator failed. Review its output before importing. " + (validatorResult.stderr || ""));
+  }
+  const validationReport = JSON.parse(await readFile(join(root, "data", "validation_report.json"), "utf8"));
+  if (validationReport.version !== "3.2" || validationReport.errors !== 0 ||
+      validationReport.warnings !== 0 || validationReport.active_tables !== EXPECTED_DATA_TABLES ||
+      validationReport.fail_closed_tests !== validationReport.fail_closed_tests_passed) {
+    throw new Error("The generated v3.2 validation report does not meet the import gate.");
+  }
+
   const ddl = await readFile(join(root, "sql", "schema_v32.sql"), "utf8");
   const dataDir = join(root, "data");
   const files = (await readdir(dataDir))
