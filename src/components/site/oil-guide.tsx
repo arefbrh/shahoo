@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { formatTomanFromIrr } from "@/lib/format";
+import type { OilRecommendationKnowledge } from "@/lib/store-types";
 import { buttonGhost } from "./ui";
 
 type Oil = {
@@ -9,6 +10,7 @@ type Oil = {
   subtitle: string;
   priceIrr: number;
   oilFinder: { intendedUse: string[]; texture: string; scent: string } | null;
+  knowledge: OilRecommendationKnowledge | null;
 };
 
 const uses = [
@@ -87,6 +89,22 @@ export function OilGuide({ oils }: { oils: Oil[] }) {
                 <p className="font-bold text-forest">{oil.name}</p>
                 <p className="text-sm text-muted">{oil.subtitle}</p>
                 <p className="mt-1 text-sm tabular-nums">{formatTomanFromIrr(oil.priceIrr)}</p>
+                {oil.knowledge?.safetyWarning ? (
+                  <p className="mt-2 rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
+                    هشدار ایمنی: {oil.knowledge.safetyWarning}
+                  </p>
+                ) : null}
+                {oil.knowledge && (oil.knowledge.useFace || oil.knowledge.useBody || oil.knowledge.useMassage || oil.knowledge.useHairShaft || oil.knowledge.useScalp) ? (
+                  <p className="mt-2 text-xs leading-6 text-muted">
+                    اطلاعات تأییدشده دانشنامه: {[
+                      oil.knowledge.useFace ? `پوست صورت: ${oil.knowledge.useFace}` : "",
+                      oil.knowledge.useBody ? `پوست بدن: ${oil.knowledge.useBody}` : "",
+                      oil.knowledge.useMassage ? `ماساژ: ${oil.knowledge.useMassage}` : "",
+                      oil.knowledge.useHairShaft ? `ساقه مو: ${oil.knowledge.useHairShaft}` : "",
+                      oil.knowledge.useScalp ? `پوست سر: ${oil.knowledge.useScalp}` : "",
+                    ].filter(Boolean).join(" · ")}
+                  </p>
+                ) : null}
               </Link>
             ))}
             <button
