@@ -259,7 +259,7 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 ### Current application behavior and integration design
 
 - The existing `/oil-guide` uses product-level `oilFinder` metadata (intended use, texture and scent) and a simple score. It does not currently use the encyclopedia.
-- PR #40 adds a separate `oil_product_links` mapping table with `pending/approved/disabled` states. No product-to-oil mappings are inferred or prefilled; approval requires an admin identity and timestamp.
+- PR #42 adds a separate `oil_product_links` mapping table with `pending/approved/disabled` states. No product-to-oil mappings are inferred or prefilled; approval requires an admin identity and timestamp.
 - The encyclopedia reader is opt-in through `OIL_ENCYCLOPEDIA_ENABLED=true` and a separate `OIL_ENCYCLOPEDIA_DATABASE_URL`. It never falls back to the storefront `DATABASE_URL`.
 - The runtime reads only `oil_encyclopedia.public_oil_profiles` and `oil_encyclopedia.public_safety_warnings` in a `READ ONLY` transaction. It does not query base research/audit tables.
 - Existing recommendation scoring remains unchanged. Approved bank facts and safety warnings enrich mapped results; no unapproved narrative is converted into recommendation tags.
@@ -281,7 +281,7 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 
 ### Next gates
 
-1. Complete CI and review [PR #40](https://github.com/shahoo-workspace/shahoo/pull/40).
+1. Complete CI and review [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42).
 2. Run the guarded importer against the isolated Neon integration branch only; verify table counts, foreign keys, view definitions, role privileges and zero approved-view rows.
 3. Create a separate login role as a member of `shahoo_oil_encyclopedia_reader`; set `OIL_ENCYCLOPEDIA_DATABASE_URL` only in an approved Staging environment.
 4. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference.
