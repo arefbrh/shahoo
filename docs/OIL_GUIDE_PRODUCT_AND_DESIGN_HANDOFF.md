@@ -282,7 +282,7 @@ The implementation is being continued on `feat/oil-guide-guided-recommendations`
 ### Customer experience
 
 - `/oil-guide` now leads with a Persian RTL, mobile-first progressive questionnaire rather than the old product-only recommender or a taxonomy directory.
-- The customer selects one or more source-backed areas, then relevant categories, optionally approved concerns, and an optional texture only when reviewed candidate data actually supplies texture values.
+- The customer selects one or more source-backed areas, then relevant categories, optionally approved concerns, and an optional texture only when reviewed candidate data actually supplies texture values. The questionnaire stays closed until at least three oils are fully recommendation-eligible and approved for customer display, so a customer is never invited through a flow that cannot return the required three results.
 - Answers survive back/edit navigation. The flow has progress, multi-select, optional steps, loading, disabled/unavailable-source, insufficient-approved-data and no-match states.
 - The result component is designed for exactly three distinct ranked oils. It displays a 0–100 compatibility score, answer-linked reasons, factor breakdown, reviewed profile facts, approved safety warnings, evidence labels where present, and separate commerce availability.
 - The existing taxonomy pages/search remain a secondary browse path. The old storefront-only recommender component is retained in the repository but is no longer the primary Oil Guide experience.
