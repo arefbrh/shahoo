@@ -68,7 +68,7 @@ type GuideResult<T> = {
   data: T;
 };
 
-type DbRow = Record<string, unknown>;
+type DbRow = Record<string, string | number | boolean | null | string[] | Date>;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value : "";
