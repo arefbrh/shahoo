@@ -288,3 +288,42 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 4. Test the existing recommendation path for missing source, no mapping, ambiguous mapping, unapproved records, safety warnings and synthetic approved fixtures. Existing scoring must remain unchanged.
 5. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference. Obtain qualified content/safety signoff before any record can pass the public views. Only then consider enabling the feature in Staging.
 6. Production import, migration, environment changes and feature activation require separate explicit owner approval and the normal Production migration/backup gates.
+
+## 12. Oil Guide database-driven taxonomy and discovery — 2026-11-27
+
+### Implementation in PR #45
+
+- PR #45 (`feat/oil-guide-taxonomy-discovery`) introduces a data-driven discovery experience under the existing `/oil-guide` route while retaining the existing quick recommendation wizard.
+- The new route architecture includes area, category, concern, search and canonical oil-profile pages. All encyclopedia reads are server-side through validated TanStack Start server functions and the separate optional reader connection.
+- The new reader accesses only explicit `public_guide_*` views and the existing `public_oil_profiles`, `public_claims`, `public_protocols`, `public_faq`, `public_oil_qa`, `public_safety_warnings` and `public_problem_oils` views. It does not read internal research/audit tables.
+
+### Taxonomy derived from the actual v3.2 package
+
+- The importer creates `guide_areas`, `guide_categories`, `guide_concerns` and `oil_guide_mappings` in the isolated `oil_encyclopedia` schema; it does not add conflicting tables to the storefront `public` schema.
+- Three navigation areas are defined: Hair, Skin and Topical use.
+- Five source-backed categories are derived from actual `Applications.category` values: `ساقه مو`, `ریشه مو و پوست سر`, `پوست`, `سنتی و موضعی` and `ماساژ`.
+- The 38 concern/topic records preserve their canonical `Applications.app_id`. The source's combined `ریشه مو و پوست سر` category is retained as one category; the source does not justify splitting roots and scalp. No independent hair-ends, hair-length or feet categories are fabricated.
+- Oil-to-topic relationships are generated from actual `Problem_Oil_Map` records, retaining canonical `oil_id` and supporting `map_id`. These are inserted only as `needs_human_review` / `hidden`; this is a traceable review queue, not customer-facing eligibility.
+
+### Publication and least-privilege gates
+
+- The public guide mapping view requires an explicit manual mapping approval (`review_status=approved`, `display_status=published`, reviewer and timestamp) and a matching row in the existing signed-off `public_problem_oils` view plus the signed-off `public_oil_profiles` view.
+- The read-only role receives SELECT only on the four new `public_guide_*` views. It receives no direct SELECT on the taxonomy mapping tables or internal v3.2 research tables.
+- Public area/category metadata may be listed with an approved oil count of zero. Concern pages and oil cards appear only when at least one valid public mapping exists. Profile sections are omitted unless their respective approved public view returns data.
+- If the reader is disabled or unavailable, the UI shows an explicit status message and never falls back to unverified storefront metadata or hardcoded oil profiles.
+
+### Verification and remaining gates
+
+- PR #45 CI is running; its first failed typecheck exposed that TanStack route types must be generated before TypeScript checks. The branch now uses the Vite build as the `pretypecheck` step to regenerate the typed route tree before `tsc`.
+- Vercel Staging build for an earlier branch snapshot `b57ac65` reached READY. It predates the latest route-layout and typecheck fixes and must not be treated as the final candidate deployment.
+- The complete v3.2 package is still not imported into the isolated Neon branch. The taxonomy DDL/seed code has not yet been executed against that branch; its live PostgreSQL view creation and row-count verification remain unverified.
+- No dedicated login reader, Vercel encyclopedia connection string, enable flag, product mappings or customer-content approvals exist. No Production migration, secret change, feature activation or Production deployment has been performed.
+- The owner is currently using an iPhone and has no Windows PC or ready VPS. The guarded importer helper remains pending until a network-capable environment is available; no connection string should be pasted into chat.
+
+### Next steps
+
+1. Complete PR #45 CI and resolve any remaining failures before merging.
+2. Deploy the final PR head to Vercel Staging and verify the new route tree and safe empty-state experience.
+3. When a network-capable environment is available, import v3.2 into the isolated Neon integration branch and verify the four taxonomy views, all source relationships, grants and zero initial customer-visible mappings.
+4. Create a dedicated read-only login role and configure only the approved Staging Preview environment after the import is verified.
+5. Review the pending taxonomy mappings with a qualified human reviewer. Do not activate public guide content until mapping approval and source publication gates both pass.
