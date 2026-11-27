@@ -26,6 +26,8 @@ CREATE TABLE oil_encyclopedia.guide_areas (
   name_en TEXT NOT NULL,
   name_fa TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
+  seo_title TEXT NOT NULL DEFAULT '',
+  seo_description TEXT NOT NULL DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -114,12 +116,12 @@ WHERE m.supporting_record_type = 'problem_oil_map'
   AND m.reviewed_at IS NOT NULL;
 
 CREATE VIEW oil_encyclopedia.public_guide_areas AS
-SELECT a.id, a.slug, a.name_en, a.name_fa, a.description, a.sort_order,
+SELECT a.id, a.slug, a.name_en, a.name_fa, a.description, a.seo_title, a.seo_description, a.sort_order,
        COUNT(DISTINCT go.oil_id)::INTEGER AS available_oil_count
 FROM oil_encyclopedia.guide_areas a
 LEFT JOIN oil_encyclopedia.public_guide_oils go ON go.area_id = a.id
 WHERE a.is_active IS TRUE
-GROUP BY a.id, a.slug, a.name_en, a.name_fa, a.description, a.sort_order;
+GROUP BY a.id, a.slug, a.name_en, a.name_fa, a.description, a.seo_title, a.seo_description, a.sort_order;
 
 CREATE VIEW oil_encyclopedia.public_guide_categories AS
 SELECT c.id, c.area_id, a.slug AS area_slug, c.parent_id, c.slug, c.name_en, c.name_fa,
