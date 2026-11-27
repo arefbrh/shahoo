@@ -23,7 +23,10 @@ function fixtureOils(count = 41) {
 }
 
 test("all 41 canonical oils remain in the candidate pool when the store has only three mapped products", () => {
-  const canonicalOils = fixtureOils(41);
+  const canonicalOils = fixtureOils(41).map((oil, index) => ({
+    ...oil,
+    recommendation_eligible: index >= 3 && index < 6,
+  }));
   const storefrontProducts = [
     { oilId: "OIL-001", slug: "oil-one", inStock: true },
     { oilId: "OIL-002", slug: "oil-two", inStock: false },
@@ -39,12 +42,14 @@ test("all 41 canonical oils remain in the candidate pool when the store has only
   assert.equal(candidates.length, 41);
   assert.deepEqual(candidates.map((candidate) => candidate.oilId), canonicalOils.map((oil) => oil.oil_id));
   assert.ok(candidates.some((candidate) => candidate.oilId === "OIL-041"));
+  assert.equal(candidates.filter((candidate) => candidate.recommendationEligible).length, 3);
   assert.ok(candidates.slice(3).every((candidate) => !commerceByOil.has(candidate.oilId)));
 
   const answers = { areaSlugs: ["skin"], categoryIds: ["category-skin"], concernIds: ["concern-skin"], texture: "" };
   const rankedWithoutCommerce = rankOilRecommendations(candidates, answers);
   const rankedWithThreeProducts = attachCommerceMetadata(rankOilRecommendations(candidates, answers), commerceByOil);
   assert.equal(rankedWithThreeProducts.length, 3);
+  assert.deepEqual(rankedWithoutCommerce.map((item) => item.oilId), ["OIL-004", "OIL-005", "OIL-006"]);
   assert.deepEqual(
     rankedWithThreeProducts.map(({ oilId, score }) => [oilId, score]),
     rankedWithoutCommerce.map(({ oilId, score }) => [oilId, score]),
