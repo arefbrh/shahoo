@@ -40,8 +40,8 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 ## Current active integration work — 2026-11-27
 
 - Security/legal documentation and the no-new-report-file policy were merged in PR #38. Issues #35 (DDoS/WAF/bot), #36 (licensing/third-party rights) and #37 (oil recommendation integration) are open.
-- Oil recommendation integration is under review in PR #42. It is limited to the existing oil guide; the encyclopedia is not being exposed as a public section of the shop.
+- PR #42 was merged into `main` as squash commit `b51be73505b4e43c1e61b0a877d153d3de483b61`; CI passed. Issue #37 was reopened because the Neon data import, dedicated login reader, and staging verification remain incomplete. The scope remains limited to the existing oil guide; no public encyclopedia section is being added.
 - The importer now qualifies cross-view dependencies, inserts active JSON tables in topological foreign-key order (and refuses dependency cycles), and requires exact target host/database allowlists in addition to the non-production branch confirmation. These safeguards are covered by the PR test suite; full Neon import is still pending.
-- Neon integration branch: `oil-encyclopedia-v32-integration`. Migration #0020 exists there and the mapping table is empty. `pg_trgm` and the NOLOGIN group role `shahoo_oil_encyclopedia_reader` are provisioned there; the full v3.2 bank import has not run.
-- Keep `OIL_ENCYCLOPEDIA_ENABLED=false` until the full import, read-only role, explicit product mappings and data signoff are complete.
+- Neon integration branch: `oil-encyclopedia-v32-integration` (`br-raspy-river-b9kyn1t1`). Migration #0020 exists there and the mapping table is empty. `pg_trgm` and the NOLOGIN group role `shahoo_oil_encyclopedia_reader` are provisioned there; the `oil_encyclopedia` schema and full v3.2 bank import have not run. The dedicated LOGIN reader is not created.
+- No Vercel `OIL_ENCYCLOPEDIA_DATABASE_URL` or enable flag was added, and no deployment for the merge commit was found. Keep the integration disabled until import, grants, a read-only login, explicit product mappings and data signoff are complete.
 - Continue updating [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) and the relevant GitHub Issues. Do not create new report/status/handoff files.
