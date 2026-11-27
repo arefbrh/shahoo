@@ -150,6 +150,24 @@ function mapOil(row: DbRow): GuideOilCard {
   };
 }
 
+function dedupeOils(rows: DbRow[]): GuideOilCard[] {
+  const byId = new Map<string, GuideOilCard>();
+  const mergeLabel = (current: string, next: string) =>
+    [...new Set([current, next].map((value) => value.trim()).filter(Boolean))].join(" · ");
+  for (const row of rows) {
+    const oil = mapOil(row);
+    const current = byId.get(oil.oilId);
+    if (!current) {
+      byId.set(oil.oilId, oil);
+      continue;
+    }
+    current.categoryNameFa = mergeLabel(current.categoryNameFa, oil.categoryNameFa);
+    current.concernNameFa = mergeLabel(current.concernNameFa, oil.concernNameFa);
+    current.problemNameFa = mergeLabel(current.problemNameFa ?? "", oil.problemNameFa ?? "") || null;
+  }
+  return [...byId.values()];
+}
+
 async function readGuide<T>(
   fallback: T,
   query: (client: import("pg").PoolClient) => Promise<T>,
@@ -209,12 +227,7 @@ export async function readOilGuideArea(areaSlug: string) {
         [areaSlug],
       ),
     ]);
-    const seen = new Set<string>();
-    const oils = oilsResult.rows.map(mapOil).filter((oil) => {
-      if (seen.has(oil.oilId)) return false;
-      seen.add(oil.oilId);
-      return true;
-    });
+    const oils = dedupeOils(oilsResult.rows);
     return {
       area: mapArea(areaResult.rows[0]),
       categories: categoriesResult.rows.map(mapCategory),
@@ -249,12 +262,7 @@ export async function readOilGuideCategory(areaSlug: string, categorySlug: strin
         [areaSlug, categorySlug],
       ),
     ]);
-    const seen = new Set<string>();
-    const oils = oilsResult.rows.map(mapOil).filter((oil) => {
-      if (seen.has(oil.oilId)) return false;
-      seen.add(oil.oilId);
-      return true;
-    });
+    const oils = dedupeOils(oilsResult.rows);
     return {
       category: mapCategory(categoryResult.rows[0]),
       children: childrenResult.rows.map(mapCategory),
@@ -275,12 +283,7 @@ export async function readOilGuideConcern(areaSlug: string, categorySlug: string
       "SELECT " + oilColumns + " FROM oil_encyclopedia.public_guide_oils WHERE area_slug = $1 AND category_slug = $2 AND concern_slug = $3 ORDER BY sort_order, oil_name_fa",
       [areaSlug, categorySlug, concernSlug],
     );
-    const seen = new Set<string>();
-    const oils = oilsResult.rows.map(mapOil).filter((oil) => {
-      if (seen.has(oil.oilId)) return false;
-      seen.add(oil.oilId);
-      return true;
-    });
+    const oils = dedupeOils(oilsResult.rows);
     return { concern: mapConcern(concernResult.rows[0]), oils };
   });
 }
@@ -298,12 +301,7 @@ export async function searchOilGuideRecords(query: string) {
       "ORDER BY oil_name_fa, sort_order LIMIT 80",
       ["%" + normalized + "%"],
     );
-    const seen = new Set<string>();
-    return result.rows.map(mapOil).filter((oil) => {
-      if (seen.has(oil.oilId)) return false;
-      seen.add(oil.oilId);
-      return true;
-    });
+    return dedupeOils(result.rows);
   });
 }
 
