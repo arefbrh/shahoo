@@ -15,5 +15,5 @@ export const Route = createFileRoute("/oil-guide/$areaSlug")({
 
 function AreaPage() {
   const result = Route.useLoaderData();
-  return <OilGuideAreaPage status={result.status} area={result.data.area} categories={result.data.categories} />;
+  return <OilGuideAreaPage status={result.status} area={result.data.area} categories={result.data.categories} oils={result.data.oils} />;
 }
