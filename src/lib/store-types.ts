@@ -93,6 +93,19 @@ export type ProductCard = {
   imageUrl: string;
 };
 
+export type OilRecommendationKnowledge = {
+  nameFa: string | null;
+  oilKind: string | null;
+  texture: string | null;
+  useFace: string | null;
+  useBody: string | null;
+  useMassage: string | null;
+  useHairShaft: string | null;
+  useScalp: string | null;
+  safetyCustomerStatus: string | null;
+  safetyWarning: string | null;
+};
+
 export type VariantChoice = {
   id: string;
   sku: string;
