@@ -19,6 +19,7 @@ function CategoryPage() {
     <OilGuideCategoryPage
       status={result.status}
       category={result.data.category}
+      children={result.data.children}
       concerns={result.data.concerns}
       oils={result.data.oils}
     />
