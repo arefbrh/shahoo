@@ -41,7 +41,7 @@ test("all 41 canonical oils remain in the candidate pool when the store has only
   assert.ok(candidates.some((candidate) => candidate.oilId === "OIL-041"));
   assert.ok(candidates.slice(3).every((candidate) => !commerceByOil.has(candidate.oilId)));
 
-  const answers = { areaSlugs: ["hair"], categoryIds: ["category-hair"], concernIds: ["concern-hair"], texture: "" };
+  const answers = { areaSlugs: ["skin"], categoryIds: ["category-skin"], concernIds: ["concern-skin"], texture: "" };
   const rankedWithoutCommerce = rankOilRecommendations(candidates, answers);
   const rankedWithThreeProducts = attachCommerceMetadata(rankOilRecommendations(candidates, answers), commerceByOil);
   assert.equal(rankedWithThreeProducts.length, 3);
@@ -49,7 +49,8 @@ test("all 41 canonical oils remain in the candidate pool when the store has only
     rankedWithThreeProducts.map(({ oilId, score }) => [oilId, score]),
     rankedWithoutCommerce.map(({ oilId, score }) => [oilId, score]),
   );
-  assert.equal(rankedWithThreeProducts[0].commerce.availability, "available");
+  assert.ok(rankedWithThreeProducts.every((item) => item.commerce.availability === "not_mapped"));
+  assert.ok(rankedWithThreeProducts.every((item) => !commerceByOil.has(item.oilId)));
 });
 
 test("candidate pool deduplicates repeated concern mappings by canonical oil ID", () => {
