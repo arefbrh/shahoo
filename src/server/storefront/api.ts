@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { bannerIsVisible, isRenderableMediaUrl, safeBannerImage } from "@/lib/cms-rules";
 import { irrToToman } from "@/lib/money";
@@ -26,6 +26,7 @@ import type {
   VariantChoice,
 } from "@/lib/store-types";
 import { getDb } from "../db/client";
+import { getApprovedOilKnowledge, isOilEncyclopediaEnabled } from "../oil-encyclopedia/client";
 import { passesMaxPrice } from "../catalog/rules";
 import { publicPromo, storyIsConfigured } from "@/lib/public-profile";
 import { isLineSellable } from "@/lib/commerce-integrity";
@@ -43,6 +44,7 @@ import {
   productCategories,
   productImages,
   productSpecs,
+  oilProductLinks,
   productVariants,
   products,
   settings,
@@ -689,6 +691,7 @@ export const listOilProducts = createServerFn({ method: "GET" }).handler(async (
   const db = await readyDb();
   const rows = await db
     .select({
+      productId: products.id,
       slug: products.slug,
       name: products.name,
       subtitle: products.subtitle,
@@ -709,9 +712,33 @@ export const listOilProducts = createServerFn({ method: "GET" }).handler(async (
         eq(products.status, "published"),
         isNull(products.deletedAt),
         eq(productVariants.status, "active"),
+        isNull(productVariants.deletedAt),
       ),
     );
-  return rows.filter((row) => row.oilFinder);
+  const candidates = rows.filter((row) => row.oilFinder);
+  if (!isOilEncyclopediaEnabled() || candidates.length === 0) {
+    return candidates.map(({ productId: _productId, ...row }) => ({ ...row, knowledge: null }));
+  }
+
+  const links = await db
+    .select({ productId: oilProductLinks.productId, oilId: oilProductLinks.oilId })
+    .from(oilProductLinks)
+    .where(
+      and(
+        inArray(oilProductLinks.productId, candidates.map((row) => row.productId)),
+        eq(oilProductLinks.mappingStatus, "approved"),
+      ),
+    );
+  if (links.length === 0) {
+    return candidates.map(({ productId: _productId, ...row }) => ({ ...row, knowledge: null }));
+  }
+
+  const knowledgeByOil = await getApprovedOilKnowledge(links.map((link) => link.oilId));
+  const oilByProduct = new Map(links.map((link) => [link.productId, knowledgeByOil.get(link.oilId) ?? null]));
+  return candidates.map(({ productId, ...row }) => ({
+    ...row,
+    knowledge: oilByProduct.get(productId) ?? null,
+  }));
 });
 
 export type { StoreProfile, BrandLogos, FooterColumn };
