@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildImportDdl, dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql } from "./import-oil-encyclopedia.mjs";
+import { buildImportDdl, dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql, normalizeTableRows } from "./import-oil-encyclopedia.mjs";
 
 const sample = [
   "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
@@ -47,4 +47,21 @@ test("v3.2 import DDL reconciles the table_decisions JSON columns", () => {
   assert.match(ddl, /SHAHOO Oil Encyclopedia v3.2/);
   assert.match(ddl, /ALTER TABLE oil_encyclopedia\.table_decisions ADD COLUMN IF NOT EXISTS location TEXT/);
   assert.match(ddl, /ALTER TABLE oil_encyclopedia\.table_decisions ADD COLUMN IF NOT EXISTS row_count INTEGER/);
+});
+
+test("legacy Table_Decisions keys normalize to the v3.2 SQL columns", () => {
+  const rows = normalizeTableRows("table_decisions", [
+    { table_name: "active", rows_v3: 41, location_v31: "data/" },
+    { table_name: "archive", row_count: 5, location: "archive/" },
+  ]);
+  assert.deepEqual(rows[1], {
+    table_name: "archive",
+    rows_v3: 5,
+    location_v31: "archive/",
+  });
+  assert.deepEqual(normalizeTableRows("oils", [{ oil_id: "OIL-001" }]), [{ oil_id: "OIL-001" }]);
+  assert.throws(
+    () => normalizeTableRows("table_decisions", [{ rows_v3: 2, row_count: 3 }]),
+    /Conflicting row_count and rows_v3/,
+  );
 });
