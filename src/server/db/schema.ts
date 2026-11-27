@@ -300,6 +300,33 @@ export const productSpecs = pgTable("product_specs", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+export const oilProductLinks = pgTable(
+  "oil_product_links",
+  {
+    productId: text("product_id")
+      .primaryKey()
+      .references(() => products.id, { onDelete: "cascade" }),
+    oilId: text("oil_id").notNull(),
+    mappingStatus: text("mapping_status").notNull().default("pending"),
+    mappingNote: text("mapping_note").notNull().default(""),
+    verifiedBy: text("verified_by").references(() => adminUsers.id, { onDelete: "set null" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check("oil_product_links_mapping_status_check", sql`${table.mappingStatus} IN ('pending', 'approved', 'disabled')`),
+    check(
+      "oil_product_links_approval_check",
+      sql`${table.mappingStatus} <> 'approved' OR (${table.verifiedBy} IS NOT NULL AND ${table.verifiedAt} IS NOT NULL)`,
+    ),
+    uniqueIndex("oil_product_links_approved_oil_idx")
+      .on(table.oilId)
+      .where(sql`${table.mappingStatus} = 'approved'`),
+    index("oil_product_links_status_idx").on(table.mappingStatus),
+  ],
+);
+
 export const inventory = pgTable("inventory", {
   variantId: text("variant_id")
     .primaryKey()
