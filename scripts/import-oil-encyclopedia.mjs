@@ -267,7 +267,7 @@ SELECT
        THEN COALESCE(mapped.area_slugs, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS area_slugs,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN COALESCE(mapped.evidence_levels, r.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
+       THEN COALESCE(r.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(safety.safety_warnings, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS safety_warnings,
@@ -291,8 +291,7 @@ LEFT JOIN LATERAL (
   SELECT
     array_agg(DISTINCT n.id) FILTER (WHERE n.id IS NOT NULL) AS concern_ids,
     array_agg(DISTINCT c.id) FILTER (WHERE c.id IS NOT NULL) AS category_ids,
-    array_agg(DISTINCT a.slug) FILTER (WHERE a.slug IS NOT NULL) AS area_slugs,
-    array_agg(DISTINCT m.evidence_status) FILTER (WHERE COALESCE(m.evidence_status, '') <> '') AS evidence_levels
+    array_agg(DISTINCT a.slug) FILTER (WHERE a.slug IS NOT NULL) AS area_slugs
   FROM oil_encyclopedia.oil_guide_mappings m
   JOIN oil_encyclopedia.problem_oil_map source_map
     ON source_map.map_id = m.supporting_record_id
