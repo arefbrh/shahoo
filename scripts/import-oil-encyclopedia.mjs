@@ -106,6 +106,19 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
     CHECK (safety_decision IN ('pending','eligible','eligible_with_caution','excluded')),
   display_status TEXT NOT NULL DEFAULT 'hidden'
     CHECK (display_status IN ('hidden','published','disabled')),
+  -- Minimal customer-facing recommender snapshot, copied and reviewed explicitly.
+  -- These are not auto-filled from unapproved profile records during import.
+  name_fa TEXT,
+  name_en TEXT,
+  scientific_name TEXT,
+  oil_kind TEXT,
+  texture TEXT,
+  use_face TEXT,
+  use_body TEXT,
+  use_massage TEXT,
+  use_hair_shaft TEXT,
+  use_scalp TEXT,
+  evidence_levels TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
   review_note TEXT NOT NULL DEFAULT '',
@@ -113,10 +126,15 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
     review_status <> 'approved' OR
     (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND safety_decision <> 'pending')
   ),
+  CONSTRAINT guide_recommendation_name_check CHECK (
+    review_status <> 'approved' OR safety_decision = 'excluded'
+    OR (name_fa IS NOT NULL AND btrim(name_fa) <> '')
+  ),
   CONSTRAINT guide_recommendation_publish_check CHECK (
     display_status <> 'published' OR
     (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
-      AND safety_decision IN ('eligible','eligible_with_caution'))
+      AND safety_decision IN ('eligible','eligible_with_caution')
+      AND name_fa IS NOT NULL AND btrim(name_fa) <> '')
   )
 );
 CREATE INDEX guide_recommendation_reviews_status_idx
@@ -202,34 +220,34 @@ SELECT
   o.oil_id,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.name_fa END AS oil_name_fa,
+       THEN r.name_fa END AS oil_name_fa,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.name_en END AS oil_name_en,
+       THEN r.name_en END AS oil_name_en,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.scientific_name END AS scientific_name,
+       THEN r.scientific_name END AS scientific_name,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.oil_kind END AS oil_kind,
+       THEN r.oil_kind END AS oil_kind,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.texture END AS texture,
+       THEN r.texture END AS texture,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.use_face END AS use_face,
+       THEN r.use_face END AS use_face,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.use_body END AS use_body,
+       THEN r.use_body END AS use_body,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.use_massage END AS use_massage,
+       THEN r.use_massage END AS use_massage,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.use_hair_shaft END AS use_hair_shaft,
+       THEN r.use_hair_shaft END AS use_hair_shaft,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN p.use_scalp END AS use_scalp,
+       THEN r.use_scalp END AS use_scalp,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(mapped.concern_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS concern_ids,
@@ -251,7 +269,8 @@ SELECT
     r.review_status = 'approved'
     AND r.display_status = 'published'
     AND r.safety_decision IN ('eligible','eligible_with_caution')
-    AND p.oil_id IS NOT NULL
+    AND r.name_fa IS NOT NULL
+    AND btrim(r.name_fa) <> ''
     AND COALESCE(cardinality(mapped.concern_ids), 0) > 0
     AND (
       r.safety_decision <> 'eligible_with_caution'
@@ -260,13 +279,6 @@ SELECT
   ), FALSE) AS recommendation_eligible
 FROM oil_encyclopedia.oils o
 LEFT JOIN oil_encyclopedia.guide_recommendation_reviews r ON r.oil_id = o.oil_id
--- This is a narrow, separately reviewed recommender projection from the source
--- profile table. It does not depend on the full public_oil_profiles sign-off.
-LEFT JOIN oil_encyclopedia.oil_profiles p
-  ON p.oil_id = o.oil_id
- AND r.review_status = 'approved'
- AND r.display_status = 'published'
- AND r.safety_decision IN ('eligible','eligible_with_caution')
 LEFT JOIN LATERAL (
   SELECT
     array_agg(DISTINCT n.id) FILTER (WHERE n.id IS NOT NULL) AS concern_ids,
