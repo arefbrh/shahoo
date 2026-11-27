@@ -431,6 +431,10 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
     commerceByOil = await readOilGuideCommerceAvailability(read.data.recommendations.map((item) => item.oilId));
   } catch {
     // Storefront status is optional and must not block or alter knowledge ranking.
+    commerceByOil = new Map(read.data.recommendations.map((item) => [
+      item.oilId,
+      { availability: "unavailable" as const, productHref: null },
+    ]));
   }
   const recommendations = attachCommerceMetadata(read.data.recommendations, commerceByOil) as OilGuideRecommendation[];
   return {
