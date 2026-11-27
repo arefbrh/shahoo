@@ -17,7 +17,7 @@ const EXPECTED_DDL_TABLES = 47;
 const EXPECTED_PUBLIC_VIEWS = 7;
 const SKIP_FILES = new Set(["shahoo_oil_db.json", "validation_report.json"]);
 
-const GUIDE_TAXONOMY_DDL = String.raw\`
+const GUIDE_TAXONOMY_DDL = String.raw`
 -- SHAHOO Oil Guide taxonomy v1. The taxonomy is stored beside the canonical
 -- encyclopedia records; imported relationships are deliberately unpublished.
 CREATE TABLE oil_encyclopedia.guide_areas (
@@ -145,7 +145,7 @@ GRANT SELECT ON oil_encyclopedia.public_guide_areas,
   oil_encyclopedia.public_guide_concerns,
   oil_encyclopedia.public_guide_oils
 TO shahoo_oil_encyclopedia_reader;
-\`;
+`;
 
 const GUIDE_VIEW_NAMES = [
   "public_guide_areas",
