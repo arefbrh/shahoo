@@ -56,6 +56,16 @@ test("all 41 canonical oils remain in the candidate pool when the store has only
   );
   assert.ok(rankedWithThreeProducts.every((item) => item.commerce.availability === "not_mapped"));
   assert.ok(rankedWithThreeProducts.every((item) => !commerceByOil.has(item.oilId)));
+  const changingInventory = new Map([
+    ["OIL-004", { availability: "out_of_stock", productHref: "/product/004" }],
+    ["OIL-005", { availability: "available", productHref: "/product/005" }],
+    ["OIL-006", { availability: "unavailable", productHref: null }],
+  ]);
+  const rankedWithChangingInventory = attachCommerceMetadata(rankedWithoutCommerce, changingInventory);
+  assert.deepEqual(
+    rankedWithChangingInventory.map(({ oilId, score }) => [oilId, score]),
+    rankedWithoutCommerce.map(({ oilId, score }) => [oilId, score]),
+  );
 });
 
 test("candidate pool deduplicates repeated concern mappings by canonical oil ID", () => {
