@@ -351,7 +351,12 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
     ...(textureOptions.length ? [{ key: "texture" as const, label: "بافت" }] : []),
   ], [concerns.length, textureOptions.length]);
   const currentStep = steps[stepIndex]?.key ?? "area";
-  const readyForQuestionnaire = initialData.status === "ready" && totalCanonicalOils > 0 && areas.length > 0 && categories.length > 0;
+  const readyForQuestionnaire =
+    initialData.status === "ready" &&
+    totalCanonicalOils > 0 &&
+    eligibleOilCount >= 3 &&
+    areas.length > 0 &&
+    categories.length > 0;
 
   function toggleArea(slug: string) {
     const nextAreas = toggleValue(selectedAreas, slug);
@@ -457,7 +462,9 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
               <p className="mt-2 text-sm leading-7 text-muted">
                 {totalCanonicalOils === 0
                   ? "در این محیط هنوز روغن canonical از دانشنامه بارگذاری نشده است. تا زمان اتصال داده واقعی، پرسش‌نامه و پیشنهاددهی فعال نمی‌شوند."
-                  : "دسته‌ها و ناحیه‌های قابل استفاده باید از منبع دانشنامه خوانده شوند. هیچ گزینه‌ای به‌صورت دستی یا حدسی به پرسش‌نامه اضافه نشده است."}
+                  : eligibleOilCount < 3
+                    ? "پرسش‌نامه تا زمانی که دست‌کم سه روغن با اطلاعات، ایمنی، ارتباط‌های منبع‌دار و مجوز نمایش تأیید نشوند، برای مشتری فعال نمی‌شود."
+                    : "دسته‌ها و ناحیه‌های قابل استفاده باید از منبع دانشنامه خوانده شوند. هیچ گزینه‌ای به‌صورت دستی یا حدسی به پرسش‌نامه اضافه نشده است."}
               </p>
             </div>
           ) : result ? (
