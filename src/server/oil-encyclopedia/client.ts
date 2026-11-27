@@ -66,7 +66,12 @@ export async function getApprovedOilKnowledge(
   if (!isOilEncyclopediaEnabled() || uniqueIds.length === 0) return new Map();
 
   const pool = await getPool();
-  const client = await pool.connect();
+  let client: import("pg").PoolClient;
+  try {
+    client = await pool.connect();
+  } catch {
+    throw new Error("The configured oil knowledge source is unavailable.");
+  }
   try {
     await client.query("BEGIN READ ONLY");
     const profiles = await client.query(
