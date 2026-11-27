@@ -4,6 +4,33 @@
  * The candidate universe comes only from canonical encyclopedia oil rows.
  * Storefront products/stock are deliberately handled by attachCommerceMetadata
  * after ranking and are never accepted by the scoring function.
+ *
+ * @typedef {Record<string, unknown>} RawOilRow
+ * @typedef {{
+ *   oilId: string,
+ *   nameFa: string,
+ *   nameEn: string,
+ *   scientificName: string | null,
+ *   recommendationEligible: boolean,
+ *   safetyDecision: string | null,
+ *   concernIds: string[],
+ *   categoryIds: string[],
+ *   areaSlugs: string[],
+ *   oilKind: string | null,
+ *   texture: string | null,
+ *   useFace: string | null,
+ *   useBody: string | null,
+ *   useMassage: string | null,
+ *   useHairShaft: string | null,
+ *   useScalp: string | null,
+ *   evidenceLevels: string[],
+ *   safetyWarnings: string[]
+ * }} RecommendationCandidate
+ * @typedef {{key: string, weight: number, selected: string[]}} ScoreFactor
+ * @typedef {{key: string, weight: number, selectedCount: number, matchedCount: number, points: number, matchedIds: string[]}} ScoreBreakdown
+ * @typedef {{key: string, matchedIds: string[]}} ReasonCode
+ * @typedef {{concernIds?: string[], categoryIds?: string[], areaSlugs?: string[], texture?: string}} RecommendationAnswers
+ * @typedef {{availability: "not_mapped" | "available" | "out_of_stock" | "unavailable", productHref: string | null}} CommerceStatus
  */
 
 const WEIGHTS = Object.freeze({
@@ -13,15 +40,25 @@ const WEIGHTS = Object.freeze({
   texture: 5,
 });
 
+/** @param {unknown} value */
 function strings(value) {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim()))];
+  /** @type {string[]} */
+  const normalized = [];
+  for (const item of value) {
+    if (typeof item === "string" && item.trim()) normalized.push(item.trim());
+  }
+  return [...new Set(normalized)];
 }
 
+/** @param {unknown} value */
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** @param {RawOilRow} row
+ * @returns {RecommendationCandidate}
+ */
 function asCandidate(row) {
   return {
     oilId: text(row.oilId ?? row.oil_id),
@@ -48,8 +85,11 @@ function asCandidate(row) {
 /**
  * Retains one row per canonical oil ID. This intentionally does not consult
  * product IDs, mappings, publication state in the storefront, or inventory.
+ * @param {RawOilRow[]} canonicalOilRows
+ * @returns {RecommendationCandidate[]}
  */
 export function buildRecommendationCandidatePool(canonicalOilRows) {
+  /** @type {Map<string, RecommendationCandidate>} */
   const byId = new Map();
   for (const row of Array.isArray(canonicalOilRows) ? canonicalOilRows : []) {
     const candidate = asCandidate(row);
@@ -86,11 +126,13 @@ export function buildRecommendationCandidatePool(canonicalOilRows) {
   return [...byId.values()].sort((a, b) => a.oilId < b.oilId ? -1 : a.oilId > b.oilId ? 1 : 0);
 }
 
+/** @param {string[]} selected @param {string[]} available */
 function overlap(selected, available) {
   const selectedSet = new Set(selected);
   return available.filter((value) => selectedSet.has(value));
 }
 
+/** @param {string[]} matched @param {string[]} selected */
 function ratio(matched, selected) {
   return selected.length ? matched.length / selected.length : 0;
 }
@@ -99,6 +141,9 @@ function ratio(matched, selected) {
  * Returns exactly three ranked oils when at least three reviewed, safe and
  * explainable candidates match. Otherwise it returns an empty list rather
  * than padding the result with unsupported oils.
+ * @param {RecommendationCandidate[]} candidates
+ * @param {RecommendationAnswers} answers
+ * @returns {Array<RecommendationCandidate & {score: number, breakdown: ScoreBreakdown[], reasonCodes: ReasonCode[]}>}
  */
 export function rankOilRecommendations(candidates, answers) {
   const selected = {
@@ -107,6 +152,7 @@ export function rankOilRecommendations(candidates, answers) {
     areaSlugs: strings(answers?.areaSlugs),
     texture: text(answers?.texture),
   };
+  /** @type {ScoreFactor[]} */
   const applicable = [
     { key: "concern", weight: WEIGHTS.concern, selected: selected.concernIds },
     { key: "category", weight: WEIGHTS.category, selected: selected.categoryIds },
@@ -116,13 +162,14 @@ export function rankOilRecommendations(candidates, answers) {
   const totalWeight = applicable.reduce((sum, factor) => sum + factor.weight, 0);
   if (totalWeight === 0) return [];
 
+  /** @type {Array<RecommendationCandidate & {score: number, breakdown: ScoreBreakdown[], reasonCodes: ReasonCode[]}>} */
   const ranked = [];
   for (const candidate of candidates) {
     if (
       candidate.recommendationEligible !== true ||
       !candidate.oilId ||
       !candidate.nameFa ||
-      !["eligible", "eligible_with_caution"].includes(candidate.safetyDecision) ||
+      !["eligible", "eligible_with_caution"].includes(candidate.safetyDecision ?? "") ||
       (candidate.safetyDecision === "eligible_with_caution" && candidate.safetyWarnings.length === 0)
     ) continue;
 
@@ -133,6 +180,7 @@ export function rankOilRecommendations(candidates, answers) {
       texture: selected.texture && candidate.texture === selected.texture ? [selected.texture] : [],
     };
     let weightedPoints = 0;
+    /** @type {ScoreBreakdown[]} */
     const breakdown = [];
     for (const factor of applicable) {
       const matched = matches[factor.key];
@@ -168,6 +216,8 @@ export function rankOilRecommendations(candidates, answers) {
 /**
  * Adds commerce information after ranking. Missing or unavailable products
  * never remove an oil, alter its score, or change its rank.
+ * @param {Array<RecommendationCandidate & {score: number, breakdown: ScoreBreakdown[], reasonCodes: ReasonCode[]}>} recommendations
+ * @param {Map<string, CommerceStatus>} [commerceByOil]
  */
 export function attachCommerceMetadata(recommendations, commerceByOil = new Map()) {
   return recommendations.map((recommendation) => {
