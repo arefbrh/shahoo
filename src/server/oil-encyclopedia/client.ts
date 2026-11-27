@@ -27,7 +27,7 @@ export function isOilEncyclopediaEnabled(env: NodeJS.ProcessEnv = process.env): 
   return env.OIL_ENCYCLOPEDIA_ENABLED === "true";
 }
 
-async function getPool(): Promise<import("pg").Pool> {
+export async function getOilEncyclopediaPool(): Promise<import("pg").Pool> {
   const connectionString = process.env.OIL_ENCYCLOPEDIA_DATABASE_URL?.trim();
   if (!connectionString) {
     throw new Error("Oil encyclopedia is enabled but OIL_ENCYCLOPEDIA_DATABASE_URL is missing.");
@@ -65,7 +65,7 @@ export async function getApprovedOilKnowledge(
   const uniqueIds = [...new Set(oilIds.filter(Boolean))];
   if (!isOilEncyclopediaEnabled() || uniqueIds.length === 0) return new Map();
 
-  const pool = await getPool();
+  const pool = await getOilEncyclopediaPool();
   let client: import("pg").PoolClient;
   try {
     client = await pool.connect();
