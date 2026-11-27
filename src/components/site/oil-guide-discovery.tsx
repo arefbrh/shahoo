@@ -202,6 +202,7 @@ export function OilGuideAreaPage({
   status: GuideSourceStatus;
   area: GuideArea | null;
   categories: GuideCategory[];
+  oils: GuideOilCard[];
 }) {
   if (status !== "ready") return <main className="mx-auto max-w-5xl px-4 py-12"><SourceNotice status={status} /></main>;
   if (!area) return <main className="mx-auto max-w-5xl px-4 py-12"><SourceNotice status="ready" empty /></main>;
@@ -227,6 +228,10 @@ export function OilGuideAreaPage({
             ))}
           </div>
         ) : <SourceNotice status="ready" empty />}
+      </section>
+      <section>
+        <SectionHeading eyebrow="APPROVED OILS" title="روغن‌های این ناحیه" />
+        {oils.length ? <OilCards oils={oils} /> : <SourceNotice status="ready" empty />}
       </section>
     </main>
   );
