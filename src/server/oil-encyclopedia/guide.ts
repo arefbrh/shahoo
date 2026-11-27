@@ -65,6 +65,7 @@ export type GuideOilCard = {
   concernNameFa: string;
   concernNameEn: string;
   problemNameFa: string | null;
+  evidenceLevel: string | null;
   sortOrder: number;
 };
 
@@ -156,6 +157,7 @@ function mapOil(row: DbRow): GuideOilCard {
     concernNameFa: text(row.concern_name_fa),
     concernNameEn: text(row.concern_name_en),
     problemNameFa: nullableText(row.problem_name_fa),
+    evidenceLevel: nullableText(row.evidence_level),
     sortOrder: number(row.sort_order),
   };
 }
@@ -174,6 +176,7 @@ function dedupeOils(rows: DbRow[]): GuideOilCard[] {
     current.categoryNameFa = mergeLabel(current.categoryNameFa, oil.categoryNameFa);
     current.concernNameFa = mergeLabel(current.concernNameFa, oil.concernNameFa);
     current.problemNameFa = mergeLabel(current.problemNameFa ?? "", oil.problemNameFa ?? "") || null;
+    current.evidenceLevel = mergeLabel(current.evidenceLevel ?? "", oil.evidenceLevel ?? "") || null;
   }
   return [...byId.values()];
 }
@@ -209,7 +212,7 @@ async function readGuide<T>(
 const areaColumns = "id, slug, name_en, name_fa, description, seo_title, seo_description, sort_order, available_oil_count";
 const categoryColumns = "id, area_id, area_slug, parent_id, slug, name_en, name_fa, description, seo_title, seo_description, sort_order, available_oil_count";
 const concernColumns = "id, category_id, category_slug, area_slug, slug, name_en, name_fa, description, sort_order, available_oil_count";
-const oilColumns = "oil_id, oil_name_fa, oil_name_en, scientific_name, inci_name, other_names, oil_kind, texture, area_slug, area_name_fa, area_name_en, category_slug, category_name_fa, category_name_en, concern_slug, concern_name_fa, concern_name_en, problem_name_fa, sort_order";
+const oilColumns = "oil_id, oil_name_fa, oil_name_en, scientific_name, inci_name, other_names, oil_kind, texture, area_slug, area_name_fa, area_name_en, category_slug, category_name_fa, category_name_en, concern_slug, concern_name_fa, concern_name_en, problem_name_fa, evidence_level, sort_order";
 
 export async function readOilGuideLanding() {
   return readGuide<GuideArea[]>([], async (client) => {
