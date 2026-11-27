@@ -130,6 +130,42 @@ function OilCards({ oils }: { oils: GuideOilCard[] }) {
   );
 }
 
+function CategoryNode({
+  category,
+  childrenByParent,
+  visited = new Set<string>(),
+}: {
+  category: GuideCategory;
+  childrenByParent: Map<string, GuideCategory[]>;
+  visited?: Set<string>;
+}) {
+  if (visited.has(category.id)) return null;
+  const nextVisited = new Set(visited);
+  nextVisited.add(category.id);
+  const children = childrenByParent.get(category.id) ?? [];
+  return (
+    <div className="space-y-2">
+      <Link
+        to="/oil-guide/$areaSlug/$categorySlug"
+        params={{ areaSlug: category.areaSlug, categorySlug: category.slug }}
+        className="block rounded-2xl border border-line bg-paper p-5 hover:border-gold/60"
+      >
+        <h2 className="font-bold text-forest">{category.nameFa}</h2>
+        {category.nameEn ? <p className="mt-1 text-xs text-muted" dir="ltr">{category.nameEn}</p> : null}
+        {category.description ? <p className="mt-3 text-sm leading-7 text-muted">{category.description}</p> : null}
+        <p className="mt-4 text-xs text-muted">{category.availableOilCount.toLocaleString("fa-IR")} روغن دارای اطلاعات قابل انتشار</p>
+      </Link>
+      {children.length ? (
+        <div className="mr-4 space-y-2 border-r border-line pr-3">
+          {children.map((child) => (
+            <CategoryNode key={child.id} category={child} childrenByParent={childrenByParent} visited={nextVisited} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function OilGuideLanding({ result }: { result: Result<GuideArea[]> }) {
   const areas = result.data;
   return (
@@ -219,14 +255,20 @@ export function OilGuideAreaPage({
         <SectionHeading eyebrow="CATEGORIES" title="دسته‌بندی‌ها" />
         {categories.length ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {categories.map((category) => (
-              <Link key={category.id} to="/oil-guide/$areaSlug/$categorySlug" params={{ areaSlug: area.slug, categorySlug: category.slug }} className="rounded-2xl border border-line bg-paper p-5 hover:border-gold/60">
-                <h2 className="font-bold text-forest">{category.nameFa}</h2>
-                {category.nameEn ? <p className="mt-1 text-xs text-muted" dir="ltr">{category.nameEn}</p> : null}
-                {category.description ? <p className="mt-3 text-sm leading-7 text-muted">{category.description}</p> : null}
-                <p className="mt-4 text-xs text-muted">{category.availableOilCount.toLocaleString("fa-IR")} روغن دارای اطلاعات قابل انتشار</p>
-              </Link>
-            ))}
+            {(() => {
+              const ids = new Set(categories.map((category) => category.id));
+              const childrenByParent = new Map<string, GuideCategory[]>();
+              for (const category of categories) {
+                if (!category.parentId || !ids.has(category.parentId)) continue;
+                const children = childrenByParent.get(category.parentId) ?? [];
+                children.push(category);
+                childrenByParent.set(category.parentId, children);
+              }
+              const roots = categories.filter((category) => !category.parentId || !ids.has(category.parentId));
+              return roots.map((category) => (
+                <CategoryNode key={category.id} category={category} childrenByParent={childrenByParent} />
+              ));
+            })()}
           </div>
         ) : <SourceNotice status="ready" empty />}
       </section>
@@ -241,11 +283,13 @@ export function OilGuideAreaPage({
 export function OilGuideCategoryPage({
   status,
   category,
+  children,
   concerns,
   oils,
 }: {
   status: GuideSourceStatus;
   category: GuideCategory | null;
+  children: GuideCategory[];
   concerns: GuideConcern[];
   oils: GuideOilCard[];
 }) {
@@ -259,6 +303,20 @@ export function OilGuideCategoryPage({
         <h1 className="mt-2 text-3xl font-bold text-forest">{category.nameFa}</h1>
         {category.description ? <p className="mt-3 max-w-2xl text-sm leading-8 text-muted">{category.description}</p> : null}
       </header>
+      {children.length ? (
+        <section>
+          <SectionHeading eyebrow="SUBCATEGORIES" title="زیر‌دسته‌ها" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {children.map((child) => (
+              <Link key={child.id} to="/oil-guide/$areaSlug/$categorySlug" params={{ areaSlug: child.areaSlug, categorySlug: child.slug }} className="rounded-2xl border border-line bg-paper p-5 hover:border-gold/60">
+                <h2 className="font-bold text-forest">{child.nameFa}</h2>
+                {child.nameEn ? <p className="mt-1 text-xs text-muted" dir="ltr">{child.nameEn}</p> : null}
+                <p className="mt-3 text-xs text-muted">{child.availableOilCount.toLocaleString("fa-IR")} روغن دارای اطلاعات قابل انتشار</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {concerns.length ? (
         <section>
           <SectionHeading eyebrow="CONCERNS & PURPOSES" title="موضوعات مرتبط" description="این موضوعات از ارتباط‌های تأییدشده در دانشنامه استخراج می‌شوند." />
