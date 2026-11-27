@@ -327,3 +327,42 @@ Safety is an eligibility gate, not a score bonus. Oils are deduplicated by canon
 - `scripts/oil-guide-taxonomy.test.mjs` covers the isolated review tables/views, publication gates, canonical-oil-rooted candidate view and absence of storefront/inventory dependencies.
 - The v3.2 import, recommendation review approvals, questionnaire concern approvals and recommendation mapping approvals have not been run or granted in a live database. The current source snapshot has no final-approved full oil profiles or public problem-oil mappings. Until the separate recommender fields/relationships are explicitly reviewed, the live customer flow must show the honest insufficient-approved-data state rather than fabricate results.
 - No shared database import, Vercel secret/flag change, Staging feature activation, Production change, merge or Production deployment is part of this implementation.
+
+
+### Controlled data-review sequence (not executed)
+
+The importer only creates the 41 pending queue rows. It does not populate or approve the customer-facing snapshot. An authorized encyclopedia reviewer must work one canonical oil at a time:
+
+1. Verify the source identity and each proposed recommender fact against the source dossier; record source references in `review_note`.
+2. Complete the existing source publication/signoff workflow for the underlying `Problem_Oil_Map` row so it appears in `public_problem_oils`. The recommender view explicitly requires this source signoff.
+3. Approve the matching `guide_concerns` label for questionnaire display and the relevant `oil_guide_mappings` relationship. A mapping can remain hidden from the full browse page and still be used by the recommender only after its review is approved; a mapping marked disabled is never used.
+4. Populate the narrow snapshot and set the explicit safety decision. Publish the limited recommendation projection only after review.
+
+Illustrative one-oil SQL template (replace every placeholder with source-verified values; do not bulk-approve rows):
+
+```sql
+UPDATE oil_encyclopedia.guide_recommendation_reviews
+SET review_status = 'approved',
+    safety_decision = 'eligible', -- or eligible_with_caution / excluded after review
+    display_status = 'published', -- keep hidden for excluded or not-yet-published items
+    name_fa = '<verified Persian name>',
+    name_en = '<verified English name>',
+    scientific_name = '<verified scientific name>',
+    oil_kind = '<verified oil kind>',
+    texture = '<verified texture>',
+    use_face = '<verified source value>',
+    use_body = '<verified source value>',
+    use_massage = '<verified source value>',
+    use_hair_shaft = '<verified source value>',
+    use_scalp = '<verified source value>',
+    use_traditional = '<verified source value>',
+    use_hair_types = '<verified source value>',
+    evidence_levels = ARRAY['<verified evidence label>']::text[],
+    reviewed_by = '<authorized reviewer>',
+    reviewed_at = NOW(),
+    review_note = '<source table and record references>'
+WHERE oil_id = '<canonical oil ID>'
+  AND review_status = 'needs_human_review';
+```
+
+For a caution decision, an approved customer-facing safety warning must also exist; otherwise the candidate view keeps that oil ineligible. The `public_problem_oils` signoff is an independent source gate and is not changed by this statement. The detailed `public_oil_profiles` publication workflow also remains independent. None of these statements was run as part of PR #46.
