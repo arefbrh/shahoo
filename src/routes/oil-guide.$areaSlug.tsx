@@ -1,9 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { OilGuideAreaPage } from "@/components/site/oil-guide-discovery";
 import { getOilGuideArea } from "@/server/oil-guide/api";
 
 export const Route = createFileRoute("/oil-guide/$areaSlug")({
-  loader: ({ params }) => getOilGuideArea({ data: { areaSlug: params.areaSlug } }),
+  loader: async ({ params }) => {
+    const result = await getOilGuideArea({ data: { areaSlug: params.areaSlug } });
+    if (result.status === "ready" && !result.data.area) throw notFound();
+    return result;
+  },
   head: ({ loaderData }) => ({
     meta: [
       { title: loaderData?.data.area ? loaderData.data.area.nameFa + " | راهنمای روغن شاهو" : "دسته روغن | شاهو" },
