@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildImportDdl, dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql, normalizeTableRows } from "./import-oil-encyclopedia.mjs";
+import { buildImportDdl, dataFileToTable, extractTableNames, extractViewNames, namespaceSchemaSql, normalizeTableRows, sortTablesByDependencies } from "./import-oil-encyclopedia.mjs";
 
 const sample = [
   "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
@@ -29,6 +29,7 @@ test("DDL namespacing keeps encyclopedia relations isolated", () => {
   assert.match(ddl, /ON oil_encyclopedia\.claims/);
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_oil_profiles/);
   assert.match(ddl, /FROM oil_encyclopedia\.oils JOIN oil_encyclopedia\.claims/);
+  assert.match(ddl, /LEFT JOIN oil_encyclopedia\.public_oil_profiles/);
   assert.match(ddl, /ON SCHEMA oil_encyclopedia TO shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /IN SCHEMA oil_encyclopedia REVOKE ALL ON TABLES FROM shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /ALL TABLES IN SCHEMA oil_encyclopedia FROM shahoo_oil_encyclopedia_reader/);
@@ -62,5 +63,25 @@ test("legacy Table_Decisions keys normalize to the v3.2 SQL columns", () => {
   assert.throws(
     () => normalizeTableRows("table_decisions", [{ rows_v3: 2, row_count: 3 }]),
     /Conflicting row_count and rows_v3/,
+  );
+});
+
+
+test("active JSON tables are imported in foreign-key dependency order", () => {
+  const order = sortTablesByDependencies(
+    ["oil_application_relations", "oils", "applications", "claims"],
+    [
+      { parentTable: "oils", childTable: "oil_application_relations" },
+      { parentTable: "applications", childTable: "oil_application_relations" },
+    ],
+  );
+  assert.ok(order.indexOf("oils") < order.indexOf("oil_application_relations"));
+  assert.ok(order.indexOf("applications") < order.indexOf("oil_application_relations"));
+  assert.throws(
+    () => sortTablesByDependencies(["a", "b"], [
+      { parentTable: "a", childTable: "b" },
+      { parentTable: "b", childTable: "a" },
+    ]),
+    /Foreign-key dependency cycle/,
   );
 });
