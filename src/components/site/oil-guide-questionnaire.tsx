@@ -426,7 +426,7 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:space-y-8 md:py-12">
+    <main dir="rtl" className="mx-auto max-w-5xl space-y-6 px-4 py-6 md:space-y-8 md:py-12">
       <section className="relative overflow-hidden rounded-[2rem] bg-forest px-5 py-8 text-white md:px-10 md:py-12">
         <div className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -left-5 -top-10 h-40 w-40 rounded-full border border-white/10" />
