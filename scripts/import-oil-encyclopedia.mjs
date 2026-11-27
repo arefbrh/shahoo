@@ -63,8 +63,8 @@ CREATE TABLE oil_encyclopedia.oil_guide_mappings (
   supporting_record_id TEXT NOT NULL,
   relevance_type TEXT NOT NULL DEFAULT 'problem_oil_mapping',
   evidence_status TEXT NOT NULL DEFAULT 'unknown',
-  review_status TEXT NOT NULL DEFAULT 'needs_human_review',
-  display_status TEXT NOT NULL DEFAULT 'hidden',
+  review_status TEXT NOT NULL DEFAULT 'needs_human_review' CHECK (review_status IN ('needs_human_review','approved','rejected')),
+  display_status TEXT NOT NULL DEFAULT 'hidden' CHECK (display_status IN ('hidden','published','disabled')),
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
   review_note TEXT NOT NULL DEFAULT '',
@@ -72,6 +72,9 @@ CREATE TABLE oil_encyclopedia.oil_guide_mappings (
   CONSTRAINT oil_guide_mapping_review_check CHECK (
     (review_status = 'approved' AND display_status = 'published' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
     OR review_status <> 'approved'
+  ),
+  CONSTRAINT oil_guide_mapping_publish_check CHECK (
+    display_status <> 'published' OR (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
   ),
   UNIQUE (supporting_record_type, supporting_record_id),
   CONSTRAINT oil_guide_mapping_support_fk FOREIGN KEY (supporting_record_id)
