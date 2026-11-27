@@ -11,6 +11,8 @@ export type GuideArea = {
   nameEn: string;
   nameFa: string;
   description: string;
+  seoTitle: string;
+  seoDescription: string;
   sortOrder: number;
   availableOilCount: number;
 };
@@ -93,6 +95,8 @@ function mapArea(row: DbRow): GuideArea {
     nameEn: text(row.name_en),
     nameFa: text(row.name_fa),
     description: text(row.description),
+    seoTitle: text(row.seo_title),
+    seoDescription: text(row.seo_description),
     sortOrder: number(row.sort_order),
     availableOilCount: number(row.available_oil_count),
   };
@@ -202,7 +206,7 @@ async function readGuide<T>(
   }
 }
 
-const areaColumns = "id, slug, name_en, name_fa, description, sort_order, available_oil_count";
+const areaColumns = "id, slug, name_en, name_fa, description, seo_title, seo_description, sort_order, available_oil_count";
 const categoryColumns = "id, area_id, area_slug, parent_id, slug, name_en, name_fa, description, seo_title, seo_description, sort_order, available_oil_count";
 const concernColumns = "id, category_id, category_slug, area_slug, slug, name_en, name_fa, description, sort_order, available_oil_count";
 const oilColumns = "oil_id, oil_name_fa, oil_name_en, scientific_name, inci_name, other_names, oil_kind, texture, area_slug, area_name_fa, area_name_en, category_slug, category_name_fa, category_name_en, concern_slug, concern_name_fa, concern_name_en, problem_name_fa, sort_order";
