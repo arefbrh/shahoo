@@ -259,7 +259,7 @@ SELECT
        THEN COALESCE(mapped.area_slugs, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS area_slugs,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
-       THEN COALESCE(mapped.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
+       THEN COALESCE(mapped.evidence_levels, r.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(safety.safety_warnings, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS safety_warnings,
