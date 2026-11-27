@@ -226,15 +226,20 @@ export async function readOilGuideArea(areaSlug: string) {
 export async function readOilGuideCategory(areaSlug: string, categorySlug: string) {
   return readGuide<{
     category: GuideCategory | null;
+    children: GuideCategory[];
     concerns: GuideConcern[];
     oils: GuideOilCard[];
-  }>({ category: null, concerns: [], oils: [] }, async (client) => {
+  }>({ category: null, children: [], concerns: [], oils: [] }, async (client) => {
     const categoryResult = await client.query(
       "SELECT " + categoryColumns + " FROM oil_encyclopedia.public_guide_categories WHERE area_slug = $1 AND slug = $2 LIMIT 1",
       [areaSlug, categorySlug],
     );
-    if (!categoryResult.rows[0]) return { category: null, concerns: [], oils: [] };
-    const [concernsResult, oilsResult] = await Promise.all([
+    if (!categoryResult.rows[0]) return { category: null, children: [], concerns: [], oils: [] };
+    const [childrenResult, concernsResult, oilsResult] = await Promise.all([
+      client.query(
+        "SELECT " + categoryColumns + " FROM oil_encyclopedia.public_guide_categories WHERE area_slug = $1 AND parent_id = $2 ORDER BY sort_order, name_fa",
+        [areaSlug, categoryResult.rows[0].id],
+      ),
       client.query(
         "SELECT " + concernColumns + " FROM oil_encyclopedia.public_guide_concerns WHERE area_slug = $1 AND category_slug = $2 ORDER BY sort_order, name_fa",
         [areaSlug, categorySlug],
@@ -252,6 +257,7 @@ export async function readOilGuideCategory(areaSlug: string, categorySlug: strin
     });
     return {
       category: mapCategory(categoryResult.rows[0]),
+      children: childrenResult.rows.map(mapCategory),
       concerns: concernsResult.rows.map(mapConcern),
       oils,
     };
