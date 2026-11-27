@@ -248,3 +248,42 @@ The repository's existing files remain the documentation system of record. Do no
 - Production release remains **NOT APPROVED**.
 - No Production database import/migration, live provider activation, DNS/firewall/WAF change, destructive test, credential rotation, or public Git-history rewrite is authorized by this roadmap alone.
 - The oil encyclopedia is a reusable future knowledge source for agents and content workflows. Its only current runtime integration scope is the existing oil recommendation system; public encyclopedia pages, broad CMS/product integration, automatic content generation and manufacturing/formulation are out of scope. See [#37](https://github.com/shahoo-workspace/shahoo/issues/37).
+
+ 
+## 11. Oil Encyclopedia v3.2 recommendation integration preparation — 2026-11-27
+
+### Owner-approved scope
+
+The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation proposal: [PR #41](https://github.com/shahoo-workspace/shahoo/pull/41).
+
+### Current application behavior and integration design
+
+- The existing `/oil-guide` uses product-level `oilFinder` metadata (intended use, texture and scent) and a simple score. It does not currently use the encyclopedia.
+- PR #40 adds a separate `oil_product_links` mapping table with `pending/approved/disabled` states. No product-to-oil mappings are inferred or prefilled; approval requires an admin identity and timestamp.
+- The encyclopedia reader is opt-in through `OIL_ENCYCLOPEDIA_ENABLED=true` and a separate `OIL_ENCYCLOPEDIA_DATABASE_URL`. It never falls back to the storefront `DATABASE_URL`.
+- The runtime reads only `oil_encyclopedia.public_oil_profiles` and `oil_encyclopedia.public_safety_warnings` in a `READ ONLY` transaction. It does not query base research/audit tables.
+- Existing recommendation scoring remains unchanged. Approved bank facts and safety warnings enrich mapped results; no unapproved narrative is converted into recommendation tags.
+
+### v3.2 data and SQL import checks
+
+- Re-ran `validation/validate_v32.py` from the supplied archive: **0 errors, 0 warnings, 44 active JSON tables, 16/16 fail-closed tests passed**.
+- The validator explicitly reports SQL execution as `NOT_RUN`; it validates the data package, not a live PostgreSQL import.
+- All 41 oil profiles have `customer_display_allowed=false`; 22 are eligible-but-pending and none is approved. All 14 safety dossiers also have zero final approvals. The customer-facing views therefore correctly return no approved records today.
+- The v3.2 bundle still has version drift: `schema_v32.sql` header and `DATABASE_SCHEMA.md` / `DATA_DICTIONARY.md` identify v3.1. `Table_Decisions.json` also contains legacy `row_count/location` keys alongside the v3.2 `rows_v3/location_v31` shape. The dedicated importer corrects the generated header and normalizes those legacy keys without modifying the original archive or dropping the data.
+- The importer namespaces the 47 SQL tables and 7 views into `oil_encyclopedia`, scopes the read role's grants/revokes/default privileges to that schema, imports only the 44 active JSON tables, and skips the consolidated export and validation report. It is separate from the normal storefront migration runner.
+
+### Staging / branch state
+
+- Created isolated Neon branch `oil-encyclopedia-v32-integration` from Staging after aggregate checks found no customer or order rows in the source Staging branch.
+- Applied and verified migration #0020 (`oil_product_links`) on that isolated branch only. The table and indexes exist; mapping row count is **0**. The `pg_trgm` extension and NOLOGIN group role `shahoo_oil_encyclopedia_reader` were also created/verified there; no encyclopedia tables or views have been imported yet.
+- The full v3.2 encyclopedia schema and data have **not** yet been imported into this branch. The dedicated importer has not yet been run against Neon.
+- Integration remains disabled by default. No Vercel environment variable, shared Staging configuration, Production database, Production migration, or deployment was changed.
+
+### Next gates
+
+1. Complete CI and review [PR #40](https://github.com/shahoo-workspace/shahoo/pull/40).
+2. Run the guarded importer against the isolated Neon integration branch only; verify table counts, foreign keys, view definitions, role privileges and zero approved-view rows.
+3. Create a separate login role as a member of `shahoo_oil_encyclopedia_reader`; set `OIL_ENCYCLOPEDIA_DATABASE_URL` only in an approved Staging environment.
+4. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference.
+5. Obtain qualified content/safety signoff before any record can pass the public views. Only then consider enabling the feature in Staging.
+6. Production import, migration and feature activation require a separate explicit owner approval and the normal Production migration/backup gates.
