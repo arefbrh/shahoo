@@ -230,14 +230,24 @@ SELECT
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN p.use_scalp END AS use_scalp,
-  COALESCE(mapped.concern_ids, ARRAY[]::text[]) AS concern_ids,
-  COALESCE(mapped.category_ids, ARRAY[]::text[]) AS category_ids,
-  COALESCE(mapped.area_slugs, ARRAY[]::text[]) AS area_slugs,
-  COALESCE(mapped.evidence_levels, ARRAY[]::text[]) AS evidence_levels,
-  COALESCE(safety.safety_warnings, ARRAY[]::text[]) AS safety_warnings,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN COALESCE(mapped.concern_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS concern_ids,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN COALESCE(mapped.category_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS category_ids,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN COALESCE(mapped.area_slugs, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS area_slugs,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN COALESCE(mapped.evidence_levels, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS evidence_levels,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN COALESCE(safety.safety_warnings, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS safety_warnings,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
        THEN r.safety_decision ELSE NULL END AS safety_decision,
-  (
+  COALESCE((
     r.review_status = 'approved'
     AND r.display_status = 'published'
     AND r.safety_decision IN ('eligible','eligible_with_caution')
@@ -247,7 +257,7 @@ SELECT
       r.safety_decision <> 'eligible_with_caution'
       OR COALESCE(cardinality(safety.safety_warnings), 0) > 0
     )
-  ) AS recommendation_eligible
+  ), FALSE) AS recommendation_eligible
 FROM oil_encyclopedia.oils o
 LEFT JOIN oil_encyclopedia.guide_recommendation_reviews r ON r.oil_id = o.oil_id
 -- This is a narrow, separately reviewed recommender projection from the source
@@ -279,6 +289,7 @@ LEFT JOIN LATERAL (
   WHERE m.oil_id = o.oil_id
     AND m.supporting_record_type = 'problem_oil_map'
     AND m.review_status = 'approved'
+    AND m.display_status <> 'disabled'
     AND m.reviewed_by IS NOT NULL
     AND m.reviewed_at IS NOT NULL
 ) mapped ON TRUE
