@@ -254,7 +254,7 @@ The repository's existing files remain the documentation system of record. Do no
 
 ### Owner-approved scope
 
-The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation merged via [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42) as `b51be73505b4e43c1e61b0a877d153d3de483b61`.
+The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The current owner-approved runtime scope is the Oil Guide/recommendation experience. PR #42 integrated approved encyclopedia enrichment into the existing recommender; PR #45 adds a separate database-driven taxonomy/discovery baseline. The owner has since clarified that the desired primary experience is a guided customer questionnaire returning three ranked oils from all 41 canonical encyclopedia oils, independent of storefront product availability. The current PR #45 visual design is not accepted as final and is to be redesigned by the next agent. Broad CMS/product/API integration beyond the Oil Guide, automatic content generation and manufacturing/formulation remain out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42), [PR #45](https://github.com/shahoo-workspace/shahoo/pull/45). See [Oil Guide Product & Design Handoff](OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md).
 
 ### Current application behavior and integration design
 
@@ -327,3 +327,18 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 3. When a network-capable environment is available, import v3.2 into the isolated Neon integration branch and verify the four taxonomy views, all source relationships, grants and zero initial customer-visible mappings.
 4. Create a dedicated read-only login role and configure only the approved Staging Preview environment after the import is verified.
 5. Review the pending taxonomy mappings with a qualified human reviewer. Do not activate public guide content until mapping approval and source publication gates both pass.
+
+
+## 12. Owner-clarified Oil Guide recommendation and redesign direction — 2026-11-27
+
+The owner clarified that the current PR #45 visual design is not the desired final UX. The implementation must be preserved as a technical baseline, while the customer-facing experience is redesigned around a guided questionnaire and a three-result ranked recommendation.
+
+- Candidate universe: all 41 canonical v3.2 oils, not the current three storefront oil products. Product mapping, listing status and stock must not affect recommendation eligibility or rank.
+- Separate canonical oil identity, reviewed recommendation eligibility, customer-content publication approval and commerce availability. The current v3.2 snapshot still has no final-approved oil profiles and no customer-approved Problem_Oil_Map rows; no publication gate may be bypassed to make the feature appear populated.
+- Questionnaire: source-backed areas, categories and concerns, with relevant progressive questions for hair/skin attributes, intended use, preferences and sensitivities only where reviewed data supports them.
+- Results: three unique oils ranked 1–3 whenever at least three are legitimately eligible. Use a transparent 0–100 compatibility score, not a claim of proven efficacy or probability. Safety exclusions are hard gates; missing data is not a positive match.
+- A non-stocked/non-listed oil remains a valid recommendation; show commerce availability separately and offer a purchase link only for an explicit oil-product mapping.
+- Do not invent unsupported concerns/categories, benefits, usage protocols or safety claims. Keep the roots/scalp category combined as in source data unless reviewed evidence justifies a taxonomy change.
+- Full requirements, current code paths, operational limitations, UX direction and acceptance tests are documented in [docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md](OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md). This focused document was explicitly requested by the owner.
+
+This section supersedes any earlier implication that the final Oil Guide should remain a product-only recommender or that its customer experience should be limited to browsing the taxonomy. PR #45 remains an unmerged feature branch; no production action is authorized.
