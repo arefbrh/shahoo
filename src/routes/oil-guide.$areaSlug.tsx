@@ -10,8 +10,8 @@ export const Route = createFileRoute("/oil-guide/$areaSlug")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: loaderData?.data.area ? loaderData.data.area.nameFa + " | راهنمای روغن شاهو" : "دسته روغن | شاهو" },
-      { name: "description", content: loaderData?.data.area?.description || "دسته‌بندی‌های راهنمای روغن شاهو." },
+      { title: loaderData?.data.area ? (loaderData.data.area.seoTitle || loaderData.data.area.nameFa + " | راهنمای روغن شاهو") : "دسته روغن | شاهو" },
+      { name: "description", content: loaderData?.data.area?.seoDescription || loaderData?.data.area?.description || "دسته‌بندی‌های راهنمای روغن شاهو." },
     ],
   }),
   component: AreaPage,
