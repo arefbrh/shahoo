@@ -70,8 +70,7 @@ CREATE TABLE oil_encyclopedia.oil_guide_mappings (
   review_note TEXT NOT NULL DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
   CONSTRAINT oil_guide_mapping_review_check CHECK (
-    (review_status = 'approved' AND display_status = 'published' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
-    OR review_status <> 'approved'
+    review_status <> 'approved' OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
   ),
   CONSTRAINT oil_guide_mapping_publish_check CHECK (
     display_status <> 'published' OR (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
