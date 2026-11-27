@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   ChevronLeft,
   CircleAlert,
@@ -84,10 +85,10 @@ function SourceState({ status }: { status: "disabled" | "unavailable" }) {
           ? "برای حفظ دقت پیشنهادها، راهنما تا زمان اتصال منبع جداگانه و فقط‌خواندنی، روغنی را حدس نمی‌زند و از فهرست فروشگاه به‌عنوان جایگزین استفاده نمی‌کند."
           : "در حال حاضر امکان خواندن اطلاعات تأییدشده وجود ندارد. برای جلوگیری از پیشنهاد بر پایه داده ناقص، نتیجه‌ای ساخته نشده است. لطفاً بعداً دوباره تلاش کنید."}
       </p>
-      <Link to="/oil-guide/search" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-forest underline decoration-gold underline-offset-4">
+      <a href="/oil-guide/search" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-forest underline decoration-gold underline-offset-4">
         مرور محتوای قابل انتشار
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-      </Link>
+      </a>
     </div>
   );
 }
@@ -591,10 +592,10 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
             <h2 className="mt-1 text-lg font-bold text-forest">می‌خواهید دانشنامه را خودتان مرور کنید؟</h2>
             <p className="mt-1 text-sm leading-7 text-muted">جستجو و مرور موضوعی، مسیرهای جداگانه‌ای از پیشنهاد شخصی هستند.</p>
           </div>
-          <Link to="/oil-guide/search" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-semibold text-forest">
+          <a href="/oil-guide/search" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-semibold text-forest">
             جستجو در دانشنامه
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          </a>
         </div>
       </section>
     </main>
