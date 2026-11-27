@@ -254,7 +254,7 @@ The repository's existing files remain the documentation system of record. Do no
 
 ### Owner-approved scope
 
-The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation proposal: [PR #40](https://github.com/shahoo-workspace/shahoo/pull/40).
+The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation proposal: [PR #41](https://github.com/shahoo-workspace/shahoo/pull/41).
 
 ### Current application behavior and integration design
 
