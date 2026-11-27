@@ -155,10 +155,7 @@ SELECT
 FROM oil_encyclopedia.oil_guide_mappings m
 JOIN oil_encyclopedia.guide_categories c ON c.id = m.category_id AND c.is_active IS TRUE
 JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
-JOIN oil_encyclopedia.guide_concerns n
-  ON n.id = m.concern_id AND n.category_id = c.id AND n.is_active IS TRUE
- AND n.review_status = 'approved' AND n.display_status = 'published'
- AND n.reviewed_by IS NOT NULL AND n.reviewed_at IS NOT NULL
+JOIN oil_encyclopedia.guide_concerns n ON n.id = m.concern_id AND n.category_id = c.id AND n.is_active IS TRUE
 JOIN oil_encyclopedia.problem_oil_map source_map
   ON source_map.map_id = m.supporting_record_id
  AND source_map.oil_id = m.oil_id
