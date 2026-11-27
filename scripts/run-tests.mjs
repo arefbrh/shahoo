@@ -36,7 +36,7 @@ const applicationTests = [
   "src/components/site/account-wiring.test.mjs", "src/lib/media-upload-client.test.ts", "src/server/media/disk.test.ts", "src/server/media/sanitize-image.test.ts", "src/server/auth/auth.test.ts",
   "src/server/auth/throttle.integration.test.ts", "src/server/admin/access-control.test.ts",
   "src/server/commerce/pricing.test.ts", "src/server/commerce/integrity.test.ts", "src/server/catalog/rules.test.ts",
-  "src/server/offers/rules.test.ts", "src/server/db/migration-0501.test.ts", "src/server/env/runtime.test.ts",
+  "src/server/offers/rules.test.ts", "src/server/db/migration-0501.test.ts", "src/server/env/runtime.test.ts", "src/server/oil-encyclopedia/client.test.ts",
   "src/server/sms/payping-providers.test.ts",
 ];
 const migrationTests = [
