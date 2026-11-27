@@ -10,6 +10,8 @@ const sample = [
   "CREATE INDEX claims_oil_idx ON claims (oil_id);",
   "CREATE VIEW public_oil_profiles AS SELECT oil_id FROM oils JOIN claims USING (oil_id);",
   "CREATE VIEW public_problem_oils AS SELECT oil_id FROM oils LEFT JOIN public_oil_profiles USING (oil_id);",
+  "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM shahoo_web_reader;",
+  "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM shahoo_web_reader;",
   "GRANT USAGE ON SCHEMA public TO shahoo_web_reader;",
   "GRANT SELECT ON public_oil_profiles TO shahoo_web_reader;",
 ].join("\n");
@@ -28,6 +30,8 @@ test("DDL namespacing keeps encyclopedia relations isolated", () => {
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_oil_profiles/);
   assert.match(ddl, /FROM oil_encyclopedia\.oils JOIN oil_encyclopedia\.claims/);
   assert.match(ddl, /ON SCHEMA oil_encyclopedia TO shahoo_oil_encyclopedia_reader/);
+  assert.match(ddl, /IN SCHEMA oil_encyclopedia REVOKE ALL ON TABLES FROM shahoo_oil_encyclopedia_reader/);
+  assert.match(ddl, /ALL TABLES IN SCHEMA oil_encyclopedia FROM shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /ON oil_encyclopedia\.public_oil_profiles TO shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /CREATE EXTENSION IF NOT EXISTS pg_trgm/);
 });
