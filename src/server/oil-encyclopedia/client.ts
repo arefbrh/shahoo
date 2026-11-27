@@ -69,14 +69,14 @@ export async function getApprovedOilKnowledge(
   const client = await pool.connect();
   try {
     await client.query("BEGIN READ ONLY");
-    const profiles = await client.query<OilProfileRow>(
+    const profiles = await client.query(
       `SELECT oil_id, name_fa, oil_kind, texture, use_face, use_body,
               use_massage, use_hair_shaft, use_scalp, safety_customer_status
        FROM oil_encyclopedia.public_oil_profiles
        WHERE oil_id = ANY($1::text[])`,
       [uniqueIds],
     );
-    const warnings = await client.query<SafetyWarningRow>(
+    const warnings = await client.query(
       `SELECT oil_id, customer_text
        FROM oil_encyclopedia.public_safety_warnings
        WHERE oil_id = ANY($1::text[])`,
@@ -85,7 +85,7 @@ export async function getApprovedOilKnowledge(
     await client.query("COMMIT");
 
     const warningsByOil = new Map<string, string[]>();
-    for (const row of warnings.rows) {
+    for (const row of warnings.rows as SafetyWarningRow[]) {
       const text = row.customer_text?.trim();
       if (!text) continue;
       const current = warningsByOil.get(row.oil_id) ?? [];
@@ -94,7 +94,7 @@ export async function getApprovedOilKnowledge(
     }
 
     return new Map(
-      profiles.rows.map((row) => [
+      (profiles.rows as OilProfileRow[]).map((row) => [
         row.oil_id,
         {
           nameFa: row.name_fa,
