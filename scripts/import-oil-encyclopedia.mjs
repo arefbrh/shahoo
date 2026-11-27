@@ -71,14 +71,13 @@ export function namespaceSchemaSql(source) {
 
 export function buildImportDdl(source) {
   const correctedHeader = source.replace(
-    /^-- SHAHOO Oil Encyclopedia v3\\.1\\b/m,
+    /^-- SHAHOO Oil Encyclopedia v3\.1\b/m,
     "-- SHAHOO Oil Encyclopedia v3.2",
   );
   return namespaceSchemaSql(correctedHeader) +
-    "\\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS location TEXT;" +
-    "\\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS row_count INTEGER;\\n";
+    "\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS location TEXT;" +
+    "\nALTER TABLE oil_encyclopedia.table_decisions ADD COLUMN IF NOT EXISTS row_count INTEGER;\n";
 }
-
 export function dataFileToTable(fileName) {
   return basename(fileName, ".json")
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
