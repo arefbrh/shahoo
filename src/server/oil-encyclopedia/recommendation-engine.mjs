@@ -35,6 +35,11 @@ function asCandidate(row) {
     areaSlugs: strings(row.areaSlugs ?? row.area_slugs),
     oilKind: text(row.oilKind ?? row.oil_kind) || null,
     texture: text(row.texture) || null,
+    useFace: text(row.useFace ?? row.use_face) || null,
+    useBody: text(row.useBody ?? row.use_body) || null,
+    useMassage: text(row.useMassage ?? row.use_massage) || null,
+    useHairShaft: text(row.useHairShaft ?? row.use_hair_shaft) || null,
+    useScalp: text(row.useScalp ?? row.use_scalp) || null,
     evidenceLevels: strings(row.evidenceLevels ?? row.evidence_levels),
     safetyWarnings: strings(row.safetyWarnings ?? row.safety_warnings),
   };
@@ -65,6 +70,11 @@ export function buildRecommendationCandidatePool(canonicalOilRows) {
     existing.scientificName ||= candidate.scientificName;
     existing.oilKind ||= candidate.oilKind;
     existing.texture ||= candidate.texture;
+    existing.useFace ||= candidate.useFace;
+    existing.useBody ||= candidate.useBody;
+    existing.useMassage ||= candidate.useMassage;
+    existing.useHairShaft ||= candidate.useHairShaft;
+    existing.useScalp ||= candidate.useScalp;
     if (candidate.safetyDecision === "excluded" || existing.safetyDecision === "excluded") {
       existing.safetyDecision = "excluded";
     } else if (candidate.safetyDecision === "eligible_with_caution" || existing.safetyDecision === "eligible_with_caution") {
