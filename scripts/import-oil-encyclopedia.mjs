@@ -54,10 +54,9 @@ export function namespaceSchemaSql(source) {
   for (const view of extractViewNames(source)) {
     const escaped = view;
     const refs = [
-      new RegExp("(\\\\bFROM\\\\s+)" + escaped + "\\\\b", "gi"),
-      new RegExp("(\\\\bJOIN\\\\s+)" + escaped + "\\\\b", "gi"),
-    ];
-    for (const ref of refs) ddl = ddl.replace(ref, "$1" + SCHEMA + "." + view);
+      new RegExp("(\\bFROM\\s+)" + escaped + "\\b", "gi"),
+      new RegExp("(\\bJOIN\\s+)" + escaped + "\\b", "gi"),
+    ];    for (const ref of refs) ddl = ddl.replace(ref, "$1" + SCHEMA + "." + view);
   }
   ddl = ddl.replace(/(\bCREATE\s+VIEW\s+)([a-z_][a-z0-9_]*)/gi, "$1" + SCHEMA + ".$2");
   ddl = ddl.replace(/ON\s+SCHEMA\s+public\b/gi, "ON SCHEMA " + SCHEMA);
@@ -99,6 +98,51 @@ export function normalizeTableRows(tableName, rows) {
     return normalized;
   });
 }
+export function sortTablesByDependencies(tableNames, foreignKeys) {
+  const included = new Set(tableNames);
+  const outgoing = new Map(tableNames.map((name) => [name, new Set()]));
+  const indegree = new Map(tableNames.map((name) => [name, 0]));
+
+  for (const { parentTable, childTable } of foreignKeys) {
+    if (!included.has(parentTable) || !included.has(childTable) || parentTable === childTable) continue;
+    const children = outgoing.get(parentTable);
+    if (!children.has(childTable)) {
+      children.add(childTable);
+      indegree.set(childTable, indegree.get(childTable) + 1);
+    }
+  }
+
+  const ready = tableNames.filter((name) => indegree.get(name) === 0);
+  const ordered = [];
+  while (ready.length) {
+    const current = ready.shift();
+    ordered.push(current);
+    for (const child of outgoing.get(current)) {
+      indegree.set(child, indegree.get(child) - 1);
+      if (indegree.get(child) === 0) ready.push(child);
+    }
+  }
+  if (ordered.length !== tableNames.length) {
+    throw new Error("Foreign-key dependency cycle detected in the active import tables; refusing an unsafe import order.");
+  }
+  return ordered;
+}
+
+async function getForeignKeyDependencies(client) {
+  const result = await client.query(
+    "SELECT parent.relname AS parent_table, child.relname AS child_table " +
+      "FROM pg_constraint constraint_row " +
+      "JOIN pg_class child ON child.oid = constraint_row.conrelid " +
+      "JOIN pg_namespace child_schema ON child_schema.oid = child.relnamespace " +
+      "JOIN pg_class parent ON parent.oid = constraint_row.confrelid " +
+      "JOIN pg_namespace parent_schema ON parent_schema.oid = parent.relnamespace " +
+      "WHERE constraint_row.contype = 'f' AND child_schema.nspname = $1 " +
+      "AND parent_schema.nspname = $1",
+    [SCHEMA],
+  );
+  return result.rows;
+}
+
 export function dataFileToTable(fileName) {
   return basename(fileName, ".json")
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
@@ -295,9 +339,16 @@ async function main() {
     await client.query("BEGIN");
     try {
       await client.query(buildImportDdl(ddl));
+      const fileByTable = new Map(files.map((file) => [dataFileToTable(file), file]));
+      if (fileByTable.size !== files.length) {
+        throw new Error("Duplicate active JSON files resolve to the same SQL table name.");
+      }
+      const tableNames = [...fileByTable.keys()];
+      const dependencies = await getForeignKeyDependencies(client);
+      const importOrder = sortTablesByDependencies(tableNames, dependencies);
       const imported = [];
-      for (const file of files) {
-        const tableName = dataFileToTable(file);
+      for (const tableName of importOrder) {
+        const file = fileByTable.get(tableName);
         const rawRows = JSON.parse(await readFile(join(dataDir, file), "utf8"));
         if (!Array.isArray(rawRows)) throw new Error("Expected an array in " + file + ".");
         const rows = normalizeTableRows(tableName, rawRows);
