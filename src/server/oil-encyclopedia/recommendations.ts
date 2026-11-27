@@ -21,6 +21,11 @@ type EngineCandidate = {
   areaSlugs: string[];
   oilKind: string | null;
   texture: string | null;
+  useFace: string | null;
+  useBody: string | null;
+  useMassage: string | null;
+  useHairShaft: string | null;
+  useScalp: string | null;
   evidenceLevels: string[];
   safetyWarnings: string[];
 };
@@ -114,6 +119,7 @@ export type OilGuideRecommendation = {
   }>;
   oilKind: string | null;
   texture: string | null;
+  verifiedFacts: string[];
   evidenceLevels: string[];
   safetyDecision: "eligible" | "eligible_with_caution";
   safetyWarnings: string[];
@@ -349,7 +355,8 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
 
     const candidateRows = await client.query(
       "SELECT oil_id, oil_name_fa, oil_name_en, scientific_name, recommendation_eligible, safety_decision, " +
-      "concern_ids, category_ids, area_slugs, oil_kind, texture, evidence_levels, safety_warnings " +
+      "concern_ids, category_ids, area_slugs, oil_kind, texture, use_face, use_body, use_massage, " +
+      "use_hair_shaft, use_scalp, evidence_levels, safety_warnings " +
       "FROM oil_encyclopedia.public_guide_recommendation_candidates ORDER BY oil_id",
     );
     const candidates = buildRecommendationCandidatePool(candidateRows.rows as DbRow[]) as EngineCandidate[];
@@ -371,6 +378,13 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
       })),
       oilKind: item.oilKind,
       texture: item.texture,
+      verifiedFacts: [
+        item.useFace ? "کاربرد ثبت‌شده برای پوست صورت: " + item.useFace : "",
+        item.useBody ? "کاربرد ثبت‌شده برای پوست بدن: " + item.useBody : "",
+        item.useMassage ? "کاربرد ثبت‌شده برای ماساژ: " + item.useMassage : "",
+        item.useHairShaft ? "کاربرد ثبت‌شده برای ساقه مو: " + item.useHairShaft : "",
+        item.useScalp ? "کاربرد ثبت‌شده برای پوست سر: " + item.useScalp : "",
+      ].filter(Boolean),
       evidenceLevels: item.evidenceLevels,
       safetyDecision: item.safetyDecision as "eligible" | "eligible_with_caution",
       safetyWarnings: item.safetyWarnings,
