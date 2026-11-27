@@ -95,7 +95,7 @@ SELECT
   m.oil_id, oil.name_fa AS oil_name_fa, oil.name_en AS oil_name_en,
   oil.scientific_name, oil.inci_name, oil.other_names, oil.oil_kind, oil.texture,
   approved_map.problem_id, problem.name_fa AS problem_name_fa,
-  approved_map.show_usage_method, m.sort_order
+  approved_map.evidence_level, approved_map.show_usage_method, m.sort_order
 FROM oil_encyclopedia.oil_guide_mappings m
 JOIN oil_encyclopedia.guide_categories c ON c.id = m.category_id AND c.is_active IS TRUE
 JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
