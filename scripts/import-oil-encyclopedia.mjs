@@ -54,7 +54,17 @@ CREATE TABLE oil_encyclopedia.guide_concerns (
   name_fa TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  review_status TEXT NOT NULL DEFAULT 'needs_human_review' CHECK (review_status IN ('needs_human_review','approved','rejected')),
+  display_status TEXT NOT NULL DEFAULT 'hidden' CHECK (display_status IN ('hidden','published','disabled')),
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  CONSTRAINT guide_concern_review_check CHECK (
+    review_status <> 'approved' OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
+  ),
+  CONSTRAINT guide_concern_publish_check CHECK (
+    display_status <> 'published' OR (review_status = 'approved' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
+  )
 );
 CREATE TABLE oil_encyclopedia.oil_guide_mappings (
   id TEXT PRIMARY KEY,
@@ -86,6 +96,25 @@ CREATE INDEX guide_concerns_category_idx ON oil_encyclopedia.guide_concerns(cate
 CREATE INDEX oil_guide_mappings_category_idx ON oil_encyclopedia.oil_guide_mappings(category_id, display_status, review_status);
 CREATE INDEX oil_guide_mappings_oil_idx ON oil_encyclopedia.oil_guide_mappings(oil_id);
 
+-- Recommendation review is intentionally separate from full profile publication.
+-- Every canonical oil receives a pending review row during import; no oil is auto-approved.
+CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
+  oil_id TEXT PRIMARY KEY REFERENCES oil_encyclopedia.oils(oil_id),
+  review_status TEXT NOT NULL DEFAULT 'needs_human_review'
+    CHECK (review_status IN ('needs_human_review','approved','rejected')),
+  safety_decision TEXT NOT NULL DEFAULT 'pending'
+    CHECK (safety_decision IN ('pending','eligible','eligible_with_caution','excluded')),
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  review_note TEXT NOT NULL DEFAULT '',
+  CONSTRAINT guide_recommendation_review_check CHECK (
+    review_status <> 'approved' OR
+    (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND safety_decision <> 'pending')
+  )
+);
+CREATE INDEX guide_recommendation_reviews_status_idx
+  ON oil_encyclopedia.guide_recommendation_reviews(review_status, safety_decision);
+
 CREATE VIEW oil_encyclopedia.public_guide_oils AS
 SELECT
   m.id AS mapping_id,
@@ -99,7 +128,10 @@ SELECT
 FROM oil_encyclopedia.oil_guide_mappings m
 JOIN oil_encyclopedia.guide_categories c ON c.id = m.category_id AND c.is_active IS TRUE
 JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
-JOIN oil_encyclopedia.guide_concerns n ON n.id = m.concern_id AND n.category_id = c.id AND n.is_active IS TRUE
+JOIN oil_encyclopedia.guide_concerns n
+  ON n.id = m.concern_id AND n.category_id = c.id AND n.is_active IS TRUE
+ AND n.review_status = 'approved' AND n.display_status = 'published'
+ AND n.reviewed_by IS NOT NULL AND n.reviewed_at IS NOT NULL
 JOIN oil_encyclopedia.problem_oil_map source_map
   ON source_map.map_id = m.supporting_record_id
  AND source_map.oil_id = m.oil_id
@@ -114,6 +146,18 @@ WHERE m.supporting_record_type = 'problem_oil_map'
   AND m.display_status = 'published'
   AND m.reviewed_by IS NOT NULL
   AND m.reviewed_at IS NOT NULL;
+
+CREATE VIEW oil_encyclopedia.public_guide_questionnaire_concerns AS
+SELECT n.id, n.category_id, c.slug AS category_slug, a.slug AS area_slug,
+       n.slug, n.name_en, n.name_fa, n.description, n.sort_order
+FROM oil_encyclopedia.guide_concerns n
+JOIN oil_encyclopedia.guide_categories c ON c.id = n.category_id AND c.is_active IS TRUE
+JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
+WHERE n.is_active IS TRUE
+  AND n.review_status = 'approved'
+  AND n.display_status = 'published'
+  AND n.reviewed_by IS NOT NULL
+  AND n.reviewed_at IS NOT NULL;
 
 CREATE VIEW oil_encyclopedia.public_guide_areas AS
 SELECT a.id, a.slug, a.name_en, a.name_fa, a.description, a.seo_title, a.seo_description, a.sort_order,
@@ -146,10 +190,73 @@ WHERE n.is_active IS TRUE
 GROUP BY n.id, n.category_id, c.slug, a.slug, n.slug, n.name_en, n.name_fa,
          n.description, n.sort_order;
 
+CREATE VIEW oil_encyclopedia.public_guide_recommendation_candidates AS
+SELECT
+  o.oil_id,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.name_fa END AS oil_name_fa,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.name_en END AS oil_name_en,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.scientific_name END AS scientific_name,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.oil_kind END AS oil_kind,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.texture END AS texture,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.use_face END AS use_face,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.use_body END AS use_body,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.use_massage END AS use_massage,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.use_hair_shaft END AS use_hair_shaft,
+  CASE WHEN r.review_status = 'approved' AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN p.use_scalp END AS use_scalp,
+  COALESCE(mapped.concern_ids, ARRAY[]::text[]) AS concern_ids,
+  COALESCE(mapped.category_ids, ARRAY[]::text[]) AS category_ids,
+  COALESCE(mapped.area_slugs, ARRAY[]::text[]) AS area_slugs,
+  COALESCE(mapped.evidence_levels, ARRAY[]::text[]) AS evidence_levels,
+  COALESCE(safety.safety_warnings, ARRAY[]::text[]) AS safety_warnings,
+  CASE WHEN r.review_status = 'approved' THEN r.safety_decision ELSE NULL END AS safety_decision,
+  (
+    r.review_status = 'approved'
+    AND r.safety_decision IN ('eligible','eligible_with_caution')
+    AND p.oil_id IS NOT NULL
+    AND COALESCE(cardinality(mapped.concern_ids), 0) > 0
+    AND (
+      r.safety_decision <> 'eligible_with_caution'
+      OR COALESCE(cardinality(safety.safety_warnings), 0) > 0
+    )
+  ) AS recommendation_eligible
+FROM oil_encyclopedia.oils o
+LEFT JOIN oil_encyclopedia.guide_recommendation_reviews r ON r.oil_id = o.oil_id
+LEFT JOIN oil_encyclopedia.public_oil_profiles p
+  ON p.oil_id = o.oil_id
+ AND r.review_status = 'approved'
+ AND r.safety_decision IN ('eligible','eligible_with_caution')
+LEFT JOIN LATERAL (
+  SELECT
+    array_agg(DISTINCT go.concern_id) FILTER (WHERE go.concern_id IS NOT NULL) AS concern_ids,
+    array_agg(DISTINCT go.category_id) FILTER (WHERE go.category_id IS NOT NULL) AS category_ids,
+    array_agg(DISTINCT go.area_slug) FILTER (WHERE go.area_slug IS NOT NULL) AS area_slugs,
+    array_agg(DISTINCT go.evidence_level) FILTER (WHERE COALESCE(go.evidence_level, '') <> '') AS evidence_levels
+  FROM oil_encyclopedia.public_guide_oils go
+  WHERE go.oil_id = o.oil_id
+) mapped ON TRUE
+LEFT JOIN LATERAL (
+  SELECT array_agg(DISTINCT warning.customer_text)
+           FILTER (WHERE COALESCE(btrim(warning.customer_text), '') <> '') AS safety_warnings
+  FROM oil_encyclopedia.public_safety_warnings warning
+  WHERE warning.oil_id = o.oil_id
+) safety ON TRUE;
+
 GRANT SELECT ON oil_encyclopedia.public_guide_areas,
   oil_encyclopedia.public_guide_categories,
   oil_encyclopedia.public_guide_concerns,
-  oil_encyclopedia.public_guide_oils
+  oil_encyclopedia.public_guide_oils,
+  oil_encyclopedia.public_guide_questionnaire_concerns,
+  oil_encyclopedia.public_guide_recommendation_candidates
 TO shahoo_oil_encyclopedia_reader;
 `;
 
@@ -158,6 +265,8 @@ const GUIDE_VIEW_NAMES = [
   "public_guide_categories",
   "public_guide_concerns",
   "public_guide_oils",
+  "public_guide_questionnaire_concerns",
+  "public_guide_recommendation_candidates",
 ];
 
 
@@ -511,8 +620,12 @@ async function seedGuideTaxonomy(client) {
       "JOIN oil_encyclopedia.guide_categories c ON c.id = n.category_id " +
       "ON CONFLICT (id) DO NOTHING",
   );
-  console.log("[oil-import] guide taxonomy: 3 areas, " + categories.length + " categories, " + concerns + " concerns, " + mappings.rowCount + " hidden mappings");
-  return { areas: areas.length, categories: categories.length, concerns, hiddenMappings: mappings.rowCount };
+  const recommendationReviews = await client.query(
+    "INSERT INTO oil_encyclopedia.guide_recommendation_reviews (oil_id) " +
+      "SELECT oil_id FROM oil_encyclopedia.oils ON CONFLICT (oil_id) DO NOTHING",
+  );
+  console.log("[oil-import] guide taxonomy: 3 areas, " + categories.length + " categories, " + concerns + " concerns, " + mappings.rowCount + " hidden mappings, " + recommendationReviews.rowCount + " pending recommendation reviews");
+  return { areas: areas.length, categories: categories.length, concerns, hiddenMappings: mappings.rowCount, pendingRecommendationReviews: recommendationReviews.rowCount };
 }
 
 async function main() {
