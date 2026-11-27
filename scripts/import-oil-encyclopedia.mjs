@@ -73,7 +73,9 @@ CREATE TABLE oil_encyclopedia.oil_guide_mappings (
     (review_status = 'approved' AND display_status = 'published' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
     OR review_status <> 'approved'
   ),
-  UNIQUE (supporting_record_type, supporting_record_id)
+  UNIQUE (supporting_record_type, supporting_record_id),
+  CONSTRAINT oil_guide_mapping_support_fk FOREIGN KEY (supporting_record_id)
+    REFERENCES oil_encyclopedia.problem_oil_map(map_id)
 );
 CREATE INDEX guide_categories_area_idx ON oil_encyclopedia.guide_categories(area_id, sort_order);
 CREATE INDEX guide_concerns_category_idx ON oil_encyclopedia.guide_concerns(category_id, sort_order);
@@ -91,8 +93,8 @@ SELECT
   approved_map.problem_id, problem.name_fa AS problem_name_fa,
   approved_map.show_usage_method, m.sort_order
 FROM oil_encyclopedia.oil_guide_mappings m
-JOIN oil_encyclopedia.guide_areas a ON a.is_active IS TRUE
-JOIN oil_encyclopedia.guide_categories c ON c.id = m.category_id AND c.area_id = a.id AND c.is_active IS TRUE
+JOIN oil_encyclopedia.guide_categories c ON c.id = m.category_id AND c.is_active IS TRUE
+JOIN oil_encyclopedia.guide_areas a ON a.id = c.area_id AND a.is_active IS TRUE
 JOIN oil_encyclopedia.guide_concerns n ON n.id = m.concern_id AND n.category_id = c.id AND n.is_active IS TRUE
 JOIN oil_encyclopedia.problem_oil_map source_map
   ON source_map.map_id = m.supporting_record_id
