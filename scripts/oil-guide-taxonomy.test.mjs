@@ -23,6 +23,15 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.match(ddl, /REFERENCES oil_encyclopedia\.problem_oil_map\(map_id\)/);
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_oils/);
   assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_areas/);
+  assert.match(ddl, /CREATE TABLE oil_encyclopedia\.guide_recommendation_reviews/);
+  assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_questionnaire_concerns/);
+  assert.match(ddl, /CREATE VIEW oil_encyclopedia\.public_guide_recommendation_candidates/);
+  assert.match(ddl, /FROM oil_encyclopedia\.oils o/);
+  assert.match(ddl, /LEFT JOIN oil_encyclopedia\.public_oil_profiles p/);
+  assert.match(ddl, /safety_decision IN \('eligible','eligible_with_caution'\)/);
+  const candidateView = ddl.split("CREATE VIEW oil_encyclopedia.public_guide_recommendation_candidates AS")[1]?.split("GRANT SELECT ON")[0] ?? "";
+  assert.doesNotMatch(candidateView, /oil_product_links|product_variants|inventory|oil_encyclopedia\.products/i);
+
   assert.match(ddl, /TO shahoo_oil_encyclopedia_reader/);
   assert.match(ddl, /review_status TEXT NOT NULL DEFAULT 'needs_human_review'/);
   assert.match(ddl, /display_status TEXT NOT NULL DEFAULT 'hidden'/);
