@@ -55,10 +55,13 @@ export type GuideOilCard = {
   texture: string | null;
   areaSlug: string;
   areaNameFa: string;
+  areaNameEn: string;
   categorySlug: string;
   categoryNameFa: string;
+  categoryNameEn: string;
   concernSlug: string;
   concernNameFa: string;
+  concernNameEn: string;
   problemNameFa: string | null;
   sortOrder: number;
 };
@@ -141,10 +144,13 @@ function mapOil(row: DbRow): GuideOilCard {
     texture: nullableText(row.texture),
     areaSlug: text(row.area_slug),
     areaNameFa: text(row.area_name_fa),
+    areaNameEn: text(row.area_name_en),
     categorySlug: text(row.category_slug),
     categoryNameFa: text(row.category_name_fa),
+    categoryNameEn: text(row.category_name_en),
     concernSlug: text(row.concern_slug),
     concernNameFa: text(row.concern_name_fa),
+    concernNameEn: text(row.concern_name_en),
     problemNameFa: nullableText(row.problem_name_fa),
     sortOrder: number(row.sort_order),
   };
@@ -199,7 +205,7 @@ async function readGuide<T>(
 const areaColumns = "id, slug, name_en, name_fa, description, sort_order, available_oil_count";
 const categoryColumns = "id, area_id, area_slug, parent_id, slug, name_en, name_fa, description, seo_title, seo_description, sort_order, available_oil_count";
 const concernColumns = "id, category_id, category_slug, area_slug, slug, name_en, name_fa, description, sort_order, available_oil_count";
-const oilColumns = "oil_id, oil_name_fa, oil_name_en, scientific_name, inci_name, other_names, oil_kind, texture, area_slug, area_name_fa, category_slug, category_name_fa, concern_slug, concern_name_fa, problem_name_fa, sort_order";
+const oilColumns = "oil_id, oil_name_fa, oil_name_en, scientific_name, inci_name, other_names, oil_kind, texture, area_slug, area_name_fa, area_name_en, category_slug, category_name_fa, category_name_en, concern_slug, concern_name_fa, concern_name_en, problem_name_fa, sort_order";
 
 export async function readOilGuideLanding() {
   return readGuide<GuideArea[]>([], async (client) => {
@@ -297,7 +303,7 @@ export async function searchOilGuideRecords(query: string) {
       " FROM oil_encyclopedia.public_guide_oils " +
       "WHERE oil_name_fa ILIKE $1 OR oil_name_en ILIKE $1 OR COALESCE(scientific_name, '') ILIKE $1 " +
       "OR COALESCE(inci_name, '') ILIKE $1 OR COALESCE(other_names::text, '') ILIKE $1 " +
-      "OR area_name_fa ILIKE $1 OR category_name_fa ILIKE $1 OR concern_name_fa ILIKE $1 " +
+      "OR area_name_fa ILIKE $1 OR area_name_en ILIKE $1 OR category_name_fa ILIKE $1 OR category_name_en ILIKE $1 OR concern_name_fa ILIKE $1 OR concern_name_en ILIKE $1 " +
       "ORDER BY oil_name_fa, sort_order LIMIT 80",
       ["%" + normalized + "%"],
     );
