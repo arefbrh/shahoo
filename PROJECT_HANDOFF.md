@@ -41,6 +41,7 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 
 - Security/legal documentation and the no-new-report-file policy were merged in PR #38. Issues #35 (DDoS/WAF/bot), #36 (licensing/third-party rights) and #37 (oil recommendation integration) are open.
 - Oil recommendation integration is under review in PR #42. It is limited to the existing oil guide; the encyclopedia is not being exposed as a public section of the shop.
+- The importer now qualifies cross-view dependencies, inserts active JSON tables in topological foreign-key order (and refuses dependency cycles), and requires exact target host/database allowlists in addition to the non-production branch confirmation. These safeguards are covered by the PR test suite; full Neon import is still pending.
 - Neon integration branch: `oil-encyclopedia-v32-integration`. Migration #0020 exists there and the mapping table is empty. `pg_trgm` and the NOLOGIN group role `shahoo_oil_encyclopedia_reader` are provisioned there; the full v3.2 bank import has not run.
 - Keep `OIL_ENCYCLOPEDIA_ENABLED=false` until the full import, read-only role, explicit product mappings and data signoff are complete.
 - Continue updating [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) and the relevant GitHub Issues. Do not create new report/status/handoff files.
