@@ -42,6 +42,7 @@ test("v3.2 importer adds a normalized, isolated Oil Guide taxonomy", () => {
   assert.doesNotMatch(candidateView, /public_oil_profiles|oil_encyclopedia\.oil_profiles/i);
   assert.match(candidateView, /FROM oil_encyclopedia\.oil_guide_mappings m/);
   assert.match(candidateView, /JOIN oil_encyclopedia\.public_problem_oils approved_map/);
+  assert.match(candidateView, /n\.category_id = m\.category_id/);
   assert.match(candidateView, /recommendation_candidate_eligible/);
   assert.match(candidateView, /customer_display_approved/);
   assert.match(candidateView, /recommendation_eligible/);
