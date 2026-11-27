@@ -254,12 +254,12 @@ The repository's existing files remain the documentation system of record. Do no
 
 ### Owner-approved scope
 
-The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation proposal: [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42).
+The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation merged via [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42) as `b51be73505b4e43c1e61b0a877d153d3de483b61`.
 
 ### Current application behavior and integration design
 
 - The existing `/oil-guide` uses product-level `oilFinder` metadata (intended use, texture and scent) and a simple score. It does not currently use the encyclopedia.
-- PR #42 adds a separate `oil_product_links` mapping table with `pending/approved/disabled` states. No product-to-oil mappings are inferred or prefilled; approval requires an admin identity and timestamp.
+- Merged PR #42 adds a separate `oil_product_links` mapping table with `pending/approved/disabled` states. No product-to-oil mappings are inferred or prefilled; approval requires an admin identity and timestamp.
 - The encyclopedia reader is opt-in through `OIL_ENCYCLOPEDIA_ENABLED=true` and a separate `OIL_ENCYCLOPEDIA_DATABASE_URL`. It never falls back to the storefront `DATABASE_URL`.
 - The runtime reads only `oil_encyclopedia.public_oil_profiles` and `oil_encyclopedia.public_safety_warnings` in a `READ ONLY` transaction. It does not query base research/audit tables.
 - Existing recommendation scoring remains unchanged. Approved bank facts and safety warnings enrich mapped results; no unapproved narrative is converted into recommendation tags.
@@ -274,16 +274,17 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 
 ### Staging / branch state
 
-- Created isolated Neon branch `oil-encyclopedia-v32-integration` from Staging after aggregate checks found no customer or order rows in the source Staging branch.
+- Created isolated Neon branch `oil-encyclopedia-v32-integration` (`br-raspy-river-b9kyn1t1`) from Staging after aggregate checks found no customer or order rows in the source Staging branch.
 - Applied and verified migration #0020 (`oil_product_links`) on that isolated branch only. The table and indexes exist; mapping row count is **0**. The `pg_trgm` extension and NOLOGIN group role `shahoo_oil_encyclopedia_reader` were also created/verified there; no encyclopedia tables or views have been imported yet.
-- The full v3.2 encyclopedia schema and data have **not** yet been imported into this branch. The dedicated importer has not yet been run against Neon.
-- Integration remains disabled by default. No Vercel environment variable, shared Staging configuration, Production database, Production migration, or deployment was changed.
+- The full v3.2 encyclopedia schema and data have **not** yet been imported into this branch. The dedicated importer has not yet been run against Neon. The reader group is NOLOGIN, non-superuser and non-BYPASSRLS; no dedicated LOGIN reader credential exists.
+- The final PR CI run for head `57f371bdf041c6ed4f8e72f59a16eb786531919b` passed all eight executable jobs (project tests, PostgreSQL integration/migrations, quality, Docker/Compose, migration inventory, security, Windows build/recovery, payment/SMS mocks); the private Manus harness was skipped by design. The package validator still reports SQL execution as `NOT_RUN`.
+- Issue #37 remains open for the outstanding import and staging verification. No Vercel encyclopedia environment variables were added. Recent Vercel deployment history contained no deployment for merge commit `b51be73505b4e43c1e61b0a877d153d3de483b61`; no manual deployment was triggered. Production and shared Staging configuration remain unchanged.
 
 ### Next gates
 
-1. Complete CI and review [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42).
-2. Run the guarded importer against the isolated Neon integration branch only; verify table counts, foreign keys, view definitions, role privileges and zero approved-view rows.
-3. Create a separate login role as a member of `shahoo_oil_encyclopedia_reader`; set `OIL_ENCYCLOPEDIA_DATABASE_URL` only in an approved Staging environment.
-4. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference.
-5. Obtain qualified content/safety signoff before any record can pass the public views. Only then consider enabling the feature in Staging.
-6. Production import, migration and feature activation require a separate explicit owner approval and the normal Production migration/backup gates.
+1. PR #42 is merged and its CI passed; no further PR review is pending for that implementation.
+2. Run the guarded importer against the isolated Neon integration branch only; verify 47 tables, 7 views, row counts, foreign keys, view definitions, role privileges and zero approved-view rows.
+3. Create a separate login role as a member of `shahoo_oil_encyclopedia_reader`; verify it cannot write or access unrelated schemas. Add `OIL_ENCYCLOPEDIA_DATABASE_URL` only to a specifically approved Staging Preview environment; keep the feature flag off until tests pass.
+4. Test the existing recommendation path for missing source, no mapping, ambiguous mapping, unapproved records, safety warnings and synthetic approved fixtures. Existing scoring must remain unchanged.
+5. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference. Obtain qualified content/safety signoff before any record can pass the public views. Only then consider enabling the feature in Staging.
+6. Production import, migration, environment changes and feature activation require separate explicit owner approval and the normal Production migration/backup gates.
