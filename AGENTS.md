@@ -67,3 +67,15 @@ Never claim a test passed unless it ran on the identified source snapshot. Do no
 - Update the relevant Issue with source paths, evidence and remaining limitations. Close it only after acceptance criteria are met.
 - Update [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) when a meaningful implementation, test, release or security fact changes. Do not create another Batch status/handoff document for each iteration.
 - Keep `PROJECT_HANDOFF.md` short and current. Technical details belong in focused runbooks; historical Batch files belong in `docs/archive/`.
+
+
+## 7. Reporting and documentation discipline
+
+- **Do not create new report files, batch reports, status snapshots, handoff documents, audit summaries or duplicate issue registers.** Extend the existing files in place.
+- The canonical current engineering/security/release record is `docs/PROJECT_MASTER_REPORT.md`; the canonical task tracker is GitHub Issues.
+- Update `REMAINING_ISSUES.md` only as a compact index of GitHub Issues, never as a second issue database.
+- Update `PROJECT_HANDOFF.md` only when the next agent's starting state or safety boundary changes; keep it concise.
+- Update the relevant existing focused runbook (for example `docs/SECURITY_HARDENING.md` or `docs/RELEASE_CHECKLIST.md`) when operational instructions change.
+- Before adding any documentation file, search the existing docs and archives. A new file is allowed only when the owner explicitly asks for it or an existing document cannot reasonably hold the material; obtain owner approval first.
+- Prefer append/extend and targeted correction over parallel versions. Preserve historical evidence and do not overwrite it with an unverified current claim.
+- Every agent must record what changed, the exact branch/PR or commit, checks actually executed, deferred checks and remaining risks in the existing master report and linked Issue. Never create a separate report to do so.

@@ -32,6 +32,12 @@ GitHub Issues are the sole live issue tracker. This file is only a compact navig
 - [#31 — Guest stock-hold abuse review](https://github.com/shahoo-workspace/shahoo/issues/31)
 - [#32 — Lower-priority hardening review](https://github.com/shahoo-workspace/shahoo/issues/32)
 - [#33 — Historical Preview OAuth credential rotation and full-history scan](https://github.com/shahoo-workspace/shahoo/issues/33)
+- [#35 — DDoS, bot-abuse, WAF/edge protection and bounded Staging verification](https://github.com/shahoo-workspace/shahoo/issues/35)
+- [#36 — Repository licensing, third-party notices and asset-rights evidence](https://github.com/shahoo-workspace/shahoo/issues/36)
+
+## Product knowledge integration
+
+- [#37 — Connect Oil Encyclopedia v3.2 only to the oil recommendation engine](https://github.com/shahoo-workspace/shahoo/issues/37)
 
 ## Rules
 

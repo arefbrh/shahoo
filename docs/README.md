@@ -51,3 +51,14 @@ Archived files may contain superseded statuses, old test totals and instructions
 ## Cleanup and deletion policy
 
 Do not delete migrations, tests, code, scripts, media, brand assets or history simply because a filename appears old or duplicated. Check current imports, server middleware, Vite plugins, test runners, workflow references, public routes and compatibility fallbacks first. Prefer archival moves for historical evidence. Remove an active file only when it is proven unused and the removal has focused verification.
+
+
+## Security, legal and agent workflow
+
+- [Project Master Report](PROJECT_MASTER_REPORT.md) — current security/legal findings and phased remediation roadmap.
+- [Security hardening guide](SECURITY_HARDENING.md) — controls and explicit verification boundaries; not a penetration-test certificate.
+- [Release checklist](RELEASE_CHECKLIST.md) — includes WAF/DDoS, SBOM, license and asset-rights release gates.
+- [GitHub Issues #33, #35, #36](https://github.com/shahoo-workspace/shahoo/issues) — historical credential, edge/bot protection, licensing and third-party asset rights.
+- [GitHub Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37) — the only current oil-encyclopedia runtime integration: the oil recommendation engine.
+
+All agents must follow the no-new-report-file policy in [AGENTS.md](../AGENTS.md). Extend the existing report and runbooks; do not create parallel reports or handoffs.

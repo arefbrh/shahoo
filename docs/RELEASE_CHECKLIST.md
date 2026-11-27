@@ -2,7 +2,7 @@
 
 این چک‌لیست رسمی باید قبل از معرفی عمومی وب‌سایت `organicshahoo.ir` و شروع فروش تجاری توسط مالک و تیم فنی گام‌به‌گام بررسی و تیک زده شود.
 
-نسخهٔ خودمیزبان در PR #11 ادغام شده است. شواهد فعلی و موارد باز را در گزارش وضعیت و milestone انتشار دنبال کنید. [گزارش وضعیت](PROJECT_STATUS.md) · [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
+نسخهٔ خودمیزبان در PR #11 ادغام شده است. شواهد فعلی و موارد باز را در گزارش وضعیت و milestone انتشار دنبال کنید. [گزارش جامع پروژه](PROJECT_MASTER_REPORT.md) · [Milestone](https://github.com/shahoo-workspace/shahoo/milestone/1)
 
 ---
 
@@ -81,3 +81,18 @@
 - [ ] PayPing and SMS.ir remain disabled until their separate provider checklists are signed off.
 - [ ] Torob feed output is checked against the current provider contract before submission.
 - [ ] CI, TypeScript, lint, all test groups, production build and browser/mobile checkout pass.
+
+
+## فاز ۷: امنیت لبه، DDoS و حقوق توزیع (Edge Security & Legal Gates)
+
+- [ ] **اعتبارنامه تاریخی:** Issue #33 با تأیید provider برای revoke/rotate، بررسی لاگ استفاده و اسکن کامل تاریخچه Git بسته شده است؛ مقدار secret در گزارش درج نشده است.
+- [ ] **WAF و DDoS:** مسیر DNS/CDN/proxy و مالک حفاظت مستند است؛ سیاست WAF/bot management و DDoS provider پیکربندی یا با پذیرش ریسک مالک به‌طور شفاف deferred شده است. Issue #35 باید شواهد و حدود را ثبت کند.
+- [ ] **Rate limiting و abuse:** مسیرهای OTP، admin، checkout، stock hold، search، media و APIهای پرهزینه پوشش و در Staging با داده ساختگی آزموده شده‌اند؛ IP rotation و trusted proxy بررسی شده‌اند.
+- [ ] **آزمون بار:** نتیجه آزمون محدود Staging و ظرفیت/آستانه هشدار ثبت شده است؛ هیچ تست حجمی روی Production اجرا نشده است.
+- [ ] **تصمیم مجوز مخزن:** مالک/بازبین حقوقی نوع انتشار، صاحب حق و متن مجوز را تأیید کرده است؛ هیچ LICENSE حدسی اضافه نشده است.
+- [ ] **SBOM و مجوزها:** فهرست dependencyهای مستقیم/غیرمستقیم، فونت‌ها، تصاویر و سایر دارایی‌ها از نسخه‌های واقعی تهیه و الزامات attribution/NOTICE بررسی شده‌اند.
+- [ ] **دارایی‌های Grok/PWA:** منشأ، مجوز، استفاده تجاری و علائم تجاری بررسی شده و تصمیم مستند مالک درباره نگهداری/جایگزینی/حذف اتخاذ شده است.
+- [ ] **حقوق محتوای SHAHOO:** مالکیت یا مجوز لوگوها، تصاویر محصول، متن‌ها، نقل‌قول‌های علمی و صفحات قانونی ثبت شده است.
+- [ ] **بازبینی حقوقی:** شرایط استفاده، حریم خصوصی، بازگشت کالا و ادعاهای محصول با متخصص حقوقی واجد صلاحیت بازبینی شده‌اند.
+
+پیگیری: [Issue #33](https://github.com/shahoo-workspace/shahoo/issues/33)، [Issue #35](https://github.com/shahoo-workspace/shahoo/issues/35)، [Issue #36](https://github.com/shahoo-workspace/shahoo/issues/36). وجود تیک در این چک‌لیست فقط پس از ثبت مدرک واقعی مجاز است.
