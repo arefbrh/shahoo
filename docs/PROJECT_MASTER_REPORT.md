@@ -364,7 +364,7 @@ This section supersedes any earlier implication that the final Oil Guide should 
 
 - `scripts/oil-guide-recommendations.test.mjs`: 41 canonical candidate rows remain in the pool when only three storefront products are mapped; an unlisted oil can still rank; commerce metadata does not change rank/score; deduplication, safety exclusions, missing attributes, deterministic ordering and fewer-than-three behavior.
 - `scripts/oil-guide-taxonomy.test.mjs`: review/publication gates and the canonical-oil-rooted recommendation view, including the absence of storefront/inventory joins.
-- Automated checks have not yet been run in this record. Their status must be updated from the exact follow-up branch commit/CI result before describing them as passing.
+- CI run #280 on follow-up head `78dbc447ac5350241138e18276a888bba281c9f9` completed successfully. Project tests: 147 passed, 0 failed. Quality/build, PostgreSQL integration and migrations, migration inventory, security checks, Windows native build/recovery, self-host Docker/Compose validation, and payment/SMS mocks all passed. The optional Manus private platform harness was skipped by the workflow. This is CI verification only; it is not a database import or deployment.
 
 ### Data and release limitations
 
