@@ -338,7 +338,7 @@ The importer only creates the 41 pending queue rows. It does not populate or app
 3. Approve the matching `guide_concerns` label for questionnaire display and the relevant `oil_guide_mappings` relationship. A mapping can remain hidden from the full browse page and still be used by the recommender only after its review is approved; a mapping marked disabled is never used.
 4. Populate the narrow snapshot and set the explicit safety decision. Publish the limited recommendation projection only after review.
 
-Illustrative one-oil SQL template (replace every placeholder with source-verified values; do not bulk-approve rows):
+Illustrative one-oil SQL template (replace every placeholder with source-verified values; set any unsupported/absent optional field to NULL or an empty array rather than inferring it; do not bulk-approve rows). This example is for an eligible/caution item; excluded items stay hidden and are not published:
 
 ```sql
 UPDATE oil_encyclopedia.guide_recommendation_reviews
