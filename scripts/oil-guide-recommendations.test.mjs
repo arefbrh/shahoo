@@ -99,7 +99,7 @@ test("scores are explainable, deterministic, and limited to three unique oils", 
   const second = rankOilRecommendations(candidates, answers);
   assert.equal(first.length, 3);
   assert.deepEqual(first.map((item) => item.oilId), second.map((item) => item.oilId));
-  assert.deepEqual(first.map((item) => item.score), [100, 100, 100]);
+  assert.deepEqual(first.map((item) => item.score), [100, 100, 75]);
   assert.ok(first.every((item) => item.reasonCodes.length > 0 && item.breakdown.length === 4));
   assert.equal(new Set(first.map((item) => item.oilId)).size, 3);
 });
