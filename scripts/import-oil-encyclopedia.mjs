@@ -118,6 +118,8 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
   use_massage TEXT,
   use_hair_shaft TEXT,
   use_scalp TEXT,
+  use_traditional TEXT,
+  use_hair_types TEXT,
   evidence_levels TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
@@ -248,6 +250,12 @@ SELECT
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN r.use_scalp END AS use_scalp,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN r.use_traditional END AS use_traditional,
+  CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
+         AND r.safety_decision IN ('eligible','eligible_with_caution')
+       THEN r.use_hair_types END AS use_hair_types,
   CASE WHEN r.review_status = 'approved' AND r.display_status = 'published'
          AND r.safety_decision IN ('eligible','eligible_with_caution')
        THEN COALESCE(mapped.concern_ids, ARRAY[]::text[]) ELSE ARRAY[]::text[] END AS concern_ids,
