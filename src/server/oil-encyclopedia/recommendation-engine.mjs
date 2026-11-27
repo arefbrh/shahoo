@@ -26,7 +26,7 @@
  *   evidenceLevels: string[],
  *   safetyWarnings: string[]
  * }} RecommendationCandidate
- * @typedef {{key: string, weight: number, selected: string[]}} ScoreFactor
+ * @typedef {{key: "concern" | "category" | "area" | "texture", weight: number, selected: string[]}} ScoreFactor
  * @typedef {{key: string, weight: number, selectedCount: number, matchedCount: number, points: number, matchedIds: string[]}} ScoreBreakdown
  * @typedef {{key: string, matchedIds: string[]}} ReasonCode
  * @typedef {{concernIds?: string[], categoryIds?: string[], areaSlugs?: string[], texture?: string}} RecommendationAnswers
@@ -177,7 +177,7 @@ export function rankOilRecommendations(candidates, answers) {
       concern: overlap(selected.concernIds, candidate.concernIds),
       category: overlap(selected.categoryIds, candidate.categoryIds),
       area: overlap(selected.areaSlugs, candidate.areaSlugs),
-      texture: selected.texture && candidate.texture === selected.texture ? [selected.texture] : [],
+      texture: selected.texture ? (candidate.texture === selected.texture ? [selected.texture] : []) : [],
     };
     let weightedPoints = 0;
     /** @type {ScoreBreakdown[]} */
