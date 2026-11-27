@@ -119,6 +119,7 @@ function OilCards({ oils }: { oils: GuideOilCard[] }) {
               <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
                 <span className="rounded-full bg-cream px-2.5 py-1">{oil.categoryNameFa}</span>
                 {oil.concernNameFa ? <span className="rounded-full bg-cream px-2.5 py-1">{oil.concernNameFa}</span> : null}
+                {oil.evidenceLevel ? <span className="rounded-full bg-cream px-2.5 py-1">سطح شواهد: {oil.evidenceLevel}</span> : null}
               </div>
             </Link>
           ))}
