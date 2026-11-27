@@ -443,7 +443,7 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
   }
   const recommendations: OilGuideRecommendation[] = read.data.recommendations.map((item) => ({
     ...item,
-    commerce: commerceByOil.get(item.oilId) ?? { availability: "not_mapped", productHref: null },
+    commerce: commerceByOil.get(item.oilId) ?? { availability: "not_mapped" as const, productHref: null },
   }));
   return {
     status: "ready",
