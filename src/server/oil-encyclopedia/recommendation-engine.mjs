@@ -158,13 +158,13 @@ export function rankOilRecommendations(candidates, answers) {
     areaSlugs: strings(answers?.areaSlugs),
     texture: text(answers?.texture),
   };
-  /** @type {ScoreFactor[]} */
-  const applicable = [
+  const factors = /** @type {ScoreFactor[]} */ ([
     { key: "concern", weight: WEIGHTS.concern, selected: selected.concernIds },
     { key: "category", weight: WEIGHTS.category, selected: selected.categoryIds },
     { key: "area", weight: WEIGHTS.area, selected: selected.areaSlugs },
     { key: "texture", weight: WEIGHTS.texture, selected: selected.texture ? [selected.texture] : [] },
-  ].filter((factor) => factor.selected.length > 0);
+  ]);
+  const applicable = factors.filter((factor) => factor.selected.length > 0);
   const totalWeight = applicable.reduce((sum, factor) => sum + factor.weight, 0);
   if (totalWeight === 0) return [];
 
