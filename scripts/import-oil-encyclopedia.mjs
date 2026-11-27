@@ -445,6 +445,46 @@ async function seedGuideTaxonomy(client) {
     ["سنتی و موضعی", "cat-traditional-topical"],
     ["ماساژ", "cat-massage"],
   ]);
+  const englishConcernLabels = new Map([
+    ["HS-01", "Dryness and roughness of the hair shaft"],
+    ["HS-02", "Hair frizz"],
+    ["HS-03", "Wash-related damage and protein loss (pre-wash context)"],
+    ["HS-04", "Brittleness and split ends"],
+    ["HS-05", "Shine, softness and manageability"],
+    ["HS-06", "Pre-coloring and heat-styling context"],
+    ["SC-01", "Androgenetic alopecia (pattern hair loss)"],
+    ["SC-02", "Alopecia areata"],
+    ["SC-03", "Dandruff"],
+    ["SC-04", "Dry and itchy scalp"],
+    ["SC-05", "Oily scalp"],
+    ["SC-06", "Head lice"],
+    ["SC-07", "Diffuse hair shedding (telogen / scattered shedding)"],
+    ["SC-08", "Scalp sensitivity, burning and irritation"],
+    ["SK-01", "Dry skin"],
+    ["SK-02", "Skin-barrier support / atopic dermatitis context"],
+    ["SK-03", "Acne-prone skin"],
+    ["SK-04", "Stretch marks"],
+    ["SK-05", "Scars and scar appearance"],
+    ["SK-06", "Skin elasticity, wrinkles and skin aging"],
+    ["SK-07", "Infant skin care"],
+    ["SK-08", "Makeup removal and cleansing oil"],
+    ["SK-09", "Lip, hand, cuticle and nail care"],
+    ["SK-10", "Superficial wounds and burns (therapeutic-claim topic)"],
+    ["SK-11", "Superficial skin/nail fungal conditions (therapeutic-claim topic)"],
+    ["SK-12", "Oily and combination skin"],
+    ["SK-13", "Uneven skin tone and dark spots"],
+    ["TR-01", "Traditional Iranian and other traditional uses"],
+    ["TR-02", "Localized muscle and joint discomfort"],
+    ["TR-03", "Topical headache-related use"],
+    ["TR-04", "Nasal congestion and breathing (inhalation)"],
+    ["TR-05", "Localized itching, bites and irritation"],
+    ["TR-06", "Sleep and relaxation (inhalation / topical)"],
+    ["MS-01", "Body massage base oil"],
+    ["MS-02", "Relaxation massage and aromatherapy"],
+    ["MS-03", "Infant massage"],
+    ["MS-04", "Sports and muscle massage"],
+    ["MS-05", "Scalp massage"],
+  ]);
   const applications = await client.query(
     "SELECT app_id, category, name_fa FROM oil_encyclopedia.applications ORDER BY app_id",
   );
@@ -453,8 +493,8 @@ async function seedGuideTaxonomy(client) {
     const categoryId = categoryBySource.get(application.category);
     if (!categoryId || !application.app_id || !application.name_fa) continue;
     await client.query(
-      "INSERT INTO oil_encyclopedia.guide_concerns (id, category_id, source_app_id, slug, name_fa, sort_order) VALUES ($1,$2,$3,$4,$5,$6)",
-      ["concern-" + application.app_id.toLowerCase(), categoryId, application.app_id, application.app_id.toLowerCase(), application.name_fa, concerns * 10],
+      "INSERT INTO oil_encyclopedia.guide_concerns (id, category_id, source_app_id, slug, name_en, name_fa, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+      ["concern-" + application.app_id.toLowerCase(), categoryId, application.app_id, application.app_id.toLowerCase(), englishConcernLabels.get(application.app_id) ?? null, application.name_fa, concerns * 10],
     );
     concerns += 1;
   }
