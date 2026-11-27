@@ -315,7 +315,7 @@ export const oilProductLinks = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    check("oil_product_links_status_check", sql`${table.mappingStatus} IN ('pending', 'approved', 'disabled')`),
+    check("oil_product_links_mapping_status_check", sql`${table.mappingStatus} IN ('pending', 'approved', 'disabled')`),
     check(
       "oil_product_links_approval_check",
       sql`${table.mappingStatus} <> 'approved' OR (${table.verifiedBy} IS NOT NULL AND ${table.verifiedAt} IS NOT NULL)`,
