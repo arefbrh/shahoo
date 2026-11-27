@@ -315,7 +315,7 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 ### Verification and remaining gates
 
 - PR #45 CI is running; its first failed typecheck exposed that TanStack route types must be generated before TypeScript checks. The branch now uses the Vite build as the `pretypecheck` step to regenerate the typed route tree before `tsc`.
-- Vercel Staging build for an earlier branch snapshot `b57ac65` reached READY. It predates the latest route-layout and typecheck fixes and must not be treated as the final candidate deployment.
+- Latest Vercel Staging deployment `dpl_8Mw1Rv3Qv3nzLXn1K7HgyJ7EWRMf` reached READY for PR #45 at commit `c8339cdef2f0be83ea324690f3fc6beea9f922cd`: https://shahoo-cmgssjogm-shahoo.vercel.app/oil-guide. The separate encyclopedia DB is still unimported/unconfigured, so the guide correctly renders its disabled-source state.
 - The complete v3.2 package is still not imported into the isolated Neon branch. The taxonomy DDL/seed code has not yet been executed against that branch; its live PostgreSQL view creation and row-count verification remain unverified.
 - No dedicated login reader, Vercel encyclopedia connection string, enable flag, product mappings or customer-content approvals exist. No Production migration, secret change, feature activation or Production deployment has been performed.
 - The owner is currently using an iPhone and has no Windows PC or ready VPS. The guarded importer helper remains pending until a network-capable environment is available; no connection string should be pasted into chat.
