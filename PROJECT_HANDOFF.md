@@ -1,6 +1,6 @@
 # SHAHOO — Agent Handoff
 
-**Last consolidated:** 2026-11-27  
+**Last consolidated:** 2026-11-28  
 **Repository:** `shahoo-workspace/shahoo`  
 **Default / production branch:** `main`  
 **Current master report:** [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md)  
@@ -8,15 +8,39 @@
 
 ## Start here
 
-1. Read [AGENTS.md](AGENTS.md) for mandatory constraints.
-2. Read [the Project Master Report](docs/PROJECT_MASTER_REPORT.md) for implemented features, architecture, Batch 00–10 history, exact test evidence, security review and current release blockers.
-3. Fetch the current open GitHub Issues and any relevant PR before starting work. Issues are the source of truth for task status and acceptance criteria.
-4. Work on a new branch; submit changes through a single reviewable PR. Do not push directly to `main`.
+1. Read [AGENTS.md](AGENTS.md) for mandatory constraints and the issue/PR, quota and handoff rules.
+2. Read this handoff for the project map, current boundaries and immediate next steps.
+3. Read only the executive summary/current snapshot and the relevant topic section of [the Project Master Report](docs/PROJECT_MASTER_REPORT.md). Do **not** read the entire report or archived Batch history by default.
+4. Check the live GitHub Issues and the specific PR/branch related to the task; Issues are the source of truth for ownership, status and acceptance criteria.
+5. Inspect only the source files, routes, schema, tests and scripts relevant to that Issue. Expand the inspection only when code references or test evidence require it.
+6. Work on a focused branch and submit one reviewable PR linked to the Issue. Do not push directly to `main`.
+
+## Fast start for a replacement agent (ZIP or GitHub)
+
+**Minimum context set:** `AGENTS.md` → `PROJECT_HANDOFF.md` → relevant sections of `docs/PROJECT_MASTER_REPORT.md` → relevant GitHub Issue/PR → task-specific source/tests. Use `docs/README.md` only to locate a focused runbook. This is enough to establish the normal project context; a full repository read is not the expected starting point.
+
+- **With GitHub access:** verify the current default branch and commit, fetch open Issues and relevant PRs, read the linked acceptance criteria, then inspect only the affected paths.
+- **With a ZIP only:** read the five compact context files above (the master report selectively), inspect the top-level tree and `package.json`, then trace only the task-specific routes/imports/schema/tests. Do not bulk-read `docs/archive`, old Batch reports, every component or every test. Live Issue/PR status cannot be confirmed from a ZIP and must be marked unverified until GitHub is available.
+- **Before implementation:** summarize the branch/commit or ZIP snapshot, Issue and acceptance criteria, relevant architecture/files, locally available checks, blockers and unknowns in a few lines. Then proceed without asking the owner to repeat documented project context.
+- **On agent replacement:** the current Issue, this handoff and the Project Master Report are the shared memory. Update them in place when the task materially changes; do not create a new handoff/report for each agent switch.
+
+## Current sources of truth
+
+- GitHub Issues: active tasks, owners, evidence, acceptance criteria and closure state.
+- `AGENTS.md`: non-negotiable engineering, security, collaboration and quota rules.
+- This handoff: compact current start state and boundaries.
+- `docs/PROJECT_MASTER_REPORT.md`: consolidated implementation and verification evidence.
+- Focused runbooks: detailed operational procedures; `docs/README.md` is their index.
+
+Historical sections below may describe the state at the date shown in their heading. Verify current PR/Issue/deployment/database state before acting; do not treat an older dated snapshot as live status.
 
 ## Current state
 
-- PR #11 (self-hosting integration) is merged; PR #19 (repository documentation refresh) is merged.
-- PR #12 (post-merge schema/Release verification) remains Draft; its follow-up checks were deferred by the owner.
+## Current state
+
+- PR #45 (database-driven Oil Guide taxonomy/discovery) and PR #46 (guided 41-oil recommender) are merged to main. The current main snapshot must still be verified before assuming their code is deployed or their data integration is active.
+- PR #12 (post-merge schema/release verification) remains Draft/open; its follow-up checks were deferred by the owner.
+- Governance/agent-continuity policy update is tracked by [Issue #47](https://github.com/shahoo-workspace/shahoo/issues/47).
 - Current root migration history ends at `0019`. The last recorded Production schema is `0016`; Staging/disposable validation was recorded at `0019`.
 - PayPing and SMS.ir are implemented as adapters but not verified against real merchant accounts or Sandbox. Keep Live disabled.
 - Native Windows and Docker self-hosting code is present. A real owner VPS restore/reboot/production rehearsal is still outstanding.
@@ -47,7 +71,7 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 - Continue updating [docs/PROJECT_MASTER_REPORT.md](docs/PROJECT_MASTER_REPORT.md) and the relevant GitHub Issues. Do not create new report/status/handoff files.
 ## Oil Guide taxonomy and discovery implementation — 2026-11-27
 
-- PR #45 (`feat/oil-guide-taxonomy-discovery`) is open. It changes `/oil-guide` into a knowledge-discovery landing page while retaining the existing quick recommendation wizard.
+- PR #45 (`feat/oil-guide-taxonomy-discovery`) was subsequently merged to main. The dated notes in this section describe the implementation and original review context; verify current code/deployment state before acting.
 - New nested routes cover area, category, concern, search and canonical oil profile. Data is fetched server-side through validated TanStack Start server functions; the browser never connects to Neon.
 - The v3.2 importer now creates `guide_areas`, `guide_categories`, `guide_concerns` and `oil_guide_mappings` inside the isolated `oil_encyclopedia` schema. It derives three areas and five categories from the actual `Applications.category` values and creates hidden/pending links from `Problem_Oil_Map` rows.
 - The actual v3.2 category values are `ساقه مو`, `ریشه مو و پوست سر`, `پوست`, `سنتی و موضعی` and `ماساژ`. Roots/scalp remain combined because that is how the source classifies them. No unsupported hair-ends/feet categories or inferred oil/product mappings are created.
@@ -70,10 +94,17 @@ The previous Batch reports and point-in-time handoffs are retained under [docs/a
 
 ## Oil Guide guided recommender follow-up — 2026-11-27
 
-- Follow-up branch: `feat/oil-guide-guided-recommendations`, created from PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`. PR #45 remains unchanged and unmerged.
+- Follow-up branch: `feat/oil-guide-guided-recommendations`, created from the earlier PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`. PR #45 and PR #46 were subsequently merged; this paragraph records the original branch lineage.
 - The primary `/oil-guide` flow is now a Persian RTL, mobile-first staged questionnaire with three ranked compatibility results when at least three eligible oils exist. The taxonomy browser is secondary.
 - Candidate data starts from every canonical encyclopedia oil, not storefront products. A separate pending-by-default review controls a narrow name/attribute snapshot that reviewers must transcribe and approve; it is never auto-filled. Recommendation eligibility, safety decision and limited customer-display approval are distinct fields/gates. Each scored relationship still requires human mapping approval, an approved questionnaire concern and source `public_problem_oils` final signoff. Full profile publication remains separate.
 - Storefront mapping/availability is looked up only after ranking and cannot affect candidate eligibility, score or rank.
 - New focused tests cover the 41-oil pool with only three mapped shop products, unlisted recommendations, safety, missing data, deduplication and deterministic scoring. CI run #280 on the latest code/documentation head passed: 147 project tests, quality/build, PostgreSQL integration/migrations, migration inventory, security, Windows native build/recovery, Docker/Compose and payment/SMS mocks. The optional Manus private platform harness was skipped.
 - The v3.2 import and all recommendation/concern/mapping approvals remain outstanding. The customer questionnaire must remain closed and show the insufficient-approved-data readiness notice until at least three candidates are legitimately recommendation-eligible, safety-cleared and display-approved. No Neon import, Vercel configuration, Staging activation, merge or Production action was performed.
 - Detailed implementation and review-gate notes are in [Oil Guide Product & Design Handoff](docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md) and section 13 of [Project Master Report](docs/PROJECT_MASTER_REPORT.md).
+
+
+## Agent governance update — 2026-11-28
+
+- Material technical problems and substantial tasks must be tracked in GitHub Issues before implementation (after duplicate search), with evidence, scope, acceptance criteria, risks and verification expectations. Update the Issue with the resolving PR/commit and executed checks; close only after merge and acceptance verification.
+- Agents must prefer local/sandbox work, batch coherent changes and avoid unnecessary deployments, repeated pushes, redundant PRs and manual workflow runs. Hosted Preview is reserved for checks that genuinely require hosted runtime. Required gates must never be bypassed to save quota.
+- New agents must use the fast-start path above and targeted file inspection, not full-repository reading. These rules are defined in [AGENTS.md](AGENTS.md) and tracked in [Issue #47](https://github.com/shahoo-workspace/shahoo/issues/47).
