@@ -167,10 +167,17 @@ function CategoryNode({
   );
 }
 
-export function OilGuideLanding({ result }: { result: Result<GuideArea[]> }) {
+export function OilGuideLanding({
+  result,
+  compact = false,
+}: {
+  result: Result<GuideArea[]>;
+  compact?: boolean;
+}) {
   const areas = result.data;
   return (
-    <main className="mx-auto max-w-6xl space-y-10 px-4 py-9 md:py-14">
+    <section className="mx-auto max-w-6xl space-y-10 px-4 py-6 md:py-10">
+      {!compact ? (
       <header className="relative overflow-hidden rounded-[2rem] border border-line bg-paper px-6 py-9 md:px-10 md:py-12">
         <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-cream/80 blur-3xl" aria-hidden="true" />
         <div className="relative max-w-3xl">
@@ -193,11 +200,12 @@ export function OilGuideLanding({ result }: { result: Result<GuideArea[]> }) {
           </form>
         </div>
       </header>
+      ) : null}
 
       <section>
         <SectionHeading
-          eyebrow="EXPLORE BY AREA"
-          title="از کجا می‌خواهید شروع کنید؟"
+          eyebrow={compact ? "BROWSE THE ENCYCLOPEDIA" : "EXPLORE BY AREA"}
+          title={compact ? "مرور موضوعی دانشنامه" : "از کجا می‌خواهید شروع کنید؟"}
           description="هر روغن فقط در دسته‌هایی نمایش داده می‌شود که ارتباط آن در داده‌های دانشنامه ثبت شده و مجوز انتشار عمومی گرفته باشد."
         />
         {areas.length ? (
@@ -227,7 +235,7 @@ export function OilGuideLanding({ result }: { result: Result<GuideArea[]> }) {
           </div>
         ) : <SourceNotice status={result.status} empty={result.status === "ready"} />}
       </section>
-    </main>
+    </section>
   );
 }
 

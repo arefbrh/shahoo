@@ -271,3 +271,101 @@ The next agent should verify these facts against the live GitHub/Neon/Vercel sta
 9. Keep work on a feature branch and open/update a PR. Do not merge or deploy Production.
 
 **Most important acceptance statement:** A customer must be able to answer relevant, source-backed questions and receive three distinct, transparently ranked oil recommendations from the encyclopedia's 41-oil knowledge base, regardless of whether those oils are currently listed or in stock in the SHAHOO shop. The customer experience should be redesigned around this outcome.
+
+
+---
+
+## 11. Guided recommender implementation — 2026-11-27
+
+The implementation is being continued on `feat/oil-guide-guided-recommendations`, created from the inspected PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`. PR #45 remains open and unchanged.
+
+### Customer experience
+
+- `/oil-guide` now leads with a Persian RTL, mobile-first progressive questionnaire rather than the old product-only recommender or a taxonomy directory.
+- The customer selects one or more source-backed areas, then relevant categories, optionally approved concerns, and an optional texture only when reviewed candidate data actually supplies texture values. The questionnaire stays closed until at least three oils are fully recommendation-eligible and approved for customer display, so a customer is never invited through a flow that cannot return the required three results.
+- Answers survive back/edit navigation. The flow has progress, multi-select, optional steps, loading, disabled/unavailable-source, insufficient-approved-data and no-match states.
+- The result component is designed for exactly three distinct ranked oils. It displays a 0–100 compatibility score, answer-linked reasons, factor breakdown, reviewed profile facts, approved safety warnings, evidence labels where present, and separate commerce availability.
+- The existing taxonomy pages/search remain a secondary browse path. The old storefront-only recommender component is retained in the repository but is no longer the primary Oil Guide experience.
+
+### Recommendation candidate and review architecture
+
+The importer now creates two additional read-only guide views and an explicit review table:
+
+- `guide_recommendation_reviews`: one pending review row is seeded for every canonical row in `oil_encyclopedia.oils`. Defaults are `review_status=needs_human_review`, `recommendation_status=pending`, `safety_decision=pending`, and `display_status=hidden`. Its narrow name/attribute snapshot fields are NULL by default and must be copied from source and reviewed by an authorized human; import never auto-populates or approves them.
+- `public_guide_questionnaire_concerns`: exposes only concern labels whose separate taxonomy review is approved and published.
+- `public_guide_recommendation_candidates`: starts from the full canonical `oils` table and LEFT JOINs the recommendation review. It returns the canonical oil ID for every source oil, but returns names and structured profile fields only after the separate recommender review is approved and published.
+
+Recommendation eligibility, safety approval, customer display approval and commerce availability are separate states:
+
+1. `review_status=approved` plus reviewer/timestamp and `recommendation_status=eligible` records the human recommendation review. `safety_decision` must independently be `eligible` or `eligible_with_caution`; excluded or pending safety decisions never score.
+2. The limited customer-facing snapshot is published separately through `display_status=published`. It contains only the manually transcribed/reviewed name and structured facts used by the questionnaire/result. The view exposes `recommendation_candidate_eligible` and `customer_display_approved` independently; final `recommendation_eligible` is true only when both are true.
+3. At least one source-provenanced `oil_guide_mappings` relationship has human review approval, joins to an approved/published questionnaire concern and its source `Problem_Oil_Map` row, and also passes the source `public_problem_oils` final-signoff view.
+4. A caution decision has at least one approved customer-facing safety warning.
+
+This is deliberately separate from full `public_oil_profiles` publication: the limited recommender snapshot is separately transcribed/reviewed and does not depend on the full profile display approval. The source `public_problem_oils` final-signoff gate is still required for every concern mapping. The new concern-label review gate applies only to the new questionnaire/recommender views; the existing PR #45 `public_guide_oils` browse projection retains its prior behavior. Detailed encyclopedia browse/profile pages continue to require their existing full profile and public mapping sign-offs; those gates are not bypassed. The read-only web role receives SELECT only on the approved guide views, never on the review table, base profile/research tables, or raw taxonomy tables.
+
+The candidate view has no join to storefront products, `oil_product_links`, variants or inventory. Therefore it can return all 41 canonical IDs even if the shop has only three products (or none). The storefront lookup is a separate post-ranking enrichment for the three selected results only.
+
+### Scoring behavior
+
+The initial configurable weights are:
+
+| Answer factor | Weight |
+|---|---:|
+| Exact approved concern relationship | 60 |
+| Approved category relationship | 25 |
+| Approved area relationship | 10 |
+| Exact reviewed texture preference | 5 |
+
+Only factors the customer actually answered participate in the denominator. For multi-select factors, the earned fraction is the number of selected values matched by the oil divided by the number selected. Missing oil attributes earn zero for that answered factor; missing data is never a positive match. Scores are rounded to an integer and normalized across answered factors.
+
+Safety is an eligibility gate, not a score bonus. Oils are deduplicated by canonical ID. Results sort by score descending and then canonical oil ID for deterministic ties. The engine returns three only when at least three eligible oils have a positive match; it never pads the list. The displayed value is a rule-based compatibility score, not clinical efficacy or probability.
+
+### Tests and current operational boundary
+
+- `scripts/oil-guide-recommendations.test.mjs` covers the 41-candidate/three-store-products scenario, a recommended oil with no storefront mapping, deduplication, hard safety exclusions, missing attributes, deterministic ranking and the fewer-than-three case.
+- `scripts/oil-guide-taxonomy.test.mjs` covers the isolated review tables/views, publication gates, canonical-oil-rooted candidate view and absence of storefront/inventory dependencies.
+- The v3.2 import, recommendation review approvals, questionnaire concern approvals and recommendation mapping approvals have not been run or granted in a live database. The current source snapshot has no final-approved full oil profiles or public problem-oil mappings. Until the separate recommender fields/relationships are explicitly reviewed, the live customer flow must show the honest insufficient-approved-data state rather than fabricate results.
+- No shared database import, Vercel secret/flag change, Staging feature activation, Production change, merge or Production deployment is part of this implementation.
+
+
+### Controlled data-review sequence (not executed)
+
+The importer only creates the 41 pending queue rows. It does not populate or approve the customer-facing snapshot. An authorized encyclopedia reviewer must work one canonical oil at a time:
+
+1. Verify the source identity and each proposed recommender fact against the source dossier; record source references in `review_note`.
+2. Complete the existing source publication/signoff workflow for the underlying `Problem_Oil_Map` row so it appears in `public_problem_oils`. The recommender view explicitly requires this source signoff.
+3. Approve the matching `guide_concerns` label for questionnaire display and the relevant `oil_guide_mappings` relationship. A mapping can remain hidden from the full browse page and still be used by the recommender only after its review is approved; a mapping marked disabled is never used.
+4. Populate the narrow snapshot and set the explicit safety decision. Publish the limited recommendation projection only after review.
+
+Illustrative one-oil SQL template (replace every placeholder with source-verified values; set any unsupported/absent optional field to NULL or an empty array rather than inferring it; do not bulk-approve rows). This example is for an eligible/caution item; excluded items stay hidden and are not published:
+
+```sql
+UPDATE oil_encyclopedia.guide_recommendation_reviews
+SET review_status = 'approved',
+    recommendation_status = 'eligible', -- or excluded after review
+    safety_decision = 'eligible', -- or eligible_with_caution / excluded after review
+    display_status = 'published', -- keep hidden for excluded or not-yet-published items
+    name_fa = '<verified Persian name>',
+    name_en = '<verified English name>',
+    scientific_name = '<verified scientific name>',
+    oil_kind = '<verified oil kind>',
+    texture = '<verified texture>',
+    use_face = '<verified source value>',
+    use_body = '<verified source value>',
+    use_massage = '<verified source value>',
+    use_hair_shaft = '<verified source value>',
+    use_scalp = '<verified source value>',
+    use_traditional = '<verified source value>',
+    use_hair_types = '<verified source value>',
+    evidence_levels = ARRAY['<verified evidence label>']::text[],
+    source_version = '<reviewed source version>',
+    source_record_ref = '<source table and canonical record ID>',
+    reviewed_by = '<authorized reviewer>',
+    reviewed_at = NOW(),
+    review_note = '<source table and record references>'
+WHERE oil_id = '<canonical oil ID>'
+  AND review_status = 'needs_human_review';
+```
+
+For a caution decision, an approved customer-facing safety warning must also exist; otherwise the candidate view keeps that oil ineligible. The `public_problem_oils` signoff is an independent source gate and is not changed by this statement. The detailed `public_oil_profiles` publication workflow also remains independent. None of these statements was run as part of PR #46.
