@@ -374,3 +374,30 @@ This section supersedes any earlier implication that the final Oil Guide should 
 
 ### Oil Guide acceptance follow-up — PR #46
 Ranking requires a selected category and, when supplied, a selected concern. Only active concern relationships enter the candidate projection. Published snapshots require a source version, record reference and review note. Optional questions follow the selected categories and topics. Verification covers context-only rejection, active concern filtering and provenance constraints. The isolated v3.2 import and human approval of customer content remain open in #37.
+
+
+## 14. Agent governance, quota discipline and context handoff — 2026-11-28
+
+This policy update is tracked by [Issue #47](https://github.com/shahoo-workspace/shahoo/issues/47) and is defined operationally in [AGENTS.md](../AGENTS.md). It applies to the owner, maintainers and all AI coding agents.
+
+### Issue-first work and closure
+
+- Material bugs, security/reliability/performance findings, architectural concerns, technical debt and substantial implementation tasks must be duplicate-checked and represented by a GitHub Issue before implementation.
+- Each Issue records evidence/context, impact, scope/non-goals, acceptance criteria, dependencies/risks and expected verification. The corresponding existing technical docs/runbooks retain the durable technical explanation; the Issue remains the canonical task tracker.
+- When resolved, update the Issue with the linked PR/commit, checks actually run, acceptance results and remaining risk. Close only after merge and verification. Unresolved or blocked findings remain open with an explicit reason. Trivial changes may be included in an existing Issue/PR.
+
+### Quota-aware execution
+
+- Perform investigation, reproduction and proportionate tests in the agent's local/sandbox environment first. Batch coherent changes and push when a reviewable checkpoint is ready.
+- Avoid unnecessary deployments, repeated Preview deployments, manual workflow reruns, duplicate branches/PRs, repeated push cycles and noisy status activity. Use hosted Preview only when the behavior under test requires it.
+- Run focused local checks first and use one appropriate CI checkpoint for the PR. Never weaken or bypass required checks, release controls or security gates to save quota. No live provider or Production operations are authorized by this process rule.
+
+### Fast onboarding and continuity
+
+- Replacement agents receive a progressive reading path: AGENTS.md, PROJECT_HANDOFF.md, relevant portions of this report, docs/README.md only as an index, then the specific Issue/PR and task-related source/tests. Archived Batch reports and unrelated code are not mandatory onboarding material.
+- ZIP-only agents start from the same compact context files and package.json, inspect the top-level tree, and then trace only task-specific paths. They must not bulk-read the repository. Lack of live GitHub access must be reported as an unknown, not guessed.
+- PROJECT_HANDOFF.md is the concise shared start point; this report remains the single implementation/verification record; GitHub Issues remain the task tracker. Do not create a new report/handoff for each agent switch.
+
+### Scope and verification of this update
+
+This is a documentation/governance change only. It does not alter application code, CI workflows, deployment configuration, environment variables, database state, provider credentials or Production. No deployment or manual workflow run is part of this change. Acceptance is verified by reviewing consistency across AGENTS.md, PROJECT_HANDOFF.md and this section; runtime/build tests are not applicable to the documentation-only change.
