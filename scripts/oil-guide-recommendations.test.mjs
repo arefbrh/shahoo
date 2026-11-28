@@ -132,3 +132,12 @@ test("fewer than three legitimately eligible matches are not padded", () => {
   });
   assert.deepEqual(results, []);
 });
+
+test("a texture or shared area cannot substitute for the selected category or concern", () => {
+  const candidates = buildRecommendationCandidatePool(fixtureOils(8));
+  for (const [category, concern] of [["missing", "concern-hair"], ["category-hair", "missing"]]) {
+    assert.deepEqual(rankOilRecommendations(candidates, {
+      areaSlugs: ["hair"], categoryIds: [category], concernIds: [concern], texture: "rich",
+    }), []);
+  }
+});

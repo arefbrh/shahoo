@@ -185,6 +185,8 @@ export function rankOilRecommendations(candidates, answers) {
       area: overlap(selected.areaSlugs, candidate.areaSlugs),
       texture: selected.texture ? (candidate.texture === selected.texture ? [selected.texture] : []) : [],
     };
+    // Preferences only order oils with a reviewed relationship to the selected need.
+    if (!matches.category.length || (selected.concernIds.length && !matches.concern.length)) continue;
     let weightedPoints = 0;
     /** @type {ScoreBreakdown[]} */
     const breakdown = [];

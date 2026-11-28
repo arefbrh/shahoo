@@ -371,3 +371,6 @@ This section supersedes any earlier implication that the final Oil Guide should 
 - The v3.2 source still has no final-approved full oil profiles or public problem-oil mappings. The recommendation-specific snapshot rows and concern/mapping approvals are pending/hidden; no source approval is bypassed or fabricated.
 - The full source import and SQL execution against the isolated Neon branch remain outstanding. The customer questionnaire remains closed and shows an insufficient-approved-data readiness notice until at least three oils and their source-backed relationships pass the separate recommendation, safety and display reviews.
 - PR #45's Staging preview, disabled source state and all existing production/release boundaries remain untouched.
+
+### Oil Guide acceptance follow-up — PR #46
+Ranking requires a selected category and, when supplied, a selected concern. Only active concern relationships enter the candidate projection. Published snapshots require a source version, record reference and review note. Optional questions follow the selected categories and topics. Verification covers context-only rejection, active concern filtering and provenance constraints. The isolated v3.2 import and human approval of customer content remain open in #37.

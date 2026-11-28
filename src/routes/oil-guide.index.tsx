@@ -6,7 +6,7 @@ import { getOilGuideLanding } from "@/server/oil-guide/api";
 import { getOilGuideQuestionnaire } from "@/server/oil-guide/recommendations-api";
 import { getSeoOrigin } from "@/server/seo/api";
 
-export const Route = createFileRoute("/oil-guide")({
+export const Route = createFileRoute("/oil-guide/")({
   loader: async () => {
     const [origin, discovery, questionnaire] = await Promise.all([
       getSeoOrigin(),

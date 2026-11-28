@@ -94,7 +94,7 @@ export type OilGuideQuestionnaireData = {
   concerns: QuestionnaireConcern[];
   totalCanonicalOils: number;
   eligibleOilCount: number;
-  textureOptions: string[];
+  textureOptions: Array<{ texture: string; categoryIds: string[]; concernIds: string[] }>;
 };
 
 export type OilGuideAnswers = {
@@ -242,7 +242,7 @@ export async function readOilGuideQuestionnaire() {
       "FROM oil_encyclopedia.public_guide_recommendation_candidates",
     );
     const textures = await client.query(
-      "SELECT DISTINCT texture FROM oil_encyclopedia.public_guide_recommendation_candidates " +
+      "SELECT DISTINCT texture, category_ids, concern_ids FROM oil_encyclopedia.public_guide_recommendation_candidates " +
       "WHERE recommendation_eligible IS TRUE AND texture IS NOT NULL AND btrim(texture) <> '' ORDER BY texture",
     );
     return {
@@ -251,7 +251,11 @@ export async function readOilGuideQuestionnaire() {
       concerns: concerns.rows.map(mapConcern),
       totalCanonicalOils: valueNumber(stats.rows[0]?.total_count),
       eligibleOilCount: valueNumber(stats.rows[0]?.eligible_count),
-      textureOptions: textures.rows.map((row: DbRow) => valueText(row.texture)).filter(Boolean),
+      textureOptions: textures.rows.map((row) => ({
+        texture: valueText(row.texture),
+        categoryIds: row.category_ids as string[],
+        concernIds: row.concern_ids as string[],
+      })),
     };
   });
 }
@@ -316,7 +320,7 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
       "SELECT id, category_id, name_fa FROM oil_encyclopedia.public_guide_questionnaire_concerns ORDER BY sort_order",
     );
     const textureRows = await client.query(
-      "SELECT DISTINCT texture FROM oil_encyclopedia.public_guide_recommendation_candidates " +
+      "SELECT DISTINCT texture, category_ids, concern_ids FROM oil_encyclopedia.public_guide_recommendation_candidates " +
       "WHERE recommendation_eligible IS TRUE AND texture IS NOT NULL AND btrim(texture) <> '' ORDER BY texture",
     );
     const areas = areaRows.rows.map((row: DbRow) => ({
@@ -333,7 +337,10 @@ export async function recommendOilGuide(answers: OilGuideAnswers): Promise<OilGu
       categoryId: valueText(row.category_id),
       nameFa: valueText(row.name_fa),
     }));
-    const textures = textureRows.rows.map((row: DbRow) => valueText(row.texture)).filter(Boolean);
+    const textures = textureRows.rows.filter((row) =>
+      row.category_ids.some((id: string) => answers.categoryIds.includes(id)) &&
+      (!answers.concernIds.length || row.concern_ids.some((id: string) => answers.concernIds.includes(id)))
+    ).map((row) => valueText(row.texture));
     const areaSet = new Set(areas.map((item) => item.slug));
     const categoryMap = new Map(categories.map((item) => [item.id, item]));
     const concernMap = new Map(concerns.map((item) => [item.id, item]));

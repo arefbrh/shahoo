@@ -77,15 +77,15 @@ function SourceState({ status }: { status: "disabled" | "unavailable" }) {
         {disabled ? <Leaf className="h-6 w-6" /> : <CircleAlert className="h-6 w-6" />}
       </div>
       <h2 className="mt-4 text-lg font-bold text-forest">
-        {disabled ? "بانک دانشنامه به این محیط متصل نیست" : "ارتباط با بانک دانشنامه برقرار نشد"}
+        {disabled ? "راهنمای انتخاب روغن به‌زودی آماده می‌شود" : "راهنما موقتاً در دسترس نیست"}
       </h2>
       <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">
         {disabled
-          ? "برای حفظ دقت پیشنهادها، راهنما تا زمان اتصال منبع جداگانه و فقط‌خواندنی، روغنی را حدس نمی‌زند و از فهرست فروشگاه به‌عنوان جایگزین استفاده نمی‌کند."
+          ? "پس از بررسی اطلاعات روغن‌ها می‌توانید نیازتان را انتخاب کنید و پیشنهادهای مناسب را ببینید. در این فاصله می‌توانید محصولات فروشگاه را مرور کنید."
           : "در حال حاضر امکان خواندن اطلاعات تأییدشده وجود ندارد. برای جلوگیری از پیشنهاد بر پایه داده ناقص، نتیجه‌ای ساخته نشده است. لطفاً بعداً دوباره تلاش کنید."}
       </p>
-      <a href="/oil-guide/search" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-forest underline decoration-gold underline-offset-4">
-        مرور محتوای قابل انتشار
+      <a href="/products" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-forest underline decoration-gold underline-offset-4">
+        مشاهده محصولات فروشگاه
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       </a>
     </div>
@@ -167,7 +167,7 @@ function RecommendationCard({
           {recommendation.scientificName ? <p className="mt-1 text-xs text-muted" dir="ltr">{recommendation.scientificName}</p> : null}
         </div>
 
-        <div className="h-2 overflow-hidden rounded-full bg-cream" aria-label={"امتیاز تطابق " + recommendation.score}>
+        <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={recommendation.score} className="h-2 overflow-hidden rounded-full bg-cream" aria-label={"امتیاز تطابق " + recommendation.score}>
           <div className="h-full rounded-full bg-gold" style={{ width: recommendation.score + "%" }} />
         </div>
 
@@ -253,10 +253,12 @@ function RecommendationCard({
 
 function ResultPanel({
   result,
+  selections,
   onEdit,
   onReset,
 }: {
   result: OilGuideRecommendationResult;
+  selections: string[];
   onEdit: () => void;
   onReset: () => void;
 }) {
@@ -292,7 +294,7 @@ function ResultPanel({
     return (
       <div className="rounded-3xl border border-line bg-white p-6">
         <h3 className="font-bold text-forest">برای این ترکیب انتخاب، سه تطابق معتبر پیدا نشد</h3>
-        <p className="mt-2 text-sm leading-7 text-muted">می‌توانید پاسخ‌ها را تغییر دهید. امتیاز پایین یا نبود اطلاعات به‌عنوان تطابق مثبت در نظر گرفته نمی‌شود.</p>
+        <p className="mt-2 text-sm leading-7 text-muted">انتخاب‌هایتان را مرور کنید یا یک موضوع دیگر را امتحان کنید.</p>
         <button type="button" onClick={onEdit} className="mt-4 rounded-xl bg-forest px-4 py-2 text-sm font-semibold text-white">ویرایش پاسخ‌ها</button>
       </div>
     );
@@ -304,10 +306,14 @@ function ResultPanel({
         <p className="text-xs font-bold text-gold">نتیجه راهنمای روغن شاهو</p>
         <h2 className="mt-2 text-2xl font-bold">سه پیشنهاد بر اساس انتخاب‌های شما</h2>
         <p className="mt-2 text-sm leading-7 text-white/75">
-          این رتبه‌بندی از اطلاعات ساختاریافته و تأییدشده ساخته شده است. امتیاز، میزان تطابق با پاسخ‌های شماست؛ نه درصد اثربخشی پزشکی، احتمال موفقیت یا توصیه تشخیصی و درمانی.
+          امتیاز از ۱۰۰ نشان می‌دهد هر روغن چقدر با انتخاب‌های شما هماهنگ است. این عدد اثر درمانی را اندازه نمی‌گیرد.
         </p>
       </div>
-      <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-semibold text-forest">انتخاب‌های شما</span>
+        {selections.map((label) => <span key={label} className="rounded-full bg-cream px-3 py-1 text-forest">{label}</span>)}
+      </div>
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         {result.recommendations.map((recommendation, index) => (
           <RecommendationCard key={recommendation.oilId} recommendation={recommendation} rank={index + 1} />
         ))}
@@ -335,7 +341,7 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<OilGuideRecommendationResult | null>(null);
 
-  const { areas, categories, concerns, totalCanonicalOils, eligibleOilCount, textureOptions } = initialData.data;
+  const { areas, categories, concerns, totalCanonicalOils, eligibleOilCount, textureOptions: reviewedTextures } = initialData.data;
   const visibleCategories = useMemo(
     () => categories.filter((category) => selectedAreas.includes(category.areaSlug)),
     [categories, selectedAreas],
@@ -344,12 +350,16 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
     () => concerns.filter((concern) => selectedCategories.includes(concern.categoryId)),
     [concerns, selectedCategories],
   );
+  const textureOptions = [...new Set(reviewedTextures.filter((item) =>
+    item.categoryIds.some((id) => selectedCategories.includes(id)) &&
+    (!selectedConcerns.length || item.concernIds.some((id) => selectedConcerns.includes(id)))
+  ).map((item) => item.texture))];
   const steps = useMemo<Step[]>(() => [
     { key: "area", label: "ناحیه" },
     { key: "category", label: "دسته" },
-    ...(concerns.length ? [{ key: "concern" as const, label: "موضوع" }] : []),
+    ...(visibleConcerns.length ? [{ key: "concern" as const, label: "موضوع" }] : []),
     ...(textureOptions.length ? [{ key: "texture" as const, label: "بافت" }] : []),
-  ], [concerns.length, textureOptions.length]);
+  ], [visibleConcerns.length, textureOptions.length]);
   const currentStep = steps[stepIndex]?.key ?? "area";
   const readyForQuestionnaire =
     initialData.status === "ready" &&
@@ -399,7 +409,7 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
           areaSlugs: selectedAreas,
           categoryIds: selectedCategories,
           concernIds: selectedConcerns,
-          texture,
+          texture: textureOptions.includes(texture) ? texture : "",
         },
       });
       setResult(response);
@@ -436,18 +446,10 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
         <div className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -left-5 -top-10 h-40 w-40 rounded-full border border-white/10" />
         <div className="relative max-w-3xl">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-gold">
-            <Leaf className="h-4 w-4" aria-hidden="true" />
-            SHAHOO · OIL GUIDE
-          </div>
-          <h1 className="mt-4 text-3xl font-bold leading-tight md:text-4xl">روغن مناسب انتخاب‌های شما، نه صرفاً روغن موجود در فروشگاه</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-8 text-white/75 md:text-base">
-            چند پرسش کوتاه را پاسخ دهید تا اطلاعات تأییدشده دانشنامه بر اساس ناحیه، دسته و موضوع انتخابی شما بررسی و سه گزینه قابل مقایسه رتبه‌بندی شود.
+          <h1 className="text-3xl font-bold leading-tight md:text-5xl">راهنمای انتخاب روغن شاهو</h1>
+          <p className="mt-4 max-w-xl leading-8 text-white/85">
+            برای کدام ناحیه به دنبال روغن هستید؟ با انتخاب ناحیه و نیازتان، سه روغن را همراه با دلیل پیشنهاد و نکات ایمنی مقایسه کنید.
           </p>
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/80">
-            <ShieldCheck className="h-4 w-4 text-gold" aria-hidden="true" />
-            پیشنهادها فقط از داده‌های تأییدشده ساخته می‌شوند
-          </div>
         </div>
       </section>
 
@@ -461,20 +463,25 @@ export function OilGuideQuestionnaire({ initialData }: { initialData: InitialDat
               <h2 className="font-bold text-forest">گزینه‌های پرسش‌نامه هنوز آماده نیستند</h2>
               <p className="mt-2 text-sm leading-7 text-muted">
                 {totalCanonicalOils === 0
-                  ? "در این محیط هنوز روغن canonical از دانشنامه بارگذاری نشده است. تا زمان اتصال داده واقعی، پرسش‌نامه و پیشنهاددهی فعال نمی‌شوند."
+                  ? "اطلاعات روغن‌ها هنوز برای این راهنما آماده نشده است."
                   : eligibleOilCount < 3
                     ? "پرسش‌نامه تا زمانی که دست‌کم سه روغن با اطلاعات، ایمنی، ارتباط‌های منبع‌دار و مجوز نمایش تأیید نشوند، برای مشتری فعال نمی‌شود."
                     : "دسته‌ها و ناحیه‌های قابل استفاده باید از منبع دانشنامه خوانده شوند. هیچ گزینه‌ای به‌صورت دستی یا حدسی به پرسش‌نامه اضافه نشده است."}
               </p>
             </div>
           ) : result ? (
-            <ResultPanel result={result} onEdit={editAnswers} onReset={reset} />
+            <ResultPanel result={result} selections={[...new Set([
+              ...areas.filter((area) => selectedAreas.includes(area.slug)).map((area) => area.nameFa),
+              ...visibleCategories.filter((category) => selectedCategories.includes(category.id)).map((category) => category.nameFa),
+              ...visibleConcerns.filter((concern) => selectedConcerns.includes(concern.id)).map((concern) => concern.nameFa),
+              ...(textureOptions.includes(texture) ? [texture] : []),
+            ])]} onEdit={editAnswers} onReset={reset} />
           ) : (
             <section className="rounded-[2rem] border border-line bg-white p-5 shadow-sm md:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold text-gold">پرسش‌نامه مرحله‌ای</p>
-                  <h2 className="mt-1 text-xl font-bold text-forest">برای شروع، انتخاب‌های خود را مشخص کنید</h2>
+                  <h2 className="mt-1 text-xl font-bold text-forest">{steps[stepIndex]?.label}</h2>
                 </div>
                 <span className="rounded-full bg-cream px-3 py-1.5 text-xs font-semibold text-forest">
                   مرحله {((stepIndex + 1).toLocaleString("fa-IR"))} از {steps.length.toLocaleString("fa-IR")}

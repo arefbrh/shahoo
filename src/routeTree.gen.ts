@@ -47,6 +47,9 @@ import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiMediaUploadRouteImport } from './routes/api.media-upload'
 import { Route as MagazineIndexRouteImport } from './routes/magazine.index'
 import { Route as MagazineArticleIdRouteImport } from './routes/magazine.$articleId'
+import { Route as OilGuideIndexRouteImport } from './routes/oil-guide.index'
+import { Route as OilGuideAreaSlugRouteImport } from './routes/oil-guide.$areaSlug'
+import { Route as OilGuideSearchRouteImport } from './routes/oil-guide.search'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
 import { Route as PagesPageSlugRouteImport } from './routes/pages.$pageSlug'
 import { Route as ProductProductIdRouteImport } from './routes/product.$productId'
@@ -56,8 +59,11 @@ import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.inde
 import { Route as AdminOrdersCodeRouteImport } from './routes/admin.orders.$code'
 import { Route as ApiTorobProductsRouteImport } from './routes/api.torob.products'
 import { Route as MediaFileAssetIdRouteImport } from './routes/media.file.$assetId'
+import { Route as OilGuideAreaSlugCategorySlugRouteImport } from './routes/oil-guide.$areaSlug.$categorySlug'
+import { Route as OilGuideOilsOilSlugRouteImport } from './routes/oil-guide.oils.$oilSlug'
 import { Route as AdminContentPreviewEntityTypeEntityIdRouteImport } from './routes/admin.content-preview.$entityType.$entityId'
 import { Route as ApiPaymentPaypingCallbackRouteImport } from './routes/api.payment.payping.callback'
+import { Route as OilGuideAreaSlugCategorySlugConcernSlugRouteImport } from './routes/oil-guide.$areaSlug.$categorySlug.$concernSlug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -249,6 +255,21 @@ const MagazineArticleIdRoute = MagazineArticleIdRouteImport.update({
   path: '/$articleId',
   getParentRoute: () => MagazineRoute,
 } as any)
+const OilGuideIndexRoute = OilGuideIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OilGuideRoute,
+} as any)
+const OilGuideAreaSlugRoute = OilGuideAreaSlugRouteImport.update({
+  id: '/$areaSlug',
+  path: '/$areaSlug',
+  getParentRoute: () => OilGuideRoute,
+} as any)
+const OilGuideSearchRoute = OilGuideSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => OilGuideRoute,
+} as any)
 const OrderOrderIdRoute = OrderOrderIdRouteImport.update({
   id: '/order/$orderId',
   path: '/order/$orderId',
@@ -295,6 +316,17 @@ const MediaFileAssetIdRoute = MediaFileAssetIdRouteImport.update({
   path: '/media/file/$assetId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OilGuideAreaSlugCategorySlugRoute =
+  OilGuideAreaSlugCategorySlugRouteImport.update({
+    id: '/$categorySlug',
+    path: '/$categorySlug',
+    getParentRoute: () => OilGuideAreaSlugRoute,
+  } as any)
+const OilGuideOilsOilSlugRoute = OilGuideOilsOilSlugRouteImport.update({
+  id: '/oils/$oilSlug',
+  path: '/oils/$oilSlug',
+  getParentRoute: () => OilGuideRoute,
+} as any)
 const AdminContentPreviewEntityTypeEntityIdRoute =
   AdminContentPreviewEntityTypeEntityIdRouteImport.update({
     id: '/content-preview/$entityType/$entityId',
@@ -307,6 +339,12 @@ const ApiPaymentPaypingCallbackRoute =
     path: '/api/payment/payping/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OilGuideAreaSlugCategorySlugConcernSlugRoute =
+  OilGuideAreaSlugCategorySlugConcernSlugRouteImport.update({
+    id: '/$concernSlug',
+    path: '/$concernSlug',
+    getParentRoute: () => OilGuideAreaSlugCategorySlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -318,7 +356,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/magazine': typeof MagazineRouteWithChildren
-  '/oil-guide': typeof OilGuideRoute
+  '/oil-guide': typeof OilGuideRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/returns': typeof ReturnsRoute
@@ -345,19 +383,25 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
+  '/oil-guide/$areaSlug': typeof OilGuideAreaSlugRouteWithChildren
+  '/oil-guide/search': typeof OilGuideSearchRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
   '/product/$productId': typeof ProductProductIdRoute
   '/admin/': typeof AdminIndexRoute
   '/magazine/': typeof MagazineIndexRoute
+  '/oil-guide/': typeof OilGuideIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
   '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
+  '/oil-guide/$areaSlug/$categorySlug': typeof OilGuideAreaSlugCategorySlugRouteWithChildren
+  '/oil-guide/oils/$oilSlug': typeof OilGuideOilsOilSlugRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
+  '/oil-guide/$areaSlug/$categorySlug/$concernSlug': typeof OilGuideAreaSlugCategorySlugConcernSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -367,7 +411,6 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
-  '/oil-guide': typeof OilGuideRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/returns': typeof ReturnsRoute
@@ -392,19 +435,25 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
+  '/oil-guide/$areaSlug': typeof OilGuideAreaSlugRouteWithChildren
+  '/oil-guide/search': typeof OilGuideSearchRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
   '/product/$productId': typeof ProductProductIdRoute
   '/admin': typeof AdminIndexRoute
   '/magazine': typeof MagazineIndexRoute
+  '/oil-guide': typeof OilGuideIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
   '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
+  '/oil-guide/$areaSlug/$categorySlug': typeof OilGuideAreaSlugCategorySlugRouteWithChildren
+  '/oil-guide/oils/$oilSlug': typeof OilGuideOilsOilSlugRoute
   '/admin/customers': typeof AdminCustomersIndexRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
+  '/oil-guide/$areaSlug/$categorySlug/$concernSlug': typeof OilGuideAreaSlugCategorySlugConcernSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -417,7 +466,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/magazine': typeof MagazineRouteWithChildren
-  '/oil-guide': typeof OilGuideRoute
+  '/oil-guide': typeof OilGuideRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/returns': typeof ReturnsRoute
@@ -444,19 +493,25 @@ export interface FileRoutesById {
   '/api/health': typeof ApiHealthRoute
   '/api/media-upload': typeof ApiMediaUploadRoute
   '/magazine/$articleId': typeof MagazineArticleIdRoute
+  '/oil-guide/$areaSlug': typeof OilGuideAreaSlugRouteWithChildren
+  '/oil-guide/search': typeof OilGuideSearchRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/pages/$pageSlug': typeof PagesPageSlugRoute
   '/product/$productId': typeof ProductProductIdRoute
   '/admin/': typeof AdminIndexRoute
   '/magazine/': typeof MagazineIndexRoute
+  '/oil-guide/': typeof OilGuideIndexRoute
   '/admin/customers/$customerId': typeof AdminCustomersCustomerIdRoute
   '/admin/orders/$code': typeof AdminOrdersCodeRoute
   '/api/torob/products': typeof ApiTorobProductsRoute
   '/media/file/$assetId': typeof MediaFileAssetIdRoute
+  '/oil-guide/$areaSlug/$categorySlug': typeof OilGuideAreaSlugCategorySlugRouteWithChildren
+  '/oil-guide/oils/$oilSlug': typeof OilGuideOilsOilSlugRoute
   '/admin/customers/': typeof AdminCustomersIndexRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/content-preview/$entityType/$entityId': typeof AdminContentPreviewEntityTypeEntityIdRoute
   '/api/payment/payping/callback': typeof ApiPaymentPaypingCallbackRoute
+  '/oil-guide/$areaSlug/$categorySlug/$concernSlug': typeof OilGuideAreaSlugCategorySlugConcernSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -497,19 +552,25 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
+    | '/oil-guide/$areaSlug'
+    | '/oil-guide/search'
     | '/order/$orderId'
     | '/pages/$pageSlug'
     | '/product/$productId'
     | '/admin/'
     | '/magazine/'
+    | '/oil-guide/'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
     | '/api/torob/products'
     | '/media/file/$assetId'
+    | '/oil-guide/$areaSlug/$categorySlug'
+    | '/oil-guide/oils/$oilSlug'
     | '/admin/customers/'
     | '/admin/orders/'
     | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
+    | '/oil-guide/$areaSlug/$categorySlug/$concernSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -519,7 +580,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/faq'
-    | '/oil-guide'
     | '/privacy'
     | '/products'
     | '/returns'
@@ -544,19 +604,25 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
+    | '/oil-guide/$areaSlug'
+    | '/oil-guide/search'
     | '/order/$orderId'
     | '/pages/$pageSlug'
     | '/product/$productId'
     | '/admin'
     | '/magazine'
+    | '/oil-guide'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
     | '/api/torob/products'
     | '/media/file/$assetId'
+    | '/oil-guide/$areaSlug/$categorySlug'
+    | '/oil-guide/oils/$oilSlug'
     | '/admin/customers'
     | '/admin/orders'
     | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
+    | '/oil-guide/$areaSlug/$categorySlug/$concernSlug'
   id:
     | '__root__'
     | '/'
@@ -595,19 +661,25 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/media-upload'
     | '/magazine/$articleId'
+    | '/oil-guide/$areaSlug'
+    | '/oil-guide/search'
     | '/order/$orderId'
     | '/pages/$pageSlug'
     | '/product/$productId'
     | '/admin/'
     | '/magazine/'
+    | '/oil-guide/'
     | '/admin/customers/$customerId'
     | '/admin/orders/$code'
     | '/api/torob/products'
     | '/media/file/$assetId'
+    | '/oil-guide/$areaSlug/$categorySlug'
+    | '/oil-guide/oils/$oilSlug'
     | '/admin/customers/'
     | '/admin/orders/'
     | '/admin/content-preview/$entityType/$entityId'
     | '/api/payment/payping/callback'
+    | '/oil-guide/$areaSlug/$categorySlug/$concernSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -620,7 +692,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   FaqRoute: typeof FaqRoute
   MagazineRoute: typeof MagazineRouteWithChildren
-  OilGuideRoute: typeof OilGuideRoute
+  OilGuideRoute: typeof OilGuideRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRoute
   ReturnsRoute: typeof ReturnsRoute
@@ -908,6 +980,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MagazineArticleIdRouteImport
       parentRoute: typeof MagazineRoute
     }
+    '/oil-guide/': {
+      id: '/oil-guide/'
+      path: '/'
+      fullPath: '/oil-guide/'
+      preLoaderRoute: typeof OilGuideIndexRouteImport
+      parentRoute: typeof OilGuideRoute
+    }
+    '/oil-guide/$areaSlug': {
+      id: '/oil-guide/$areaSlug'
+      path: '/$areaSlug'
+      fullPath: '/oil-guide/$areaSlug'
+      preLoaderRoute: typeof OilGuideAreaSlugRouteImport
+      parentRoute: typeof OilGuideRoute
+    }
+    '/oil-guide/search': {
+      id: '/oil-guide/search'
+      path: '/search'
+      fullPath: '/oil-guide/search'
+      preLoaderRoute: typeof OilGuideSearchRouteImport
+      parentRoute: typeof OilGuideRoute
+    }
     '/order/$orderId': {
       id: '/order/$orderId'
       path: '/order/$orderId'
@@ -971,6 +1064,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaFileAssetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oil-guide/$areaSlug/$categorySlug': {
+      id: '/oil-guide/$areaSlug/$categorySlug'
+      path: '/$categorySlug'
+      fullPath: '/oil-guide/$areaSlug/$categorySlug'
+      preLoaderRoute: typeof OilGuideAreaSlugCategorySlugRouteImport
+      parentRoute: typeof OilGuideAreaSlugRoute
+    }
+    '/oil-guide/oils/$oilSlug': {
+      id: '/oil-guide/oils/$oilSlug'
+      path: '/oils/$oilSlug'
+      fullPath: '/oil-guide/oils/$oilSlug'
+      preLoaderRoute: typeof OilGuideOilsOilSlugRouteImport
+      parentRoute: typeof OilGuideRoute
+    }
     '/admin/content-preview/$entityType/$entityId': {
       id: '/admin/content-preview/$entityType/$entityId'
       path: '/content-preview/$entityType/$entityId'
@@ -984,6 +1091,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/payment/payping/callback'
       preLoaderRoute: typeof ApiPaymentPaypingCallbackRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/oil-guide/$areaSlug/$categorySlug/$concernSlug': {
+      id: '/oil-guide/$areaSlug/$categorySlug/$concernSlug'
+      path: '/$concernSlug'
+      fullPath: '/oil-guide/$areaSlug/$categorySlug/$concernSlug'
+      preLoaderRoute: typeof OilGuideAreaSlugCategorySlugConcernSlugRouteImport
+      parentRoute: typeof OilGuideAreaSlugCategorySlugRoute
     }
   }
 }
@@ -1080,6 +1194,51 @@ const MagazineRouteWithChildren = MagazineRoute._addFileChildren(
   MagazineRouteChildren,
 )
 
+interface OilGuideAreaSlugCategorySlugRouteChildren {
+  OilGuideAreaSlugCategorySlugConcernSlugRoute: typeof OilGuideAreaSlugCategorySlugConcernSlugRoute
+}
+
+const OilGuideAreaSlugCategorySlugRouteChildren: OilGuideAreaSlugCategorySlugRouteChildren =
+  {
+    OilGuideAreaSlugCategorySlugConcernSlugRoute:
+      OilGuideAreaSlugCategorySlugConcernSlugRoute,
+  }
+
+const OilGuideAreaSlugCategorySlugRouteWithChildren =
+  OilGuideAreaSlugCategorySlugRoute._addFileChildren(
+    OilGuideAreaSlugCategorySlugRouteChildren,
+  )
+
+interface OilGuideAreaSlugRouteChildren {
+  OilGuideAreaSlugCategorySlugRoute: typeof OilGuideAreaSlugCategorySlugRouteWithChildren
+}
+
+const OilGuideAreaSlugRouteChildren: OilGuideAreaSlugRouteChildren = {
+  OilGuideAreaSlugCategorySlugRoute:
+    OilGuideAreaSlugCategorySlugRouteWithChildren,
+}
+
+const OilGuideAreaSlugRouteWithChildren =
+  OilGuideAreaSlugRoute._addFileChildren(OilGuideAreaSlugRouteChildren)
+
+interface OilGuideRouteChildren {
+  OilGuideAreaSlugRoute: typeof OilGuideAreaSlugRouteWithChildren
+  OilGuideSearchRoute: typeof OilGuideSearchRoute
+  OilGuideIndexRoute: typeof OilGuideIndexRoute
+  OilGuideOilsOilSlugRoute: typeof OilGuideOilsOilSlugRoute
+}
+
+const OilGuideRouteChildren: OilGuideRouteChildren = {
+  OilGuideAreaSlugRoute: OilGuideAreaSlugRouteWithChildren,
+  OilGuideSearchRoute: OilGuideSearchRoute,
+  OilGuideIndexRoute: OilGuideIndexRoute,
+  OilGuideOilsOilSlugRoute: OilGuideOilsOilSlugRoute,
+}
+
+const OilGuideRouteWithChildren = OilGuideRoute._addFileChildren(
+  OilGuideRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1090,7 +1249,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   FaqRoute: FaqRoute,
   MagazineRoute: MagazineRouteWithChildren,
-  OilGuideRoute: OilGuideRoute,
+  OilGuideRoute: OilGuideRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRoute,
   ReturnsRoute: ReturnsRoute,

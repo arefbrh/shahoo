@@ -126,6 +126,14 @@ CREATE TABLE oil_encyclopedia.guide_recommendation_reviews (
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
   review_note TEXT NOT NULL DEFAULT '',
+  source_version TEXT,
+  source_record_ref TEXT,
+  CONSTRAINT guide_recommendation_provenance_check CHECK (
+    display_status <> 'published' OR
+    (NULLIF(btrim(source_version), '') IS NOT NULL
+     AND NULLIF(btrim(source_record_ref), '') IS NOT NULL
+     AND NULLIF(btrim(review_note), '') IS NOT NULL)
+  ),
   CONSTRAINT guide_recommendation_review_check CHECK (
     review_status <> 'approved' OR
     (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL
@@ -343,6 +351,7 @@ LEFT JOIN LATERAL (
   JOIN oil_encyclopedia.guide_concerns n
     ON n.id = m.concern_id
    AND n.category_id = m.category_id
+   AND n.is_active IS TRUE
    AND n.source_app_id = source_map.app_id
    AND n.review_status = 'approved'
    AND n.display_status = 'published'
