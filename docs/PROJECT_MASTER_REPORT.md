@@ -254,7 +254,7 @@ The repository's existing files remain the documentation system of record. Do no
 
 ### Owner-approved scope
 
-The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The only current runtime integration is the existing oil recommendation guide. Public encyclopedia pages, broad CMS/product/API integration, automatic content generation and manufacturing/formulation are out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), implementation merged via [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42) as `b51be73505b4e43c1e61b0a877d153d3de483b61`.
+The encyclopedia remains a reusable knowledge source for future agent-assisted product creation, product descriptions, customer Q&A and educational content. The current owner-approved runtime scope is the Oil Guide/recommendation experience. PR #42 integrated approved encyclopedia enrichment into the existing recommender; PR #45 adds a separate database-driven taxonomy/discovery baseline. The owner has since clarified that the desired primary experience is a guided customer questionnaire returning three ranked oils from all 41 canonical encyclopedia oils, independent of storefront product availability. The current PR #45 visual design is not accepted as final and is to be redesigned by the next agent. Broad CMS/product/API integration beyond the Oil Guide, automatic content generation and manufacturing/formulation remain out of scope. Tracking: [Issue #37](https://github.com/shahoo-workspace/shahoo/issues/37), [PR #42](https://github.com/shahoo-workspace/shahoo/pull/42), [PR #45](https://github.com/shahoo-workspace/shahoo/pull/45). See [Oil Guide Product & Design Handoff](OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md).
 
 ### Current application behavior and integration design
 
@@ -288,3 +288,89 @@ The encyclopedia remains a reusable knowledge source for future agent-assisted p
 4. Test the existing recommendation path for missing source, no mapping, ambiguous mapping, unapproved records, safety warnings and synthetic approved fixtures. Existing scoring must remain unchanged.
 5. Confirm actual sellable product identities and create explicit, reviewed product mappings; no name-only inference. Obtain qualified content/safety signoff before any record can pass the public views. Only then consider enabling the feature in Staging.
 6. Production import, migration, environment changes and feature activation require separate explicit owner approval and the normal Production migration/backup gates.
+
+## 12. Oil Guide database-driven taxonomy and discovery — 2026-11-27
+
+### Implementation in PR #45
+
+- PR #45 (`feat/oil-guide-taxonomy-discovery`) introduces a data-driven discovery experience under the existing `/oil-guide` route while retaining the existing quick recommendation wizard.
+- The new route architecture includes area, category, concern, search and canonical oil-profile pages. All encyclopedia reads are server-side through validated TanStack Start server functions and the separate optional reader connection.
+- The new reader accesses only explicit `public_guide_*` views and the existing `public_oil_profiles`, `public_claims`, `public_protocols`, `public_faq`, `public_oil_qa`, `public_safety_warnings` and `public_problem_oils` views. It does not read internal research/audit tables.
+
+### Taxonomy derived from the actual v3.2 package
+
+- The importer creates `guide_areas`, `guide_categories`, `guide_concerns` and `oil_guide_mappings` in the isolated `oil_encyclopedia` schema; it does not add conflicting tables to the storefront `public` schema.
+- Three navigation areas are defined: Hair, Skin and Topical use.
+- Five source-backed categories are derived from actual `Applications.category` values: `ساقه مو`, `ریشه مو و پوست سر`, `پوست`, `سنتی و موضعی` and `ماساژ`.
+- The 38 concern/topic records preserve their canonical `Applications.app_id`. The source's combined `ریشه مو و پوست سر` category is retained as one category; the source does not justify splitting roots and scalp. No independent hair-ends, hair-length or feet categories are fabricated.
+- Oil-to-topic relationships are generated from actual `Problem_Oil_Map` records, retaining canonical `oil_id` and supporting `map_id`. These are inserted only as `needs_human_review` / `hidden`; this is a traceable review queue, not customer-facing eligibility.
+
+### Publication and least-privilege gates
+
+- The public guide mapping view requires an explicit manual mapping approval (`review_status=approved`, `display_status=published`, reviewer and timestamp) and a matching row in the existing signed-off `public_problem_oils` view plus the signed-off `public_oil_profiles` view.
+- The read-only role receives SELECT only on the four new `public_guide_*` views. It receives no direct SELECT on the taxonomy mapping tables or internal v3.2 research tables.
+- Public area/category metadata may be listed with an approved oil count of zero. Concern pages and oil cards appear only when at least one valid public mapping exists. Profile sections are omitted unless their respective approved public view returns data.
+- If the reader is disabled or unavailable, the UI shows an explicit status message and never falls back to unverified storefront metadata or hardcoded oil profiles.
+
+### Verification and remaining gates
+
+- PR #45 CI is running; its first failed typecheck exposed that TanStack route types must be generated before TypeScript checks. The branch now uses the Vite build as the `pretypecheck` step to regenerate the typed route tree before `tsc`.
+- Latest Vercel Staging deployment `dpl_BBvx9Qsi7p4HCi1gsfBLctpQX1Y7` reached READY for PR #45 at commit `9b31e20af170158324ad1cedb7ced19a06cba118`: https://shahoo-1hhyw2nyh-shahoo.vercel.app/oil-guide. The separate encyclopedia DB is still unimported/unconfigured, so the guide correctly renders its disabled-source state.
+- The complete v3.2 package is still not imported into the isolated Neon branch. The taxonomy DDL/seed code has not yet been executed against that branch; its live PostgreSQL view creation and row-count verification remain unverified.
+- No dedicated login reader, Vercel encyclopedia connection string, enable flag, product mappings or customer-content approvals exist. No Production migration, secret change, feature activation or Production deployment has been performed.
+- The owner is currently using an iPhone and has no Windows PC or ready VPS. The guarded importer helper remains pending until a network-capable environment is available; no connection string should be pasted into chat.
+
+### Next steps
+
+1. Complete PR #45 CI and resolve any remaining failures before merging.
+2. Deploy the final PR head to Vercel Staging and verify the new route tree and safe empty-state experience.
+3. When a network-capable environment is available, import v3.2 into the isolated Neon integration branch and verify the four taxonomy views, all source relationships, grants and zero initial customer-visible mappings.
+4. Create a dedicated read-only login role and configure only the approved Staging Preview environment after the import is verified.
+5. Review the pending taxonomy mappings with a qualified human reviewer. Do not activate public guide content until mapping approval and source publication gates both pass.
+
+
+## 12. Owner-clarified Oil Guide recommendation and redesign direction — 2026-11-27
+
+The owner clarified that the current PR #45 visual design is not the desired final UX. The implementation must be preserved as a technical baseline, while the customer-facing experience is redesigned around a guided questionnaire and a three-result ranked recommendation.
+
+- Candidate universe: all 41 canonical v3.2 oils, not the current three storefront oil products. Product mapping, listing status and stock must not affect recommendation eligibility or rank.
+- Separate canonical oil identity, reviewed recommendation eligibility, customer-content publication approval and commerce availability. The current v3.2 snapshot still has no final-approved oil profiles and no customer-approved Problem_Oil_Map rows; no publication gate may be bypassed to make the feature appear populated.
+- Questionnaire: source-backed areas, categories and concerns, with relevant progressive questions for hair/skin attributes, intended use, preferences and sensitivities only where reviewed data supports them.
+- Results: three unique oils ranked 1–3 whenever at least three are legitimately eligible. Use a transparent 0–100 compatibility score, not a claim of proven efficacy or probability. Safety exclusions are hard gates; missing data is not a positive match.
+- A non-stocked/non-listed oil remains a valid recommendation; show commerce availability separately and offer a purchase link only for an explicit oil-product mapping.
+- Do not invent unsupported concerns/categories, benefits, usage protocols or safety claims. Keep the roots/scalp category combined as in source data unless reviewed evidence justifies a taxonomy change.
+- Full requirements, current code paths, operational limitations, UX direction and acceptance tests are documented in [docs/OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md](OIL_GUIDE_PRODUCT_AND_DESIGN_HANDOFF.md). This focused document was explicitly requested by the owner.
+
+This section supersedes any earlier implication that the final Oil Guide should remain a product-only recommender or that its customer experience should be limited to browsing the taxonomy. PR #45 remains an unmerged feature branch; no production action is authorized.
+
+
+## 13. Oil Guide guided questionnaire and 41-oil recommender — 2026-11-27
+
+### Branch and preservation boundary
+
+- PR #45 remains open, unmerged and unchanged. The follow-up branch `feat/oil-guide-guided-recommendations` was created from the inspected PR #45 head `bc726036d3e185d02113dc10dc4e8c91ba2ed80f`, not from `main`.
+- All follow-up changes are isolated to that new branch. No merge, shared database import, Vercel secret/flag update, Production change or deployment was performed.
+
+### Implemented in the follow-up branch
+
+- Replaced the primary `/oil-guide` customer journey with a Persian RTL, mobile-first staged questionnaire. The old product-only recommender is no longer the primary flow; the existing taxonomy/search pages remain secondary browse paths.
+- Added validated server functions for questionnaire data and recommendation submission. Encyclopedia reads use the separate connection in read-only transactions and only the dedicated guide views. The browser never connects to Neon.
+- Added an explicit recommendation review table, seeded pending for every canonical oil. Its limited customer-facing name/attribute snapshot is NULL by default and must be transcribed from source and approved by an authorized reviewer; import does not auto-fill it. The review table keeps `recommendation_status`, `safety_decision` and `display_status` separate; the candidate view exposes recommendation-candidate eligibility and customer-display approval separately and combines them only for customer ranking. A new candidate view starts from all canonical `oils` rows and has no storefront/product/inventory join. Names and facts are returned only after separate recommendation-specific human review and limited display approval.
+- Recommendation snapshot approval, recommendation eligibility, safety decision, limited customer display approval and questionnaire concern approval are separate from full encyclopedia profile/public-content approval. Every scored concern relationship must still pass its human mapping review and the source `public_problem_oils` final-signoff view. The new questionnaire label gate is limited to the new recommender views; the existing PR #45 `public_guide_oils` browse projection retains its prior behavior and the detailed profile/browse gates remain unchanged.
+- Added deterministic scoring (initial weights: concern 60, category 25, area 10, texture 5), reason codes, factor breakdown, canonical-ID deduplication, deterministic tie-breaks and hard safety eligibility gates. Scores are compatibility scores, not clinical efficacy or probability.
+- Added post-ranking storefront availability enrichment. Approved product mapping, product publication and stock are never candidate filters or scoring inputs.
+
+### Tests added
+
+- `scripts/oil-guide-recommendations.test.mjs`: 41 canonical candidate rows remain in the pool when only three storefront products are mapped; an unlisted oil can still rank; commerce metadata does not change rank/score; deduplication, safety exclusions, missing attributes, deterministic ordering and fewer-than-three behavior.
+- `scripts/oil-guide-taxonomy.test.mjs`: review/publication gates and the canonical-oil-rooted recommendation view, including the absence of storefront/inventory joins.
+- CI run #280 on follow-up head `78dbc447ac5350241138e18276a888bba281c9f9` completed successfully. Project tests: 147 passed, 0 failed. Quality/build, PostgreSQL integration and migrations, migration inventory, security checks, Windows native build/recovery, self-host Docker/Compose validation, and payment/SMS mocks all passed. The optional Manus private platform harness was skipped by the workflow. This is CI verification only; it is not a database import or deployment.
+
+### Data and release limitations
+
+- The v3.2 source still has no final-approved full oil profiles or public problem-oil mappings. The recommendation-specific snapshot rows and concern/mapping approvals are pending/hidden; no source approval is bypassed or fabricated.
+- The full source import and SQL execution against the isolated Neon branch remain outstanding. The customer questionnaire remains closed and shows an insufficient-approved-data readiness notice until at least three oils and their source-backed relationships pass the separate recommendation, safety and display reviews.
+- PR #45's Staging preview, disabled source state and all existing production/release boundaries remain untouched.
+
+### Oil Guide acceptance follow-up — PR #46
+Ranking requires a selected category and, when supplied, a selected concern. Only active concern relationships enter the candidate projection. Published snapshots require a source version, record reference and review note. Optional questions follow the selected categories and topics. Verification covers context-only rejection, active concern filtering and provenance constraints. The isolated v3.2 import and human approval of customer content remain open in #37.
