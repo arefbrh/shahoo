@@ -36,8 +36,6 @@ Historical sections below may describe the state at the date shown in their head
 
 ## Current state
 
-## Current state
-
 - PR #45 (database-driven Oil Guide taxonomy/discovery) and PR #46 (guided 41-oil recommender) are merged to main. The current main snapshot must still be verified before assuming their code is deployed or their data integration is active.
 - PR #12 (post-merge schema/release verification) remains Draft/open; its follow-up checks were deferred by the owner.
 - Governance/agent-continuity policy update is tracked by [Issue #47](https://github.com/shahoo-workspace/shahoo/issues/47).
